@@ -41,6 +41,11 @@ export default function EditorPage() {
       pdfFile: { pageCount: number };
     };
 
+    if (!Array.isArray(t.fields)) {
+      console.error('[EditorPage] Expected fields array, got:', typeof t.fields);
+      return;
+    }
+
     const editorFields = t.fields.map((f) => ({
       id: f.id,
       type: f.type.toLowerCase() as FieldType,
@@ -50,6 +55,7 @@ export default function EditorPage() {
       repetitionGroupId: f.repetitionGroupId,
     }));
 
+    console.debug('[EditorPage] Initializing', editorFields.length, 'fields from template');
     setFields(editorFields);
     useEditorStore.getState().setTotalPages(t.pdfFile.pageCount);
   }, [template, setFields]);
