@@ -3,9 +3,9 @@
   "private": true,
   "scripts": {
     "dev": "turbo dev",
-    "dev:all": "turbo dev --filter=api --filter=web --output-logs=full --ui=stream",
-    "dev:api": "turbo dev --filter=api --output-logs=full --ui=stream",
-    "dev:web": "turbo dev --filter=web --output-logs=full --ui=stream",
+    "dev:all": "turbo dev --filter=@regcheck/api --filter=@regcheck/web --output-logs=full --ui=stream",
+    "dev:api": "turbo dev --filter=@regcheck/api --output-logs=full --ui=stream",
+    "dev:web": "turbo dev --filter=@regcheck/web --output-logs=full --ui=stream",
     "build": "turbo build",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
