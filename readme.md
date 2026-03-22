@@ -97,16 +97,32 @@ pnpm dev
 
 O projeto usa Docker para rodar PostgreSQL, Redis e MinIO. No Windows, a forma recomendada é via **Docker Desktop + WSL2**.
 
+> **IMPORTANTE: Onde rodar os comandos?**
+>
+> Você tem **duas opções**. Escolha UMA e siga com ela:
+>
+> | Opção | Onde rodar `pnpm install` / `pnpm dev` | Quando usar |
+> |-------|---------------------------------------|-------------|
+> | **A) PowerShell no Windows** (mais simples) | PowerShell normal | Se já tem Node.js/pnpm no Windows |
+> | **B) WSL2 com projeto no filesystem nativo** | Terminal WSL2 | Se prefere ambiente Linux |
+>
+> **NÃO rode `pnpm install` dentro do WSL2 em `/mnt/c/...`** (caminho Windows montado).
+> O filesystem montado (9P) causa erros de permissão (`EACCES`) e é 10-50x mais lento.
+> Se for usar WSL2, copie o projeto para `~/projects/RegCheck` (filesystem nativo do Linux).
+
 #### 1. Instalar WSL2
+
+> Se já tem o WSL2 instalado (Ubuntu ou Debian), pule para o passo 2.
 
 Abra o **PowerShell como Administrador** e execute:
 
 ```powershell
+# Instala WSL2 com Ubuntu por padrão
 wsl --install
 ```
 
-Isso instala o WSL2 com Ubuntu por padrão. Reinicie o computador quando solicitado.
-Após reiniciar, o Ubuntu vai abrir e pedir para criar um usuário/senha — guarde essas credenciais.
+Se você já tem o WSL com **Debian** (como no seu caso), funciona igual.
+Reinicie o computador quando solicitado.
 
 Para verificar se está usando WSL2:
 
@@ -114,7 +130,11 @@ Para verificar se está usando WSL2:
 wsl --list --verbose
 ```
 
-A coluna `VERSION` deve mostrar `2`.
+A coluna `VERSION` deve mostrar `2`. Exemplo:
+```
+  NAME      STATE           VERSION
+* Debian    Running         2
+```
 
 #### 2. Instalar Docker Desktop
 
@@ -139,22 +159,27 @@ Ambos devem retornar versões válidas.
 **Opção A — Direto no Windows (mais simples):**
 
 Baixe o Node.js 20+ em https://nodejs.org/ e instale normalmente.
-Depois instale o pnpm:
+Depois instale o pnpm no PowerShell:
 
 ```powershell
 corepack enable
 corepack prepare pnpm@9.15.0 --activate
 ```
 
-**Opção B — Dentro do WSL2 (recomendado para compatibilidade total):**
+**Opção B — Dentro do WSL2 (Ubuntu ou Debian):**
 
 ```bash
-# Dentro do terminal WSL2 (Ubuntu)
+# Instalar Node.js 20
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
-corepack enable
+
+# Habilitar corepack (precisa de sudo no Debian/Ubuntu)
+sudo corepack enable
 corepack prepare pnpm@9.15.0 --activate
 ```
+
+> **Nota**: `corepack enable` precisa de `sudo` porque cria symlinks em `/usr/bin/`.
+> Se der erro `EACCES`, adicione `sudo` antes do comando.
 
 #### 4. Subir os serviços com Docker
 
@@ -206,19 +231,39 @@ As variáveis principais são:
 
 #### 6. Instalar dependências e iniciar
 
+**Se estiver no PowerShell (Opção A):**
+
 ```powershell
-# Instalar dependências
 pnpm install
-
-# Gerar Prisma Client
 pnpm db:generate
-
-# Criar tabelas no PostgreSQL
 pnpm db:push
-
-# Iniciar em modo desenvolvimento (API + Web)
 pnpm dev
 ```
+
+**Se estiver no WSL2 (Opção B) — copie o projeto para o filesystem nativo primeiro:**
+
+```bash
+# Copiar projeto do disco Windows para o filesystem Linux nativo
+mkdir -p ~/projects
+cp -r /mnt/c/Users/<SEU_USUARIO>/Desktop/Dev/RegCheck ~/projects/RegCheck
+cd ~/projects/RegCheck
+
+# Criar .env
+cp .env.example .env
+
+# Instalar e iniciar
+pnpm install
+pnpm db:generate
+pnpm db:push
+pnpm dev
+```
+
+> **Por que copiar?** O `/mnt/c/...` usa o filesystem 9P que não suporta symlinks
+> e operações atômicas de rename corretamente, causando `EACCES` no pnpm.
+> O filesystem nativo (`~/...`) é rápido e sem problemas de permissão.
+>
+> Depois de copiar, abra o VSCode com: `code ~/projects/RegCheck`
+> (o VSCode detecta automaticamente o WSL2 com a extensão Remote - WSL).
 
 #### 7. Verificar que tudo está funcionando
 
@@ -237,10 +282,13 @@ pnpm dev
 |------|-------|---------|
 | `docker: O termo 'docker' não é reconhecido` | Docker Desktop não instalado ou não está no PATH | Instale o Docker Desktop e reinicie o terminal |
 | `Environment variable not found: DATABASE_URL` | Arquivo `.env` não existe | Rode `copy .env.example .env` (PowerShell) ou `cp .env.example .env` (WSL) |
+| `sh: 1: turbo: not found` | `pnpm install` falhou ou não foi executado | Rode `pnpm install` novamente. Se falhou com EACCES, veja abaixo |
+| `EACCES: permission denied, rename` no pnpm install (WSL2) | Projeto em `/mnt/c/...` (filesystem Windows montado) | **Copie o projeto para `~/projects/RegCheck`** (filesystem nativo do WSL2) e rode lá. Veja passo 6 |
+| `EACCES: permission denied, symlink` no `corepack enable` | Falta sudo | Rode `sudo corepack enable` |
 | `Connection refused` no PostgreSQL | Docker não está rodando | Abra o Docker Desktop e rode `docker compose up -d` |
-| `Port 5432 already in use` | Outro PostgreSQL rodando na máquina | Pare o serviço local: `net stop postgresql-x64-16` ou mude a porta no docker-compose.yml |
-| `EACCES permission denied` no pnpm | Permissões no WSL | Rode `sudo chown -R $USER:$USER .` no diretório do projeto |
+| `Port 5432 already in use` | Outro PostgreSQL rodando na máquina | Pare o serviço local: `net stop postgresql-x64-16` (PowerShell) ou mude a porta no docker-compose.yml |
 | MinIO bucket não criado | Serviço minio-init falhou | Rode `docker compose restart minio-init` |
+| Warning `version` obsolete no docker-compose | Campo `version` não é mais necessário | Já removido — faça `git pull` para atualizar |
 
 ### Acessos
 - **Frontend**: http://localhost:3000
