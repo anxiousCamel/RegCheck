@@ -3,6 +3,7 @@
 import { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import { Stage, Layer, Rect, Text, Group, Transformer, Image } from 'react-konva';
 import type Konva from 'konva';
+import { Spinner } from '@regcheck/ui';
 import { useEditorStore } from '@/stores/editor-store';
 import { usePdfRenderer } from '@/hooks/use-pdf-renderer';
 import { api } from '@/lib/api';
@@ -63,7 +64,7 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
   const [pdfRendered, setPdfRendered] = useState(0);
 
   const pdfUrl = pdfFileKey ? `${API_URL}/api/uploads/file?key=${pdfFileKey}` : null;
-  const { pages, renderPage } = usePdfRenderer(pdfUrl);
+  const { pages, loading: pdfLoading, error: pdfError, renderPage } = usePdfRenderer(pdfUrl);
 
   const currentPageInfo = pages[currentPage];
   const pageHeight = currentPageInfo
@@ -331,10 +332,26 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
   return (
     <div
       ref={containerRef}
-      className="flex items-center justify-center p-4 overflow-auto flex-1"
+      className="relative flex items-center justify-center p-4 overflow-auto flex-1"
       style={{ cursor: activeTool ? 'crosshair' : 'grab' }}
       tabIndex={0}
     >
+      {pdfLoading && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/80">
+          <div className="flex flex-col items-center gap-2">
+            <Spinner className="h-8 w-8" />
+            <span className="text-sm text-muted-foreground">Carregando PDF...</span>
+          </div>
+        </div>
+      )}
+      {pdfError && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/90">
+          <div className="flex flex-col items-center gap-3 text-center max-w-sm">
+            <p className="text-sm font-medium text-red-600">Erro ao carregar PDF</p>
+            <p className="text-xs text-muted-foreground">{pdfError}</p>
+          </div>
+        </div>
+      )}
       <Stage
         ref={stageRef}
         width={stageWidth}

@@ -28,7 +28,7 @@ export function usePdfRenderer(pdfUrl: string | null) {
     (async () => {
       try {
         const pdfjs = await import('pdfjs-dist');
-        pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+        pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
         // If URL is a /file proxy endpoint, load directly; otherwise resolve presigned URL
         let loadUrl = pdfUrl;
@@ -61,6 +61,7 @@ export function usePdfRenderer(pdfUrl: string | null) {
         }
       } catch (err) {
         if (!cancelled) {
+          console.error('[usePdfRenderer]', err);
           setError(err instanceof Error ? err.message : 'Failed to load PDF');
           setLoading(false);
         }
