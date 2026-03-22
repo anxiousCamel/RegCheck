@@ -77,7 +77,17 @@ export class FieldService {
   static async batchUpdatePositions(
     updates: Array<{ id: string; position: { x: number; y: number; width: number; height: number } }>,
   ) {
-    const operations = updates.map((u) =>
+    // Filter to only existing fields before updating (avoids P2025 on deleted fields)
+    const existingIds = await prisma.templateField.findMany({
+      where: { id: { in: updates.map((u) => u.id) } },
+      select: { id: true },
+    });
+    const existingSet = new Set(existingIds.map((f) => f.id));
+    const validUpdates = updates.filter((u) => existingSet.has(u.id));
+
+    if (validUpdates.length === 0) return;
+
+    const operations = validUpdates.map((u) =>
       prisma.templateField.update({
         where: { id: u.id },
         data: { position: u.position as unknown as Prisma.JsonObject },

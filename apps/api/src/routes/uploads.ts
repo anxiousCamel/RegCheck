@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { UploadService } from '../services/upload-service';
-import { getPresignedUrl } from '../lib/s3';
+import { getPresignedUrl, downloadFile } from '../lib/s3';
 import type { ApiResponse, UploadResponse } from '@regcheck/shared';
 
 const upload = multer({
@@ -21,6 +21,30 @@ uploadRouter.get('/presigned', async (req, res, next) => {
     }
     const url = await getPresignedUrl(key);
     res.json({ success: true, data: { url } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** GET /api/uploads/file - Proxy file download (avoids CORS issues with MinIO) */
+uploadRouter.get('/file', async (req, res, next) => {
+  try {
+    const key = req.query.key as string;
+    if (!key) {
+      res.status(400).json({ success: false, error: { code: 'MISSING_KEY', message: 'key is required' } });
+      return;
+    }
+    const buffer = await downloadFile(key);
+    const ext = key.split('.').pop()?.toLowerCase();
+    const mimeMap: Record<string, string> = {
+      pdf: 'application/pdf',
+      png: 'image/png',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+    };
+    res.setHeader('Content-Type', mimeMap[ext ?? ''] ?? 'application/octet-stream');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(buffer);
   } catch (err) {
     next(err);
   }

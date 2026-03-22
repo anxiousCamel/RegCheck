@@ -125,6 +125,7 @@ export default function EditorPage() {
           <EditorCanvas
             pdfFileKey={templateData?.pdfFile.fileKey ?? ''}
             templateId={templateId}
+            isPublished={templateData?.status === 'PUBLISHED'}
           />
         </div>
 

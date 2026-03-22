@@ -31,9 +31,10 @@ const FIELD_COLORS: Record<FieldType, string> = {
 interface EditorCanvasProps {
   pdfFileKey: string;
   templateId: string;
+  isPublished?: boolean;
 }
 
-export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
+export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanvasProps) {
   const stageRef = useRef<Konva.Stage>(null);
   const pdfCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const transformerRef = useRef<Konva.Transformer>(null);
@@ -61,7 +62,7 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
 
   const [pdfRendered, setPdfRendered] = useState(0);
 
-  const pdfUrl = pdfFileKey ? `${API_URL}/api/uploads/presigned?key=${pdfFileKey}` : null;
+  const pdfUrl = pdfFileKey ? `${API_URL}/api/uploads/file?key=${pdfFileKey}` : null;
   const { pages, renderPage } = usePdfRenderer(pdfUrl);
 
   const currentPageInfo = pages[currentPage];
@@ -100,13 +101,13 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
     },
   });
 
-  // Delete fields mutation
+  // Delete fields mutation — removes from state immediately (optimistic)
   const deleteFieldsMutation = useMutation({
     mutationFn: async (fieldIds: string[]) => {
-      await Promise.all(fieldIds.map((id) => api.deleteField(templateId, id)));
-    },
-    onSuccess: (_, fieldIds) => {
+      // Optimistically remove from state before API call
       removeFields(fieldIds);
+      // Delete from backend, ignoring 404s (already deleted)
+      await Promise.allSettled(fieldIds.map((id) => api.deleteField(templateId, id)));
     },
   });
 
@@ -146,7 +147,7 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
       if (e.target === e.target.getStage()) {
         selectField(null);
 
-        if (activeTool) {
+        if (activeTool && !isPublished) {
           const stage = stageRef.current;
           if (!stage) return;
 
@@ -401,31 +402,40 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
           <Transformer ref={transformerRef} boundBoxFunc={(_, newBox) => newBox} />
         </Layer>
 
-        {/* Grid overlay */}
-        {snapEnabled && (
-          <Layer listening={false} opacity={0.1}>
-            {Array.from({ length: Math.ceil(CANVAS_WIDTH / gridSize) }, (_, i) => (
-              <Rect
-                key={`gv-${i}`}
-                x={i * gridSize}
-                y={0}
-                width={1 / zoom}
-                height={pageHeight}
-                fill="#000"
-              />
-            ))}
-            {Array.from({ length: Math.ceil(pageHeight / gridSize) }, (_, i) => (
-              <Rect
-                key={`gh-${i}`}
-                x={0}
-                y={i * gridSize}
-                width={CANVAS_WIDTH}
-                height={1 / zoom}
-                fill="#000"
-              />
-            ))}
-          </Layer>
-        )}
+        {/* Grid overlay — lines at actual snap positions */}
+        {snapEnabled && (() => {
+          // Snap step in normalized coords: gridSize/1000
+          // Convert to pixel coords for x and y axes
+          const snapStepX = (gridSize / 1000) * CANVAS_WIDTH;
+          const snapStepY = (gridSize / 1000) * pageHeight;
+          const vLines = Math.ceil(CANVAS_WIDTH / snapStepX);
+          const hLines = Math.ceil(pageHeight / snapStepY);
+
+          return (
+            <Layer listening={false} opacity={0.1}>
+              {Array.from({ length: vLines }, (_, i) => (
+                <Rect
+                  key={`gv-${i}`}
+                  x={i * snapStepX}
+                  y={0}
+                  width={1 / zoom}
+                  height={pageHeight}
+                  fill="#000"
+                />
+              ))}
+              {Array.from({ length: hLines }, (_, i) => (
+                <Rect
+                  key={`gh-${i}`}
+                  x={0}
+                  y={i * snapStepY}
+                  width={CANVAS_WIDTH}
+                  height={1 / zoom}
+                  fill="#000"
+                />
+              ))}
+            </Layer>
+          );
+        })()}
       </Stage>
     </div>
   );
