@@ -7,25 +7,53 @@ import { useEditorStore } from '@/stores/editor-store';
 import { api } from '@/lib/api';
 
 export function FieldProperties({ templateId }: { templateId: string }) {
-  const { fields, selectedFieldId, updateField, removeField } = useEditorStore();
+  const { fields, selectedFieldIds, updateField, removeFields } = useEditorStore();
 
-  const selectedField = useMemo(
-    () => fields.find((f) => f.id === selectedFieldId),
-    [fields, selectedFieldId],
+  const selectedFields = useMemo(
+    () => fields.filter((f) => selectedFieldIds.includes(f.id)),
+    [fields, selectedFieldIds],
   );
 
+  const selectedField = selectedFields.length === 1 ? selectedFields[0] : null;
+
   const deleteMutation = useMutation({
-    mutationFn: (fieldId: string) => api.deleteField(templateId, fieldId),
-    onSuccess: (_, fieldId) => removeField(fieldId),
+    mutationFn: async (fieldIds: string[]) => {
+      await Promise.all(fieldIds.map((id) => api.deleteField(templateId, id)));
+    },
+    onSuccess: (_, fieldIds) => removeFields(fieldIds),
   });
 
-  if (!selectedField) {
+  if (selectedFields.length === 0) {
     return (
       <div className="p-4 text-sm text-muted-foreground">
         Selecione um campo para editar suas propriedades.
       </div>
     );
   }
+
+  // Multi-select: show count + bulk delete only
+  if (selectedFields.length > 1) {
+    return (
+      <div className="p-4 space-y-4">
+        <h3 className="font-medium text-sm">{selectedFields.length} campos selecionados</h3>
+        <p className="text-xs text-muted-foreground">
+          Shift+Clique para selecionar varios. Delete para excluir. Ctrl+C para copiar.
+        </p>
+        <Button
+          variant="destructive"
+          size="sm"
+          className="w-full"
+          onClick={() => deleteMutation.mutate(selectedFieldIds)}
+          disabled={deleteMutation.isPending}
+        >
+          Excluir {selectedFields.length} campos
+        </Button>
+      </div>
+    );
+  }
+
+  // Single selection: full property editor
+  if (!selectedField) return null;
 
   return (
     <div className="p-4 space-y-4">
@@ -128,7 +156,7 @@ export function FieldProperties({ templateId }: { templateId: string }) {
           variant="destructive"
           size="sm"
           className="w-full"
-          onClick={() => deleteMutation.mutate(selectedField.id)}
+          onClick={() => deleteMutation.mutate([selectedField.id])}
           disabled={deleteMutation.isPending}
         >
           Excluir Campo

@@ -1,18 +1,8 @@
 'use client';
 
 import { create } from 'zustand';
-import type { FieldType, FieldPosition, FieldConfig, TemplateField } from '@regcheck/shared';
+import type { FieldType, FieldPosition, FieldConfig } from '@regcheck/shared';
 import { HistoryManager } from '@regcheck/editor-engine';
-
-/**
- * Editor state management using Zustand.
- *
- * Chose Zustand over React Query for the editor because:
- * - Editor state is highly interactive (drag, resize, select) - needs synchronous updates
- * - React Query is used for server-state (API data fetching/caching)
- * - Zustand provides simple, fast state updates without re-render overhead
- * - Built-in support for middleware (devtools, persist)
- */
 
 interface EditorField {
   id: string;
@@ -24,33 +14,35 @@ interface EditorField {
 }
 
 interface EditorState {
-  /** All fields in the editor */
   fields: EditorField[];
-  /** Currently selected field ID */
-  selectedFieldId: string | null;
-  /** Current page being viewed */
+  /** Set of selected field IDs (supports multi-select) */
+  selectedFieldIds: string[];
+  /** Clipboard for copy/paste */
+  clipboard: EditorField[];
   currentPage: number;
-  /** Total pages */
   totalPages: number;
-  /** Zoom level (1 = 100%) */
   zoom: number;
-  /** Snap grid enabled */
   snapEnabled: boolean;
-  /** Grid cell size in px */
   gridSize: number;
-  /** Active tool for creating new fields */
   activeTool: FieldType | null;
-  /** Whether there are unsaved changes */
   isDirty: boolean;
-  /** Undo/redo history */
   history: HistoryManager<EditorField[]>;
 
   // Actions
   setFields: (fields: EditorField[]) => void;
   addField: (field: EditorField) => void;
   updateField: (id: string, updates: Partial<EditorField>) => void;
+  updateFieldId: (oldId: string, newId: string) => void;
   removeField: (id: string) => void;
+  removeFields: (ids: string[]) => void;
+  /** Select a single field (clears multi-select) */
   selectField: (id: string | null) => void;
+  /** Toggle field in multi-select (Shift+Click) */
+  toggleFieldSelection: (id: string) => void;
+  /** Copy selected fields to clipboard */
+  copyFields: () => void;
+  /** Paste fields from clipboard with new IDs */
+  pasteFields: () => EditorField[];
   setCurrentPage: (page: number) => void;
   setTotalPages: (total: number) => void;
   setZoom: (zoom: number) => void;
@@ -63,11 +55,15 @@ interface EditorState {
   redo: () => void;
   saveSnapshot: () => void;
   markClean: () => void;
+
+  /** Derived: first selected field ID (backward compat) */
+  readonly selectedFieldId: string | null;
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
   fields: [],
-  selectedFieldId: null,
+  selectedFieldIds: [],
+  clipboard: [],
   currentPage: 0,
   totalPages: 1,
   zoom: 1,
@@ -77,14 +73,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   isDirty: false,
   history: new HistoryManager<EditorField[]>(50),
 
+  get selectedFieldId() {
+    return get().selectedFieldIds[0] ?? null;
+  },
+
   setFields: (fields) => {
-    set({ fields, isDirty: false });
+    set({ fields, isDirty: false, selectedFieldIds: [] });
     get().history.push(fields);
   },
 
   addField: (field) => {
     const fields = [...get().fields, field];
-    set({ fields, isDirty: true, selectedFieldId: field.id });
+    set({ fields, isDirty: true, selectedFieldIds: [field.id] });
     get().history.push(fields);
   },
 
@@ -93,16 +93,68 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ fields, isDirty: true });
   },
 
+  updateFieldId: (oldId, newId) => {
+    const fields = get().fields.map((f) => (f.id === oldId ? { ...f, id: newId } : f));
+    const selectedFieldIds = get().selectedFieldIds.map((sid) => (sid === oldId ? newId : sid));
+    set({ fields, selectedFieldIds });
+  },
+
   removeField: (id) => {
     const fields = get().fields.filter((f) => f.id !== id);
-    const selectedFieldId = get().selectedFieldId === id ? null : get().selectedFieldId;
-    set({ fields, selectedFieldId, isDirty: true });
+    const selectedFieldIds = get().selectedFieldIds.filter((sid) => sid !== id);
+    set({ fields, selectedFieldIds, isDirty: true });
     get().history.push(fields);
   },
 
-  selectField: (id) => set({ selectedFieldId: id }),
+  removeFields: (ids) => {
+    const idSet = new Set(ids);
+    const fields = get().fields.filter((f) => !idSet.has(f.id));
+    const selectedFieldIds = get().selectedFieldIds.filter((sid) => !idSet.has(sid));
+    set({ fields, selectedFieldIds, isDirty: true });
+    get().history.push(fields);
+  },
 
-  setCurrentPage: (page) => set({ currentPage: page, selectedFieldId: null }),
+  selectField: (id) => set({ selectedFieldIds: id ? [id] : [] }),
+
+  toggleFieldSelection: (id) => {
+    const current = get().selectedFieldIds;
+    if (current.includes(id)) {
+      set({ selectedFieldIds: current.filter((sid) => sid !== id) });
+    } else {
+      set({ selectedFieldIds: [...current, id] });
+    }
+  },
+
+  copyFields: () => {
+    const { fields, selectedFieldIds } = get();
+    const selected = fields.filter((f) => selectedFieldIds.includes(f.id));
+    set({ clipboard: selected });
+  },
+
+  pasteFields: () => {
+    const { clipboard, currentPage } = get();
+    if (clipboard.length === 0) return [];
+
+    const OFFSET = 0.02;
+    const newFields = clipboard.map((f) => ({
+      ...f,
+      id: crypto.randomUUID(),
+      pageIndex: currentPage,
+      position: {
+        ...f.position,
+        x: Math.min(f.position.x + OFFSET, 1 - f.position.width),
+        y: Math.min(f.position.y + OFFSET, 1 - f.position.height),
+      },
+    }));
+
+    const fields = [...get().fields, ...newFields];
+    const selectedFieldIds = newFields.map((f) => f.id);
+    set({ fields, selectedFieldIds, isDirty: true });
+    get().history.push(fields);
+    return newFields;
+  },
+
+  setCurrentPage: (page) => set({ currentPage: page, selectedFieldIds: [] }),
   setTotalPages: (total) => set({ totalPages: total }),
 
   setZoom: (zoom) => set({ zoom: Math.max(0.25, Math.min(3, zoom)) }),
@@ -111,7 +163,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setSnapEnabled: (enabled) => set({ snapEnabled: enabled }),
   setGridSize: (size) => set({ gridSize: size }),
-  setActiveTool: (tool) => set({ activeTool: tool, selectedFieldId: null }),
+  setActiveTool: (tool) => set({ activeTool: tool, selectedFieldIds: [] }),
 
   undo: () => {
     const fields = get().history.undo();
@@ -129,3 +181,5 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   markClean: () => set({ isDirty: false }),
 }));
+
+export type { EditorField };
