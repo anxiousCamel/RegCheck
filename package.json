@@ -2,6 +2,7 @@
   "name": "regcheck",
   "private": true,
   "scripts": {
+    "start:dev": "bash scripts/dev-start.sh",
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
