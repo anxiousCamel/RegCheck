@@ -27,10 +27,16 @@ export function usePdfRenderer(pdfUrl: string | null) {
 
     (async () => {
       try {
+        // Resolve presigned URL from API endpoint
+        const presignedRes = await fetch(pdfUrl);
+        if (!presignedRes.ok) throw new Error('Failed to get presigned URL');
+        const presignedBody = await presignedRes.json();
+        const actualUrl = presignedBody.data.url;
+
         const pdfjs = await import('pdfjs-dist');
         pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-        const doc = await pdfjs.getDocument(pdfUrl).promise;
+        const doc = await pdfjs.getDocument(actualUrl).promise;
         if (cancelled) return;
 
         pdfDocRef.current = doc;

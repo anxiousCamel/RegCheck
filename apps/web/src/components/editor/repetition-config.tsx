@@ -7,6 +7,8 @@ import { RepetitionEngine } from '@regcheck/editor-engine';
 import { api } from '@/lib/api';
 import type { RepetitionConfig as RepConfig } from '@regcheck/shared';
 
+const PREVIEW_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
+
 export function RepetitionConfig({ templateId }: { templateId: string }) {
   const { data: template } = useQuery({
     queryKey: ['template', templateId],
@@ -124,14 +126,37 @@ export function RepetitionConfig({ templateId }: { templateId: string }) {
           </div>
         )}
 
-        <div className="text-xs text-muted-foreground border rounded p-2">
-          <p className="font-medium mb-1">Preview (6 itens):</p>
-          <p>{previewLayout.totalPages} pagina(s) necessaria(s)</p>
-          {previewLayout.pageItems.map((page) => (
-            <p key={page.pageIndex}>
-              Pag. {page.pageIndex + 1}: {page.items.length} item(ns)
-            </p>
-          ))}
+        <div className="border rounded p-2">
+          <p className="text-xs font-medium mb-2">Preview (6 itens) - {previewLayout.totalPages} pagina(s)</p>
+          <div className="flex gap-2 overflow-x-auto">
+            {previewLayout.pageItems.map((page) => {
+              const cellW = config.offsetX * 100 * 0.9 || 90 / config.columns;
+              const cellH = config.offsetY * 100 * 0.9 || 90 / config.rows;
+              return (
+                <div key={page.pageIndex} className="flex-shrink-0">
+                  <p className="text-[10px] text-muted-foreground mb-1">Pag. {page.pageIndex + 1}</p>
+                  <svg viewBox="0 0 100 141.42" width={120} height={170} className="border bg-white rounded">
+                    {page.items.map((item) => {
+                      const x = item.offsetX * 100;
+                      const y = item.offsetY * 100;
+                      const color = PREVIEW_COLORS[item.itemIndex % PREVIEW_COLORS.length];
+                      return (
+                        <g key={item.itemIndex}>
+                          <rect x={x} y={y} width={cellW} height={cellH}
+                            fill={color} opacity={0.3} stroke={color} strokeWidth={0.5} rx={1} />
+                          <text x={x + cellW / 2} y={y + cellH / 2}
+                            textAnchor="middle" dominantBaseline="central"
+                            fontSize={4} fill="#333" fontWeight="bold">
+                            {item.itemIndex + 1}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <Button
