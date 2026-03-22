@@ -43,6 +43,8 @@ services:
       exit 0;
       "
 
+  # CORS proxy not needed — API proxies file downloads
+
 volumes:
   postgres_data:
   redis_data:

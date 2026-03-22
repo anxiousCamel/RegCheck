@@ -18,9 +18,11 @@ export function FieldProperties({ templateId }: { templateId: string }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (fieldIds: string[]) => {
-      await Promise.all(fieldIds.map((id) => api.deleteField(templateId, id)));
+      // Optimistically remove from state before API call
+      removeFields(fieldIds);
+      // Delete from backend, ignoring 404s (already deleted)
+      await Promise.allSettled(fieldIds.map((id) => api.deleteField(templateId, id)));
     },
-    onSuccess: (_, fieldIds) => removeFields(fieldIds),
   });
 
   if (selectedFields.length === 0) {
