@@ -66,7 +66,7 @@ regcheck/
 - pnpm >= 9
 - Docker + Docker Compose
 
-### Instalação
+### Instalação (Linux / macOS)
 
 ```bash
 # 1. Clone o repositório
@@ -90,6 +90,157 @@ pnpm db:push
 # 7. Inicie em modo desenvolvimento
 pnpm dev
 ```
+
+---
+
+### Setup no Windows (WSL2) — Passo a Passo
+
+O projeto usa Docker para rodar PostgreSQL, Redis e MinIO. No Windows, a forma recomendada é via **Docker Desktop + WSL2**.
+
+#### 1. Instalar WSL2
+
+Abra o **PowerShell como Administrador** e execute:
+
+```powershell
+wsl --install
+```
+
+Isso instala o WSL2 com Ubuntu por padrão. Reinicie o computador quando solicitado.
+Após reiniciar, o Ubuntu vai abrir e pedir para criar um usuário/senha — guarde essas credenciais.
+
+Para verificar se está usando WSL2:
+
+```powershell
+wsl --list --verbose
+```
+
+A coluna `VERSION` deve mostrar `2`.
+
+#### 2. Instalar Docker Desktop
+
+1. Baixe o **Docker Desktop** em: https://www.docker.com/products/docker-desktop/
+2. Execute o instalador e reinicie se necessário
+3. Abra o Docker Desktop
+4. Vá em **Settings > General** e marque **"Use the WSL 2 based engine"**
+5. Vá em **Settings > Resources > WSL Integration** e ative a integração com sua distro (ex: Ubuntu)
+6. Clique **Apply & Restart**
+
+Para verificar que está funcionando, abra um novo terminal (PowerShell ou WSL) e rode:
+
+```powershell
+docker --version
+docker compose version
+```
+
+Ambos devem retornar versões válidas.
+
+#### 3. Instalar Node.js e pnpm
+
+**Opção A — Direto no Windows (mais simples):**
+
+Baixe o Node.js 20+ em https://nodejs.org/ e instale normalmente.
+Depois instale o pnpm:
+
+```powershell
+corepack enable
+corepack prepare pnpm@9.15.0 --activate
+```
+
+**Opção B — Dentro do WSL2 (recomendado para compatibilidade total):**
+
+```bash
+# Dentro do terminal WSL2 (Ubuntu)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+corepack enable
+corepack prepare pnpm@9.15.0 --activate
+```
+
+#### 4. Subir os serviços com Docker
+
+Abra o **Docker Desktop** (ele precisa estar rodando em background).
+Em seguida, no terminal onde está o projeto:
+
+```powershell
+# PowerShell (Windows)
+docker compose up -d
+```
+
+```bash
+# Ou no WSL2 (Ubuntu)
+docker compose up -d
+```
+
+Verifique que os 3 serviços estão rodando:
+
+```powershell
+docker compose ps
+```
+
+Deve mostrar `postgres`, `redis` e `minio` com status `running`.
+
+#### 5. Configurar variáveis de ambiente
+
+```powershell
+# PowerShell (Windows)
+copy .env.example .env
+```
+
+```bash
+# WSL2 (Linux)
+cp .env.example .env
+```
+
+O arquivo `.env` já vem com os valores corretos para desenvolvimento local.
+As variáveis principais são:
+
+| Variável | Valor padrão | Descrição |
+|----------|-------------|-----------|
+| `DATABASE_URL` | `postgresql://regcheck:regcheck@localhost:5432/regcheck` | Conexão PostgreSQL |
+| `REDIS_URL` | `redis://localhost:6379` | Conexão Redis |
+| `S3_ENDPOINT` | `http://localhost:9000` | MinIO (S3 local) |
+| `S3_ACCESS_KEY` | `minioadmin` | Credencial MinIO |
+| `S3_SECRET_KEY` | `minioadmin` | Credencial MinIO |
+| `API_PORT` | `4000` | Porta do backend |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:4000` | URL da API para o frontend |
+
+#### 6. Instalar dependências e iniciar
+
+```powershell
+# Instalar dependências
+pnpm install
+
+# Gerar Prisma Client
+pnpm db:generate
+
+# Criar tabelas no PostgreSQL
+pnpm db:push
+
+# Iniciar em modo desenvolvimento (API + Web)
+pnpm dev
+```
+
+#### 7. Verificar que tudo está funcionando
+
+| Serviço | URL | Credenciais |
+|---------|-----|-------------|
+| Frontend | http://localhost:3000 | — |
+| API | http://localhost:4000/health | — |
+| MinIO Console | http://localhost:9001 | minioadmin / minioadmin |
+| Prisma Studio | `pnpm --filter @regcheck/database db:studio` | — |
+
+---
+
+### Troubleshooting
+
+| Erro | Causa | Solução |
+|------|-------|---------|
+| `docker: O termo 'docker' não é reconhecido` | Docker Desktop não instalado ou não está no PATH | Instale o Docker Desktop e reinicie o terminal |
+| `Environment variable not found: DATABASE_URL` | Arquivo `.env` não existe | Rode `copy .env.example .env` (PowerShell) ou `cp .env.example .env` (WSL) |
+| `Connection refused` no PostgreSQL | Docker não está rodando | Abra o Docker Desktop e rode `docker compose up -d` |
+| `Port 5432 already in use` | Outro PostgreSQL rodando na máquina | Pare o serviço local: `net stop postgresql-x64-16` ou mude a porta no docker-compose.yml |
+| `EACCES permission denied` no pnpm | Permissões no WSL | Rode `sudo chown -R $USER:$USER .` no diretório do projeto |
+| MinIO bucket não criado | Serviço minio-init falhou | Rode `docker compose restart minio-init` |
 
 ### Acessos
 - **Frontend**: http://localhost:3000
