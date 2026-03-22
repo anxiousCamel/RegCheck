@@ -2,22 +2,33 @@
   "name": "regcheck",
   "private": true,
   "scripts": {
-    "start:dev": "bash scripts/dev-start.sh",
     "dev": "turbo dev",
+    "dev:all": "turbo dev --filter=api --filter=web --output-logs=full --ui=stream",
+    "dev:api": "turbo dev --filter=api --output-logs=full --ui=stream",
+    "dev:web": "turbo dev --filter=web --output-logs=full --ui=stream",
     "build": "turbo build",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
+    "infra:up": "wsl -- docker compose -f infra/docker-compose.yml up -d --remove-orphans",
+    "infra:down": "wsl -- docker compose -f infra/docker-compose.yml down",
+    "infra:logs": "wsl -- docker compose -f infra/docker-compose.yml up --remove-orphans",
+    "wait:infra": "wait-on tcp:localhost:5432 tcp:localhost:6379",
     "db:generate": "turbo db:generate",
     "db:push": "turbo db:push",
     "db:migrate": "turbo db:migrate",
+    "db:studio": "pnpm --filter @regcheck/database db:studio -- --port 5555",
+    "up": "pnpm infra:up && pnpm wait:infra && pnpm dev:all",
+    "up:studio": "concurrently -k -n INFRA,APPS,STUDIO -c auto \"pnpm infra:logs\" \"pnpm wait:infra && pnpm dev:all\" \"pnpm wait:infra && pnpm db:studio\"",
     "clean": "turbo clean",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
+    "concurrently": "^9.2.1",
     "prettier": "^3.2.0",
     "turbo": "^2.3.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "wait-on": "^9.0.4"
   },
   "packageManager": "pnpm@9.15.0",
   "engines": {
