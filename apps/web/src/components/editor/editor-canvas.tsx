@@ -43,13 +43,18 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
     fields,
     currentPage,
     zoom,
-    selectedFieldId,
+    selectedFieldIds,
     activeTool,
     snapEnabled,
     gridSize,
     selectField,
+    toggleFieldSelection,
     addField,
     updateField,
+    updateFieldId,
+    removeFields,
+    copyFields,
+    pasteFields,
     saveSnapshot,
     setZoom,
   } = useEditorStore();
@@ -82,10 +87,27 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
     [fields, currentPage],
   );
 
-  // Create field mutation
+  // Create field mutation — syncs client UUID with server-generated ID on success
   const createFieldMutation = useMutation({
-    mutationFn: (data: { type: FieldType; pageIndex: number; position: Record<string, number>; config: FieldConfig }) =>
-      api.createField(templateId, data),
+    mutationFn: (data: { clientId: string; type: FieldType; pageIndex: number; position: Record<string, number>; config: FieldConfig }) => {
+      const { clientId: _, ...payload } = data;
+      return api.createField(templateId, payload) as Promise<{ id: string }>;
+    },
+    onSuccess: (serverField, variables) => {
+      if (serverField?.id && serverField.id !== variables.clientId) {
+        updateFieldId(variables.clientId, serverField.id);
+      }
+    },
+  });
+
+  // Delete fields mutation
+  const deleteFieldsMutation = useMutation({
+    mutationFn: async (fieldIds: string[]) => {
+      await Promise.all(fieldIds.map((id) => api.deleteField(templateId, id)));
+    },
+    onSuccess: (_, fieldIds) => {
+      removeFields(fieldIds);
+    },
   });
 
   /** Handle mouse wheel zoom (zoom toward cursor position) */
@@ -102,7 +124,6 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
       const direction = e.evt.deltaY < 0 ? 1 : -1;
       const newZoom = Math.max(0.25, Math.min(3, oldZoom + direction * ZOOM_STEP));
 
-      // Zoom toward the cursor position
       const mousePointTo = {
         x: (pointer.x - stage.x()) / oldZoom,
         y: (pointer.y - stage.y()) / oldZoom,
@@ -122,11 +143,9 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
   /** Handle clicking on the stage to create a new field */
   const handleStageClick = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
-      // Deselect if clicking on empty area
       if (e.target === e.target.getStage()) {
         selectField(null);
 
-        // If a tool is active, create a new field at click position
         if (activeTool) {
           const stage = stageRef.current;
           if (!stage) return;
@@ -134,7 +153,6 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
           const pos = stage.getPointerPosition();
           if (!pos) return;
 
-          // Convert pixel position to logical coordinates (accounting for zoom + pan)
           const relX = (pos.x - stage.x()) / zoom / CANVAS_WIDTH;
           const relY = (pos.y - stage.y()) / zoom / pageHeight;
           const fieldId = crypto.randomUUID();
@@ -164,8 +182,9 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
             config,
           });
 
-          // Persist to API
+          // Persist to API — includes clientId so onSuccess can sync the ID
           createFieldMutation.mutate({
+            clientId: fieldId,
             type: activeTool,
             pageIndex: currentPage,
             position: { x: relX, y: relY, width: size.width, height: size.height },
@@ -177,7 +196,20 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
     [activeTool, currentPage, zoom, pageHeight, selectField, addField, createFieldMutation],
   );
 
-  /** Handle field drag end — coordinates are in logical space (stage scale handles zoom) */
+  /** Handle field click — supports Shift+Click for multi-select */
+  const handleFieldClick = useCallback(
+    (fieldId: string, e: Konva.KonvaEventObject<MouseEvent>) => {
+      e.cancelBubble = true;
+      if (e.evt.shiftKey) {
+        toggleFieldSelection(fieldId);
+      } else {
+        selectField(fieldId);
+      }
+    },
+    [selectField, toggleFieldSelection],
+  );
+
+  /** Handle field drag end */
   const handleDragEnd = useCallback(
     (fieldId: string, e: Konva.KonvaEventObject<DragEvent>) => {
       let newX = e.target.x() / CANVAS_WIDTH;
@@ -197,7 +229,7 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
     [pageHeight, snapEnabled, gridSize, updateField, fields, saveSnapshot],
   );
 
-  /** Handle field resize — coordinates are in logical space */
+  /** Handle field resize */
   const handleTransformEnd = useCallback(
     (fieldId: string, e: Konva.KonvaEventObject<Event>) => {
       const node = e.target;
@@ -220,24 +252,67 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
     [pageHeight, updateField, saveSnapshot],
   );
 
-  // Update transformer when selection changes
+  // Keyboard shortcuts: Delete, Ctrl+C, Ctrl+V
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input/textarea
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      const { selectedFieldIds: ids } = useEditorStore.getState();
+
+      // Delete / Backspace — delete selected fields
+      if ((e.key === 'Delete' || e.key === 'Backspace') && ids.length > 0) {
+        e.preventDefault();
+        deleteFieldsMutation.mutate(ids);
+      }
+
+      // Ctrl+C / Cmd+C — copy
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c' && ids.length > 0) {
+        e.preventDefault();
+        copyFields();
+      }
+
+      // Ctrl+V / Cmd+V — paste
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        const { clipboard } = useEditorStore.getState();
+        if (clipboard.length === 0) return;
+        e.preventDefault();
+        const newFields = pasteFields();
+        // Persist each pasted field to API
+        for (const f of newFields) {
+          createFieldMutation.mutate({
+            clientId: f.id,
+            type: f.type,
+            pageIndex: f.pageIndex,
+            position: f.position as unknown as Record<string, number>,
+            config: f.config,
+          });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [copyFields, pasteFields, createFieldMutation, deleteFieldsMutation]);
+
+  // Update transformer when selection changes (supports multi-select)
   useEffect(() => {
     const transformer = transformerRef.current;
     if (!transformer) return;
     const stage = stageRef.current;
     if (!stage) return;
 
-    if (selectedFieldId) {
-      const node = stage.findOne(`#field-${selectedFieldId}`);
-      if (node) {
-        transformer.nodes([node]);
-        transformer.getLayer()?.batchDraw();
-      }
+    if (selectedFieldIds.length > 0) {
+      const nodes = selectedFieldIds
+        .map((id) => stage.findOne(`#field-${id}`))
+        .filter(Boolean) as Konva.Node[];
+      transformer.nodes(nodes);
     } else {
       transformer.nodes([]);
-      transformer.getLayer()?.batchDraw();
     }
-  }, [selectedFieldId]);
+    transformer.getLayer()?.batchDraw();
+  }, [selectedFieldIds]);
 
   // Prevent default wheel scrolling on the container
   useEffect(() => {
@@ -248,15 +323,16 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
     return () => container.removeEventListener('wheel', prevent);
   }, []);
 
-  // Stage dimensions: logical size is fixed, zoom via scaleX/scaleY
   const stageWidth = CANVAS_WIDTH * zoom;
   const stageHeight = pageHeight * zoom;
+  const selectedSet = useMemo(() => new Set(selectedFieldIds), [selectedFieldIds]);
 
   return (
     <div
       ref={containerRef}
       className="flex items-center justify-center p-4 overflow-auto flex-1"
       style={{ cursor: activeTool ? 'crosshair' : 'grab' }}
+      tabIndex={0}
     >
       <Stage
         ref={stageRef}
@@ -285,7 +361,7 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
             const width = field.position.width * CANVAS_WIDTH;
             const height = field.position.height * pageHeight;
             const color = FIELD_COLORS[field.type];
-            const isSelected = selectedFieldId === field.id;
+            const isSelected = selectedSet.has(field.id);
 
             return (
               <Group
@@ -296,10 +372,7 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
                 width={width}
                 height={height}
                 draggable
-                onClick={(e) => {
-                  e.cancelBubble = true;
-                  selectField(field.id);
-                }}
+                onClick={(e) => handleFieldClick(field.id, e)}
                 onDragEnd={(e) => handleDragEnd(field.id, e)}
                 onTransformEnd={(e) => handleTransformEnd(field.id, e)}
               >
