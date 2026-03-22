@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useEffect, useCallback, useMemo } from 'react';
-import { Stage, Layer, Rect, Text, Group, Transformer } from 'react-konva';
+import { useRef, useEffect, useCallback, useMemo, useState } from 'react';
+import { Stage, Layer, Rect, Text, Group, Transformer, Image } from 'react-konva';
 import type Konva from 'konva';
 import { useEditorStore } from '@/stores/editor-store';
 import { usePdfRenderer } from '@/hooks/use-pdf-renderer';
@@ -46,6 +46,8 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
     saveSnapshot,
   } = useEditorStore();
 
+  const [pdfRendered, setPdfRendered] = useState(0);
+
   const pdfUrl = pdfFileKey ? `${API_URL}/api/uploads/presigned?key=${pdfFileKey}` : null;
   const { pages, renderPage } = usePdfRenderer(pdfUrl);
 
@@ -61,7 +63,9 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
       pdfCanvasRef.current = document.createElement('canvas');
     }
     const scale = (CANVAS_WIDTH * zoom) / currentPageInfo.width;
-    renderPage(currentPage, pdfCanvasRef.current, scale);
+    renderPage(currentPage, pdfCanvasRef.current, scale).then(() => {
+      setPdfRendered((c) => c + 1);
+    });
   }, [currentPage, currentPageInfo, zoom, renderPage]);
 
   // Filter fields for current page
@@ -210,6 +214,9 @@ export function EditorCanvas({ pdfFileKey, templateId }: EditorCanvasProps) {
         {/* PDF background layer */}
         <Layer listening={false}>
           <Rect width={canvasWidth} height={canvasHeight} fill="white" />
+          {pdfRendered > 0 && pdfCanvasRef.current && (
+            <Image image={pdfCanvasRef.current} width={canvasWidth} height={canvasHeight} />
+          )}
         </Layer>
 
         {/* Fields layer */}
