@@ -281,7 +281,7 @@ pnpm dev
 | Erro | Causa | Solução |
 |------|-------|---------|
 | `docker: O termo 'docker' não é reconhecido` | Docker Desktop não instalado ou não está no PATH | Instale o Docker Desktop e reinicie o terminal |
-| `Environment variable not found: DATABASE_URL` | Arquivo `.env` não existe | Rode `copy .env.example .env` (PowerShell) ou `cp .env.example .env` (WSL) |
+| `Environment variable not found: DATABASE_URL` | Arquivo `.env` não existe na raiz do monorepo | Rode `copy .env.example .env` (PowerShell) ou `cp .env.example .env` (WSL). Depois rode `pnpm install` para instalar `dotenv-cli` |
 | `sh: 1: turbo: not found` | `pnpm install` falhou ou não foi executado | Rode `pnpm install` novamente. Se falhou com EACCES, veja abaixo |
 | `EACCES: permission denied, rename` no pnpm install (WSL2) | Projeto em `/mnt/c/...` (filesystem Windows montado) | **Copie o projeto para `~/projects/RegCheck`** (filesystem nativo do WSL2) e rode lá. Veja passo 6 |
 | `EACCES: permission denied, symlink` no `corepack enable` | Falta sudo | Rode `sudo corepack enable` |
