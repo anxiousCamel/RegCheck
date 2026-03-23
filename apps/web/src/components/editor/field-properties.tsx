@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 
 export function FieldProperties({ templateId }: { templateId: string }) {
   const queryClient = useQueryClient();
-  const { fields, selectedFieldIds, updateField, removeFields } = useEditorStore();
+  const { fields, selectedFieldIds, updateField, updateFields, removeFields } = useEditorStore();
 
   const selectedFields = useMemo(
     () => fields.filter((f) => selectedFieldIds.includes(f.id)),
@@ -41,11 +41,89 @@ export function FieldProperties({ templateId }: { templateId: string }) {
     );
   }
 
-  // Multi-select: show count + bulk delete only
+  // Multi-select: batch property editing
   if (selectedFields.length > 1) {
+    const allText = selectedFields.every((f) => f.type === 'text');
+    const allSameType = selectedFields.every((f) => f.type === selectedFields[0].type);
+
+    // Compute shared values (null if mixed)
+    const sharedRequired = selectedFields.every((f) => f.config.required === selectedFields[0].config.required)
+      ? selectedFields[0].config.required
+      : null;
+    const sharedFontSize =
+      allText && selectedFields.every((f) => f.config.fontSize === selectedFields[0].config.fontSize)
+        ? selectedFields[0].config.fontSize
+        : null;
+    const sharedFontColor =
+      allText && selectedFields.every((f) => f.config.fontColor === selectedFields[0].config.fontColor)
+        ? (selectedFields[0].config.fontColor ?? '#000000')
+        : null;
+
+    const handleBatchConfigUpdate = (configUpdates: Record<string, unknown>) => {
+      for (const f of selectedFields) {
+        updateField(f.id, { config: { ...f.config, ...configUpdates } });
+      }
+    };
+
     return (
       <div className="p-4 space-y-4">
         <h3 className="font-medium text-sm">{selectedFields.length} campos selecionados</h3>
+        {allSameType && (
+          <p className="text-xs text-muted-foreground capitalize">Tipo: {selectedFields[0].type}</p>
+        )}
+
+        <div className="space-y-3">
+          {/* Required toggle */}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="batch-required"
+              checked={sharedRequired ?? false}
+              ref={(el) => {
+                if (el) el.indeterminate = sharedRequired === null;
+              }}
+              onChange={(e) => handleBatchConfigUpdate({ required: e.target.checked })}
+              className="rounded"
+            />
+            <Label htmlFor="batch-required">Obrigatorio</Label>
+            {sharedRequired === null && (
+              <span className="text-xs text-muted-foreground">(misto)</span>
+            )}
+          </div>
+
+          {/* Text-specific batch properties */}
+          {allText && (
+            <>
+              <div>
+                <Label htmlFor="batch-fontsize">Tamanho da fonte</Label>
+                <Input
+                  id="batch-fontsize"
+                  type="number"
+                  min={6}
+                  max={72}
+                  value={sharedFontSize ?? ''}
+                  placeholder={sharedFontSize === null ? 'Misto' : undefined}
+                  onChange={(e) => handleBatchConfigUpdate({ fontSize: Number(e.target.value) })}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="batch-fontcolor">Cor do texto</Label>
+                <input
+                  id="batch-fontcolor"
+                  type="color"
+                  value={sharedFontColor ?? '#000000'}
+                  onChange={(e) => handleBatchConfigUpdate({ fontColor: e.target.value })}
+                  className="h-10 w-full rounded-md border cursor-pointer"
+                />
+                {sharedFontColor === null && (
+                  <span className="text-xs text-muted-foreground">(misto)</span>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
         <p className="text-xs text-muted-foreground">
           Shift+Clique para selecionar varios. Delete para excluir. Ctrl+C para copiar.
         </p>
