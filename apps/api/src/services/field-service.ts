@@ -73,9 +73,13 @@ export class FieldService {
     await invalidateCache(`template:${field.templateId}*`);
   }
 
-  /** Batch update field positions (for drag operations) */
-  static async batchUpdatePositions(
-    updates: Array<{ id: string; position: { x: number; y: number; width: number; height: number } }>,
+  /** Batch update fields (positions and optionally config) */
+  static async batchUpdateFields(
+    updates: Array<{
+      id: string;
+      position: { x: number; y: number; width: number; height: number };
+      config?: Record<string, unknown>;
+    }>,
   ) {
     // Filter to only existing fields before updating (avoids P2025 on deleted fields)
     const existingIds = await prisma.templateField.findMany({
@@ -87,13 +91,26 @@ export class FieldService {
 
     if (validUpdates.length === 0) return;
 
-    const operations = validUpdates.map((u) =>
-      prisma.templateField.update({
+    const operations = validUpdates.map((u) => {
+      const data: Prisma.TemplateFieldUpdateInput = {
+        position: u.position as unknown as Prisma.JsonObject,
+      };
+      if (u.config) {
+        data.config = u.config as unknown as Prisma.JsonObject;
+      }
+      return prisma.templateField.update({
         where: { id: u.id },
-        data: { position: u.position as unknown as Prisma.JsonObject },
-      }),
-    );
+        data,
+      });
+    });
 
     await prisma.$transaction(operations);
+  }
+
+  /** @deprecated Use batchUpdateFields instead */
+  static async batchUpdatePositions(
+    updates: Array<{ id: string; position: { x: number; y: number; width: number; height: number } }>,
+  ) {
+    return this.batchUpdateFields(updates);
   }
 }

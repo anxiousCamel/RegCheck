@@ -62,13 +62,14 @@ export default function EditorPage() {
     initializedRef.current = true;
   }, [template, setFields]);
 
-  // Autosave fields to API
+  // Autosave fields to API (positions + config)
   const saveMutation = useMutation({
     mutationFn: async () => {
       const currentFields = useEditorStore.getState().fields;
       const updates = currentFields.map((f) => ({
         id: f.id,
         position: f.position,
+        config: f.config as Record<string, unknown>,
       }));
       await api.batchUpdatePositions(templateId, updates);
     },

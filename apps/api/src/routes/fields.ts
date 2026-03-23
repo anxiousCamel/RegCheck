@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { FieldService } from '../services/field-service';
-import { createFieldSchema, updateFieldSchema } from '@regcheck/validators';
+import { createFieldSchema, updateFieldSchema, fieldPositionSchema, fieldConfigSchema } from '@regcheck/validators';
 import { idParamSchema } from '@regcheck/validators';
 import { z } from 'zod';
 import type { ApiResponse } from '@regcheck/shared';
@@ -42,25 +42,21 @@ fieldRouter.delete('/:id/fields/:fieldId', async (req, res, next) => {
   }
 });
 
-/** POST /api/templates/:id/fields/batch-positions - Batch update positions */
+/** POST /api/templates/:id/fields/batch-positions - Batch update fields (positions + config) */
 fieldRouter.post('/:id/fields/batch-positions', async (req, res, next) => {
   try {
     const batchSchema = z.object({
       updates: z.array(
         z.object({
           id: z.string().uuid(),
-          position: z.object({
-            x: z.number().min(0).max(1),
-            y: z.number().min(0).max(1),
-            width: z.number().min(0.01).max(1),
-            height: z.number().min(0.01).max(1),
-          }),
+          position: fieldPositionSchema,
+          config: fieldConfigSchema.optional(),
         }),
       ),
     });
 
     const { updates } = batchSchema.parse(req.body);
-    await FieldService.batchUpdatePositions(updates);
+    await FieldService.batchUpdateFields(updates);
     res.json({ success: true } satisfies ApiResponse<never>);
   } catch (err) {
     next(err);
