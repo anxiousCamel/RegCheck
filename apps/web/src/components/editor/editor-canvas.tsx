@@ -10,6 +10,13 @@ import { api } from '@/lib/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { FieldType, FieldConfig } from '@regcheck/shared';
 
+/** Interaction state for canvas mouse operations */
+type CanvasInteraction =
+  | { type: 'rubberband'; startX: number; startY: number; endX: number; endY: number }
+  | { type: 'creation'; startX: number; startY: number; endX: number; endY: number }
+  | { type: 'pan'; startMouseX: number; startMouseY: number; startStageX: number; startStageY: number }
+  | null;
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 /** Pixel dimensions for the canvas workspace (logical, before zoom) */
@@ -65,8 +72,10 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
     undo,
     redo,
     replicationPreview,
+    selectFields,
   } = useEditorStore();
 
+  const [interaction, setInteraction] = useState<CanvasInteraction>(null);
   const [pdfRendered, setPdfRendered] = useState(0);
   const pdfRenderZoomRef = useRef(0);
 
@@ -138,6 +147,40 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
     },
   });
 
+  /** Convert pointer position to logical canvas coordinates */
+  const getLogicalPos = useCallback(
+    (stage: Konva.Stage) => {
+      const pos = stage.getPointerPosition();
+      if (!pos) return null;
+      return {
+        x: (pos.x - stage.x()) / zoom,
+        y: (pos.y - stage.y()) / zoom,
+      };
+    },
+    [zoom],
+  );
+
+  /** Default field configs */
+  const defaultConfigs: Record<FieldType, FieldConfig> = useMemo(
+    () => ({
+      text: { label: 'Texto', required: false, fontSize: 12 },
+      image: { label: 'Imagem', required: false },
+      signature: { label: 'Assinatura', required: false },
+      checkbox: { label: 'Checkbox', required: false },
+    }),
+    [],
+  );
+
+  const defaultSizes: Record<FieldType, { width: number; height: number }> = useMemo(
+    () => ({
+      text: { width: 0.2, height: 0.03 },
+      image: { width: 0.15, height: 0.12 },
+      signature: { width: 0.2, height: 0.06 },
+      checkbox: { width: 0.025, height: 0.02 },
+    }),
+    [],
+  );
+
   /** Handle mouse wheel zoom (zoom toward cursor position) */
   const handleWheel = useCallback(
     (e: Konva.KonvaEventObject<WheelEvent>) => {
@@ -168,60 +211,177 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
     [zoom, setZoom],
   );
 
-  /** Handle clicking on the stage to create a new field */
-  const handleStageClick = useCallback(
+  /** Handle mousedown on the stage — starts pan, rubber band, or creation drag */
+  const handleStageMouseDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (e.target === e.target.getStage()) {
-        selectField(null);
+      const stage = stageRef.current;
+      if (!stage) return;
 
-        if (activeTool && !isPublished) {
-          const stage = stageRef.current;
-          if (!stage) return;
+      // Right click → pan
+      if (e.evt.button === 2) {
+        e.evt.preventDefault();
+        const pos = stage.getPointerPosition();
+        if (!pos) return;
+        setInteraction({
+          type: 'pan',
+          startMouseX: pos.x,
+          startMouseY: pos.y,
+          startStageX: stage.x(),
+          startStageY: stage.y(),
+        });
+        return;
+      }
 
-          const pos = stage.getPointerPosition();
-          if (!pos) return;
+      // Left click on empty stage area only
+      if (e.target !== e.target.getStage()) return;
 
-          const relX = (pos.x - stage.x()) / zoom / CANVAS_WIDTH;
-          const relY = (pos.y - stage.y()) / zoom / pageHeight;
-          const fieldId = crypto.randomUUID();
+      const logicalPos = getLogicalPos(stage);
+      if (!logicalPos) return;
 
-          const defaultConfigs: Record<FieldType, FieldConfig> = {
-            text: { label: 'Texto', required: false, fontSize: 12 },
-            image: { label: 'Imagem', required: false },
-            signature: { label: 'Assinatura', required: false },
-            checkbox: { label: 'Checkbox', required: false },
-          };
-
-          const defaultSizes: Record<FieldType, { width: number; height: number }> = {
-            text: { width: 0.2, height: 0.03 },
-            image: { width: 0.15, height: 0.12 },
-            signature: { width: 0.2, height: 0.06 },
-            checkbox: { width: 0.025, height: 0.02 },
-          };
-
-          const size = defaultSizes[activeTool];
-          const config = defaultConfigs[activeTool];
-
-          addField({
-            id: fieldId,
-            type: activeTool,
-            pageIndex: currentPage,
-            position: { x: relX, y: relY, width: size.width, height: size.height },
-            config,
-          });
-
-          // Persist to API — includes clientId so onSuccess can sync the ID
-          createFieldMutation.mutate({
-            clientId: fieldId,
-            type: activeTool,
-            pageIndex: currentPage,
-            position: { x: relX, y: relY, width: size.width, height: size.height },
-            config,
-          });
-        }
+      if (activeTool && !isPublished) {
+        // Start click-and-drag field creation
+        setInteraction({
+          type: 'creation',
+          startX: logicalPos.x,
+          startY: logicalPos.y,
+          endX: logicalPos.x,
+          endY: logicalPos.y,
+        });
+      } else if (!activeTool) {
+        // Start rubber band selection
+        if (!e.evt.shiftKey) selectField(null);
+        setInteraction({
+          type: 'rubberband',
+          startX: logicalPos.x,
+          startY: logicalPos.y,
+          endX: logicalPos.x,
+          endY: logicalPos.y,
+        });
       }
     },
-    [activeTool, currentPage, zoom, pageHeight, selectField, addField, createFieldMutation],
+    [activeTool, isPublished, getLogicalPos, selectField],
+  );
+
+  /** Handle mousemove on the stage — updates pan, rubber band, or creation rect */
+  const handleStageMouseMove = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (!interaction) return;
+      const stage = stageRef.current;
+      if (!stage) return;
+
+      if (interaction.type === 'pan') {
+        const pos = stage.getPointerPosition();
+        if (!pos) return;
+        stage.position({
+          x: interaction.startStageX + (pos.x - interaction.startMouseX),
+          y: interaction.startStageY + (pos.y - interaction.startMouseY),
+        });
+        stage.batchDraw();
+        return;
+      }
+
+      const logicalPos = getLogicalPos(stage);
+      if (!logicalPos) return;
+
+      setInteraction((prev) => {
+        if (!prev || prev.type === 'pan') return prev;
+        return { ...prev, endX: logicalPos.x, endY: logicalPos.y };
+      });
+    },
+    [interaction, getLogicalPos],
+  );
+
+  /** Handle mouseup on the stage — finalizes pan, rubber band selection, or field creation */
+  const handleStageMouseUp = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (!interaction) return;
+
+      if (interaction.type === 'pan') {
+        setInteraction(null);
+        return;
+      }
+
+      if (interaction.type === 'rubberband') {
+        const minX = Math.min(interaction.startX, interaction.endX) / CANVAS_WIDTH;
+        const maxX = Math.max(interaction.startX, interaction.endX) / CANVAS_WIDTH;
+        const minY = Math.min(interaction.startY, interaction.endY) / pageHeight;
+        const maxY = Math.max(interaction.startY, interaction.endY) / pageHeight;
+
+        const dragDist =
+          Math.abs(interaction.endX - interaction.startX) +
+          Math.abs(interaction.endY - interaction.startY);
+
+        if (dragDist > 3) {
+          const idsInRect = pageFields
+            .filter((f) => {
+              return (
+                f.position.x + f.position.width > minX &&
+                f.position.x < maxX &&
+                f.position.y + f.position.height > minY &&
+                f.position.y < maxY
+              );
+            })
+            .map((f) => f.id);
+
+          if (idsInRect.length > 0) {
+            selectFields(idsInRect);
+          }
+        }
+        setInteraction(null);
+        return;
+      }
+
+      if (interaction.type === 'creation' && activeTool) {
+        const minX = Math.min(interaction.startX, interaction.endX);
+        const maxX = Math.max(interaction.startX, interaction.endX);
+        const minY = Math.min(interaction.startY, interaction.endY);
+        const maxY = Math.max(interaction.startY, interaction.endY);
+
+        let relX = minX / CANVAS_WIDTH;
+        let relY = minY / pageHeight;
+        let width = (maxX - minX) / CANVAS_WIDTH;
+        let height = (maxY - minY) / pageHeight;
+
+        const dragDist =
+          Math.abs(interaction.endX - interaction.startX) +
+          Math.abs(interaction.endY - interaction.startY);
+
+        // If barely dragged, use default sizes (click to create)
+        if (dragDist < 5) {
+          const size = defaultSizes[activeTool];
+          width = size.width;
+          height = size.height;
+          // Use start position for click-to-create
+          relX = interaction.startX / CANVAS_WIDTH;
+          relY = interaction.startY / pageHeight;
+        }
+
+        const fieldId = crypto.randomUUID();
+        const config = defaultConfigs[activeTool];
+
+        addField({
+          id: fieldId,
+          type: activeTool,
+          pageIndex: currentPage,
+          position: { x: relX, y: relY, width, height },
+          config,
+        });
+
+        createFieldMutation.mutate({
+          clientId: fieldId,
+          type: activeTool,
+          pageIndex: currentPage,
+          position: { x: relX, y: relY, width, height },
+          config,
+        });
+
+        setInteraction(null);
+        return;
+      }
+
+      setInteraction(null);
+    },
+    [interaction, activeTool, currentPage, pageHeight, pageFields, selectFields, addField, createFieldMutation, defaultConfigs, defaultSizes],
   );
 
   /** Handle field click — supports Shift+Click for multi-select */
@@ -357,13 +517,26 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
     transformer.getLayer()?.batchDraw();
   }, [selectedFieldIds]);
 
+  // Cancel interaction if mouse released outside the canvas
+  useEffect(() => {
+    if (!interaction) return;
+    const handleWindowMouseUp = () => setInteraction(null);
+    window.addEventListener('mouseup', handleWindowMouseUp);
+    return () => window.removeEventListener('mouseup', handleWindowMouseUp);
+  }, [interaction]);
+
   // Prevent default wheel scrolling on the container
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     const prevent = (e: WheelEvent) => e.preventDefault();
+    const preventCtx = (e: MouseEvent) => e.preventDefault();
     container.addEventListener('wheel', prevent, { passive: false });
-    return () => container.removeEventListener('wheel', prevent);
+    container.addEventListener('contextmenu', preventCtx);
+    return () => {
+      container.removeEventListener('wheel', prevent);
+      container.removeEventListener('contextmenu', preventCtx);
+    };
   }, []);
 
   const stageWidth = CANVAS_WIDTH * zoom;
@@ -374,7 +547,13 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
     <div
       ref={containerRef}
       className="relative flex items-center justify-center p-4 overflow-auto flex-1"
-      style={{ cursor: activeTool ? 'crosshair' : 'grab' }}
+      style={{
+        cursor: interaction?.type === 'pan'
+          ? 'grabbing'
+          : activeTool
+            ? 'crosshair'
+            : 'default',
+      }}
       tabIndex={0}
     >
       {pdfLoading && (
@@ -399,9 +578,12 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
         height={stageHeight}
         scaleX={zoom}
         scaleY={zoom}
-        draggable={!activeTool}
-        onClick={handleStageClick}
+        draggable={false}
+        onMouseDown={handleStageMouseDown}
+        onMouseMove={handleStageMouseMove}
+        onMouseUp={handleStageMouseUp}
         onWheel={handleWheel}
+        onContextMenu={(e) => e.evt.preventDefault()}
         style={{ border: '1px solid #e5e7eb', background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
       >
         {/* PDF background layer */}
@@ -497,6 +679,32 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
                 </Group>
               );
             })}
+          </Layer>
+        )}
+
+        {/* Rubber band selection / creation preview overlay */}
+        {interaction && interaction.type !== 'pan' && (
+          <Layer listening={false}>
+            <Rect
+              x={Math.min(interaction.startX, interaction.endX)}
+              y={Math.min(interaction.startY, interaction.endY)}
+              width={Math.abs(interaction.endX - interaction.startX)}
+              height={Math.abs(interaction.endY - interaction.startY)}
+              fill={
+                interaction.type === 'rubberband'
+                  ? 'rgba(59, 130, 246, 0.1)'
+                  : `${FIELD_COLORS[activeTool!]}20`
+              }
+              stroke={
+                interaction.type === 'rubberband'
+                  ? '#3b82f6'
+                  : FIELD_COLORS[activeTool!]
+              }
+              strokeWidth={1 / zoom}
+              dash={
+                interaction.type === 'creation' ? [4 / zoom, 3 / zoom] : undefined
+              }
+            />
           </Layer>
         )}
 

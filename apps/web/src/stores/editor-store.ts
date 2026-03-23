@@ -82,6 +82,11 @@ interface EditorState {
   clearReplicationPreview: () => void;
   applyReplication: () => EditorField[];
 
+  /** Select multiple fields at once (e.g. rubber band) */
+  selectFields: (ids: string[]) => void;
+  /** Update multiple fields with the same partial updates (batch edit) */
+  updateFields: (ids: string[], updates: Partial<EditorField>) => void;
+
   /** Derived: first selected field ID (backward compat) */
   readonly selectedFieldId: string | null;
 }
@@ -190,6 +195,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setSnapEnabled: (enabled) => set({ snapEnabled: enabled }),
   setGridSize: (size) => set({ gridSize: size }),
+  selectFields: (ids) => set({ selectedFieldIds: ids }),
+
+  updateFields: (ids, updates) => {
+    const idSet = new Set(ids);
+    const fields = get().fields.map((f) =>
+      idSet.has(f.id) ? { ...f, ...updates } : f,
+    );
+    set({ fields, isDirty: true });
+  },
+
   setActiveTool: (tool) => set({ activeTool: tool, selectedFieldIds: [] }),
 
   undo: () => {
