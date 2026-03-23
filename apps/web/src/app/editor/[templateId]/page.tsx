@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button, Spinner } from '@regcheck/ui';
@@ -19,6 +19,7 @@ export default function EditorPage() {
   const templateId = params.templateId;
 
   const { fields, isDirty, setFields, markClean } = useEditorStore();
+  const initializedRef = useRef(false);
 
   const { data: template, isLoading } = useQuery({
     queryKey: ['template', templateId],
@@ -26,9 +27,9 @@ export default function EditorPage() {
     enabled: !!templateId,
   });
 
-  // Initialize editor fields from template
+  // Initialize editor fields from template — only once on first load
   useEffect(() => {
-    if (!template) return;
+    if (!template || initializedRef.current) return;
     const t = template as {
       fields: Array<{
         id: string;
@@ -58,6 +59,7 @@ export default function EditorPage() {
     console.debug('[EditorPage] Initializing', editorFields.length, 'fields from template');
     setFields(editorFields);
     useEditorStore.getState().setTotalPages(t.pdfFile.pageCount);
+    initializedRef.current = true;
   }, [template, setFields]);
 
   // Autosave fields to API

@@ -7,7 +7,7 @@ import { Spinner } from '@regcheck/ui';
 import { useEditorStore } from '@/stores/editor-store';
 import { usePdfRenderer } from '@/hooks/use-pdf-renderer';
 import { api } from '@/lib/api';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { FieldType, FieldConfig } from '@regcheck/shared';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -41,6 +41,8 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
   const transformerRef = useRef<Konva.Transformer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const queryClient = useQueryClient();
+
   const {
     fields,
     currentPage,
@@ -59,6 +61,8 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
     pasteFields,
     saveSnapshot,
     setZoom,
+    undo,
+    redo,
   } = useEditorStore();
 
   const [pdfRendered, setPdfRendered] = useState(0);
@@ -107,8 +111,15 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
     mutationFn: async (fieldIds: string[]) => {
       // Optimistically remove from state before API call
       removeFields(fieldIds);
-      // Delete from backend, ignoring 404s (already deleted)
-      await Promise.allSettled(fieldIds.map((id) => api.deleteField(templateId, id)));
+      // Delete from backend
+      const results = await Promise.allSettled(fieldIds.map((id) => api.deleteField(templateId, id)));
+      const failures = results.filter((r) => r.status === 'rejected');
+      if (failures.length > 0) {
+        console.error('[deleteFields] Some deletions failed:', failures);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['template', templateId] });
     },
   });
 
@@ -292,11 +303,23 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
           });
         }
       }
+
+      // Ctrl+Z / Cmd+Z — undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+
+      // Ctrl+Y / Cmd+Y or Ctrl+Shift+Z / Cmd+Shift+Z — redo
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [copyFields, pasteFields, createFieldMutation, deleteFieldsMutation]);
+  }, [copyFields, pasteFields, createFieldMutation, deleteFieldsMutation, undo, redo]);
 
   // Update transformer when selection changes (supports multi-select)
   useEffect(() => {
