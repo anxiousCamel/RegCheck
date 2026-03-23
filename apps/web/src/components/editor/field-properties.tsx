@@ -1,12 +1,13 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Input, Label } from '@regcheck/ui';
 import { useEditorStore } from '@/stores/editor-store';
 import { api } from '@/lib/api';
 
 export function FieldProperties({ templateId }: { templateId: string }) {
+  const queryClient = useQueryClient();
   const { fields, selectedFieldIds, updateField, removeFields } = useEditorStore();
 
   const selectedFields = useMemo(
@@ -20,8 +21,15 @@ export function FieldProperties({ templateId }: { templateId: string }) {
     mutationFn: async (fieldIds: string[]) => {
       // Optimistically remove from state before API call
       removeFields(fieldIds);
-      // Delete from backend, ignoring 404s (already deleted)
-      await Promise.allSettled(fieldIds.map((id) => api.deleteField(templateId, id)));
+      // Delete from backend
+      const results = await Promise.allSettled(fieldIds.map((id) => api.deleteField(templateId, id)));
+      const failures = results.filter((r) => r.status === 'rejected');
+      if (failures.length > 0) {
+        console.error('[deleteFields] Some deletions failed:', failures);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['template', templateId] });
     },
   });
 
