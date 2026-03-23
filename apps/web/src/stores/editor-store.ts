@@ -157,8 +157,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setCurrentPage: (page) => set({ currentPage: page, selectedFieldIds: [] }),
   setTotalPages: (total) => set({ totalPages: total }),
 
-  setZoom: (zoom) => set({ zoom: Math.max(0.25, Math.min(3, zoom)) }),
-  zoomIn: () => set((s) => ({ zoom: Math.min(3, s.zoom + 0.25) })),
+  setZoom: (zoom) => set({ zoom: Math.max(0.25, Math.min(10, zoom)) }),
+  zoomIn: () => set((s) => ({ zoom: Math.min(10, s.zoom + 0.25) })),
   zoomOut: () => set((s) => ({ zoom: Math.max(0.25, s.zoom - 0.25) })),
 
   setSnapEnabled: (enabled) => set({ snapEnabled: enabled }),

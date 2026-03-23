@@ -15,11 +15,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 /** Pixel dimensions for the canvas workspace (logical, before zoom) */
 const CANVAS_WIDTH = 800;
 
-/** Render PDF at 2x for crisp display at all zoom levels */
-const RENDER_SCALE = 2;
-
 /** Zoom step per wheel tick */
 const ZOOM_STEP = 0.1;
+
+/** Min/max zoom levels */
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 10;
 
 /** Color mapping for field types */
 const FIELD_COLORS: Record<FieldType, string> = {
@@ -66,6 +67,7 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
   } = useEditorStore();
 
   const [pdfRendered, setPdfRendered] = useState(0);
+  const pdfRenderZoomRef = useRef(0);
 
   const pdfUrl = pdfFileKey ? `${API_URL}/api/uploads/file?key=${pdfFileKey}` : null;
   const { pages, loading: pdfLoading, error: pdfError, renderPage } = usePdfRenderer(pdfUrl);
@@ -75,17 +77,23 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
     ? (CANVAS_WIDTH / currentPageInfo.width) * currentPageInfo.height
     : CANVAS_WIDTH * 1.4142;
 
-  // Render PDF page to hidden canvas at high resolution (only on page change, NOT on zoom)
+  // Re-render PDF when zoom changes significantly or page changes (for crisp display)
   useEffect(() => {
     if (!currentPageInfo) return;
+    // Render at the higher of 2x or current zoom for crisp display
+    const renderScale = Math.max(2, zoom);
+    // Only re-render if zoom changed enough to matter (avoid unnecessary work)
+    if (pdfRenderZoomRef.current > 0 && Math.abs(renderScale - pdfRenderZoomRef.current) < 0.3) return;
+    pdfRenderZoomRef.current = renderScale;
+
     if (!pdfCanvasRef.current) {
       pdfCanvasRef.current = document.createElement('canvas');
     }
-    const scale = (CANVAS_WIDTH * RENDER_SCALE) / currentPageInfo.width;
+    const scale = (CANVAS_WIDTH * renderScale) / currentPageInfo.width;
     renderPage(currentPage, pdfCanvasRef.current, scale).then(() => {
       setPdfRendered((c) => c + 1);
     });
-  }, [currentPage, currentPageInfo, renderPage]);
+  }, [currentPage, currentPageInfo, renderPage, zoom]);
 
   // Filter fields for current page
   const pageFields = useMemo(
@@ -135,7 +143,7 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
 
       const oldZoom = zoom;
       const direction = e.evt.deltaY < 0 ? 1 : -1;
-      const newZoom = Math.max(0.25, Math.min(3, oldZoom + direction * ZOOM_STEP));
+      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, oldZoom + direction * ZOOM_STEP));
 
       const mousePointTo = {
         x: (pointer.x - stage.x()) / oldZoom,
@@ -229,7 +237,10 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
       let newY = e.target.y() / pageHeight;
 
       if (snapEnabled) {
-        const snap = (v: number) => Math.round(v * 1000 / gridSize) * gridSize / 1000;
+        // Snap to adaptive grid: finer snap at higher zoom levels
+        const subdivisions = Math.max(1, Math.pow(2, Math.floor(Math.log2(zoom))));
+        const snapStep = gridSize / 1000 / subdivisions;
+        const snap = (v: number) => Math.round(v / snapStep) * snapStep;
         newX = snap(newX);
         newY = snap(newY);
       }
@@ -442,39 +453,57 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
           <Transformer ref={transformerRef} boundBoxFunc={(_, newBox) => newBox} />
         </Layer>
 
-        {/* Grid overlay — lines at actual snap positions */}
+        {/* Adaptive grid overlay — subdivides as you zoom in */}
         {snapEnabled && (() => {
-          // Snap step in normalized coords: gridSize/1000
-          // Convert to pixel coords for x and y axes
-          const snapStepX = (gridSize / 1000) * CANVAS_WIDTH;
-          const snapStepY = (gridSize / 1000) * pageHeight;
-          const vLines = Math.ceil(CANVAS_WIDTH / snapStepX);
-          const hLines = Math.ceil(pageHeight / snapStepY);
+          // Base grid step in pixels (at zoom 1)
+          const baseStepX = (gridSize / 1000) * CANVAS_WIDTH;
+          const baseStepY = (gridSize / 1000) * pageHeight;
 
-          return (
-            <Layer listening={false} opacity={0.1}>
-              {Array.from({ length: vLines }, (_, i) => (
-                <Rect
-                  key={`gv-${i}`}
-                  x={i * snapStepX}
-                  y={0}
-                  width={1 / zoom}
-                  height={pageHeight}
-                  fill="#000"
-                />
-              ))}
-              {Array.from({ length: hLines }, (_, i) => (
-                <Rect
-                  key={`gh-${i}`}
-                  x={0}
-                  y={i * snapStepY}
-                  width={CANVAS_WIDTH}
-                  height={1 / zoom}
-                  fill="#000"
-                />
-              ))}
-            </Layer>
-          );
+          // Compute subdivision level based on zoom:
+          // At zoom 1 → 1x, zoom 2 → 2x, zoom 4 → 4x, etc.
+          // Use powers of 2 for clean subdivision
+          const subdivisions = Math.max(1, Math.pow(2, Math.floor(Math.log2(zoom))));
+          const stepX = baseStepX / subdivisions;
+          const stepY = baseStepY / subdivisions;
+
+          const vLines = Math.ceil(CANVAS_WIDTH / stepX);
+          const hLines = Math.ceil(pageHeight / stepY);
+
+          // Cap line count to prevent performance issues at extreme zoom
+          const maxLines = 400;
+          if (vLines > maxLines || hLines > maxLines) return null;
+
+          const lines: React.ReactNode[] = [];
+          for (let i = 0; i <= vLines; i++) {
+            const isMajor = i % subdivisions === 0;
+            lines.push(
+              <Rect
+                key={`gv-${i}`}
+                x={i * stepX}
+                y={0}
+                width={1 / zoom}
+                height={pageHeight}
+                fill="#000"
+                opacity={isMajor ? 0.15 : 0.06}
+              />,
+            );
+          }
+          for (let i = 0; i <= hLines; i++) {
+            const isMajor = i % subdivisions === 0;
+            lines.push(
+              <Rect
+                key={`gh-${i}`}
+                x={0}
+                y={i * stepY}
+                width={CANVAS_WIDTH}
+                height={1 / zoom}
+                fill="#000"
+                opacity={isMajor ? 0.15 : 0.06}
+              />,
+            );
+          }
+
+          return <Layer listening={false}>{lines}</Layer>;
         })()}
       </Stage>
     </div>
