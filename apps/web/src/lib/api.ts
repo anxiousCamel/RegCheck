@@ -81,7 +81,7 @@ class ApiClient {
     return this.request<void>(`/api/templates/${templateId}/fields/${fieldId}`, { method: 'DELETE' });
   }
 
-  batchUpdatePositions(templateId: string, updates: Array<{ id: string; position: Record<string, number> }>) {
+  batchUpdatePositions(templateId: string, updates: Array<{ id: string; position: Record<string, number>; config?: Record<string, unknown> }>) {
     return this.request<void>(`/api/templates/${templateId}/fields/batch-positions`, {
       method: 'POST',
       body: JSON.stringify({ updates }),
