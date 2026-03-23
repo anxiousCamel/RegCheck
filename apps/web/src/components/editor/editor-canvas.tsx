@@ -64,6 +64,7 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
     setZoom,
     undo,
     redo,
+    replicationPreview,
   } = useEditorStore();
 
   const [pdfRendered, setPdfRendered] = useState(0);
@@ -99,6 +100,12 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
   const pageFields = useMemo(
     () => fields.filter((f) => f.pageIndex === currentPage),
     [fields, currentPage],
+  );
+
+  // Ghost fields for replication preview (current page only)
+  const pageGhosts = useMemo(
+    () => replicationPreview?.ghosts.filter((g) => g.pageIndex === currentPage) ?? [],
+    [replicationPreview, currentPage],
   );
 
   // Create field mutation — syncs client UUID with server-generated ID on success
@@ -452,6 +459,46 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
 
           <Transformer ref={transformerRef} boundBoxFunc={(_, newBox) => newBox} />
         </Layer>
+
+        {/* Ghost fields layer — replication preview */}
+        {pageGhosts.length > 0 && (
+          <Layer listening={false}>
+            {pageGhosts.map((ghost) => {
+              const x = ghost.position.x * CANVAS_WIDTH;
+              const y = ghost.position.y * pageHeight;
+              const width = ghost.position.width * CANVAS_WIDTH;
+              const height = ghost.position.height * pageHeight;
+              const color = FIELD_COLORS[ghost.type];
+              const isOutOfBounds = ghost.position.x + ghost.position.width > 1.01 || ghost.position.y + ghost.position.height > 1.01;
+
+              return (
+                <Group key={ghost.id} x={x} y={y}>
+                  {/* Dashed border ghost rectangle */}
+                  <Rect
+                    width={width}
+                    height={height}
+                    fill={isOutOfBounds ? '#ef444415' : `${color}10`}
+                    stroke={isOutOfBounds ? '#ef4444' : color}
+                    strokeWidth={1.5 / zoom}
+                    cornerRadius={2}
+                    dash={[4 / zoom, 3 / zoom]}
+                    opacity={0.7}
+                  />
+                  <Text
+                    text={ghost.config.label}
+                    width={width}
+                    height={height}
+                    fontSize={10 / zoom}
+                    fill={color}
+                    align="center"
+                    verticalAlign="middle"
+                    opacity={0.5}
+                  />
+                </Group>
+              );
+            })}
+          </Layer>
+        )}
 
         {/* Adaptive grid overlay — subdivides as you zoom in */}
         {snapEnabled && (() => {

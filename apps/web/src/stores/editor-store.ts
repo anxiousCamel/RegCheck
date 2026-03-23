@@ -13,6 +13,25 @@ interface EditorField {
   repetitionGroupId?: string;
 }
 
+/** Ghost field shown as preview before applying replication */
+interface GhostField {
+  id: string;
+  sourceId: string;
+  type: FieldType;
+  pageIndex: number;
+  position: FieldPosition;
+  config: FieldConfig;
+  copyIndex: number;
+}
+
+interface ReplicationPreview {
+  sourceFieldIds: string[];
+  copies: number;
+  offsetX: number;
+  offsetY: number;
+  ghosts: GhostField[];
+}
+
 interface EditorState {
   fields: EditorField[];
   /** Set of selected field IDs (supports multi-select) */
@@ -27,6 +46,8 @@ interface EditorState {
   activeTool: FieldType | null;
   isDirty: boolean;
   history: HistoryManager<EditorField[]>;
+  /** Preview state for intelligent replication */
+  replicationPreview: ReplicationPreview | null;
 
   // Actions
   setFields: (fields: EditorField[]) => void;
@@ -56,6 +77,11 @@ interface EditorState {
   saveSnapshot: () => void;
   markClean: () => void;
 
+  /** Replication preview actions */
+  setReplicationPreview: (sourceFieldIds: string[], copies: number, offsetX: number, offsetY: number) => void;
+  clearReplicationPreview: () => void;
+  applyReplication: () => EditorField[];
+
   /** Derived: first selected field ID (backward compat) */
   readonly selectedFieldId: string | null;
 }
@@ -72,6 +98,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   activeTool: null,
   isDirty: false,
   history: new HistoryManager<EditorField[]>(50),
+  replicationPreview: null,
 
   get selectedFieldId() {
     return get().selectedFieldIds[0] ?? null;
@@ -177,6 +204,62 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   saveSnapshot: () => {
     get().history.push(get().fields);
+  },
+
+  setReplicationPreview: (sourceFieldIds, copies, offsetX, offsetY) => {
+    const { fields } = get();
+    const sourceFields = fields.filter((f) => sourceFieldIds.includes(f.id));
+    if (sourceFields.length === 0) {
+      set({ replicationPreview: null });
+      return;
+    }
+
+    const ghosts: GhostField[] = [];
+    for (let copyIdx = 1; copyIdx <= copies; copyIdx++) {
+      for (const src of sourceFields) {
+        const label = src.config.label ?? '';
+        // Auto-increment label: "Nome" → "Nome 2", "Nome 3", etc.
+        const newLabel = `${label} ${copyIdx + 1}`;
+        ghosts.push({
+          id: `ghost-${src.id}-${copyIdx}`,
+          sourceId: src.id,
+          type: src.type,
+          pageIndex: src.pageIndex,
+          position: {
+            x: src.position.x + offsetX * copyIdx,
+            y: src.position.y + offsetY * copyIdx,
+            width: src.position.width,
+            height: src.position.height,
+          },
+          config: { ...src.config, label: newLabel },
+          copyIndex: copyIdx,
+        });
+      }
+    }
+
+    set({
+      replicationPreview: { sourceFieldIds, copies, offsetX, offsetY, ghosts },
+    });
+  },
+
+  clearReplicationPreview: () => set({ replicationPreview: null }),
+
+  applyReplication: () => {
+    const { replicationPreview } = get();
+    if (!replicationPreview || replicationPreview.ghosts.length === 0) return [];
+
+    const newFields: EditorField[] = replicationPreview.ghosts.map((ghost) => ({
+      id: crypto.randomUUID(),
+      type: ghost.type,
+      pageIndex: ghost.pageIndex,
+      position: ghost.position,
+      config: ghost.config,
+    }));
+
+    const fields = [...get().fields, ...newFields];
+    set({ fields, isDirty: true, replicationPreview: null, selectedFieldIds: newFields.map((f) => f.id) });
+    get().history.push(fields);
+    return newFields;
   },
 
   markClean: () => set({ isDirty: false }),

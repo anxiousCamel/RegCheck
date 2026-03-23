@@ -1,173 +1,225 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { Button, Input, Label } from '@regcheck/ui';
-import { RepetitionEngine } from '@regcheck/editor-engine';
+import { useEditorStore } from '@/stores/editor-store';
 import { api } from '@/lib/api';
-import type { RepetitionConfig as RepConfig } from '@regcheck/shared';
+import type { FieldType } from '@regcheck/shared';
 
-const PREVIEW_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
+const FIELD_COLORS: Record<FieldType, string> = {
+  text: '#3b82f6',
+  image: '#10b981',
+  signature: '#f59e0b',
+  checkbox: '#8b5cf6',
+};
 
 export function RepetitionConfig({ templateId }: { templateId: string }) {
-  const { data: template } = useQuery({
-    queryKey: ['template', templateId],
-    queryFn: () => api.getTemplate(templateId),
-  });
+  const {
+    fields,
+    selectedFieldIds,
+    replicationPreview,
+    setReplicationPreview,
+    clearReplicationPreview,
+    applyReplication,
+  } = useEditorStore();
 
-  const [config, setConfig] = useState<RepConfig>({
-    itemsPerPage: 2,
-    columns: 1,
-    rows: 2,
-    offsetX: 0,
-    offsetY: 0.5,
-    startX: 0,
-    startY: 0,
-  });
+  const [copies, setCopies] = useState(1);
+  const [offsetX, setOffsetX] = useState(0);
+  const [offsetY, setOffsetY] = useState(0.05);
+  const [sourceIds, setSourceIds] = useState<string[]>([]);
 
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  // Track selected fields as source for replication
+  const selectedFields = fields.filter((f) => selectedFieldIds.includes(f.id));
 
-  // Load existing config
+  const handleMarkSelected = useCallback(() => {
+    if (selectedFieldIds.length === 0) return;
+    setSourceIds(selectedFieldIds);
+  }, [selectedFieldIds]);
+
+  // Update preview whenever parameters change
   useEffect(() => {
-    const t = template as { repetitionConfig?: RepConfig } | undefined;
-    if (t?.repetitionConfig) {
-      setConfig(t.repetitionConfig);
+    if (sourceIds.length === 0) {
+      clearReplicationPreview();
+      return;
     }
-  }, [template]);
+    // Check source fields still exist
+    const validIds = sourceIds.filter((id) => fields.some((f) => f.id === id));
+    if (validIds.length === 0) {
+      setSourceIds([]);
+      clearReplicationPreview();
+      return;
+    }
+    setReplicationPreview(validIds, copies, offsetX, offsetY);
+  }, [sourceIds, copies, offsetX, offsetY, fields, setReplicationPreview, clearReplicationPreview]);
 
-  // Validate on change
+  // Clear preview on unmount
   useEffect(() => {
-    setValidationErrors(RepetitionEngine.validate(config));
-  }, [config]);
+    return () => clearReplicationPreview();
+  }, [clearReplicationPreview]);
 
-  const saveMutation = useMutation({
-    mutationFn: () => api.updateTemplate(templateId, { repetition: config }),
+  const createFieldMutation = useMutation({
+    mutationFn: async (fieldData: { clientId: string; type: FieldType; pageIndex: number; position: Record<string, number>; config: Record<string, unknown> }) => {
+      const { clientId: _, ...payload } = fieldData;
+      return api.createField(templateId, payload) as Promise<{ id: string }>;
+    },
+    onSuccess: (serverField, variables) => {
+      if (serverField?.id && serverField.id !== variables.clientId) {
+        useEditorStore.getState().updateFieldId(variables.clientId, serverField.id);
+      }
+    },
   });
 
-  const updateConfigField = (field: keyof RepConfig, value: number) => {
-    setConfig((prev) => ({ ...prev, [field]: value }));
-  };
+  const handleApply = useCallback(() => {
+    const newFields = applyReplication();
+    // Persist each new field to API
+    for (const f of newFields) {
+      createFieldMutation.mutate({
+        clientId: f.id,
+        type: f.type,
+        pageIndex: f.pageIndex,
+        position: f.position as unknown as Record<string, number>,
+        config: f.config as unknown as Record<string, unknown>,
+      });
+    }
+    setSourceIds([]);
+  }, [applyReplication, createFieldMutation]);
 
-  // Preview computation
-  const previewLayout = RepetitionEngine.computeLayout(6, config);
+  const handleClear = useCallback(() => {
+    setSourceIds([]);
+    clearReplicationPreview();
+  }, [clearReplicationPreview]);
+
+  const sourceFields = fields.filter((f) => sourceIds.includes(f.id));
+  const hasPreview = replicationPreview && replicationPreview.ghosts.length > 0;
+
+  // Check if any ghost goes out of bounds
+  const outOfBounds = replicationPreview?.ghosts.some(
+    (g) => g.position.x + g.position.width > 1.01 || g.position.y + g.position.height > 1.01 || g.position.x < 0 || g.position.y < 0,
+  );
 
   return (
     <div className="p-4 border-t space-y-4">
-      <h3 className="font-medium text-sm">Repeticao Inteligente</h3>
+      <h3 className="font-medium text-sm">Replicar Campos</h3>
       <p className="text-xs text-muted-foreground">
-        Configure como os campos se repetem para multiplos itens.
+        Selecione campos no canvas e marque para replicar. Um preview fantasma mostra onde as copias ficarao.
       </p>
 
-      <div className="space-y-3">
-        <div>
-          <Label>Itens por pagina</Label>
-          <Input
-            type="number"
-            min={1}
-            max={50}
-            value={config.itemsPerPage}
-            onChange={(e) => updateConfigField('itemsPerPage', Number(e.target.value))}
-          />
+      {/* Step 1: Mark source fields */}
+      {sourceIds.length === 0 ? (
+        <div className="space-y-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full"
+            onClick={handleMarkSelected}
+            disabled={selectedFieldIds.length === 0}
+          >
+            Marcar {selectedFieldIds.length > 0 ? `${selectedFieldIds.length} campo(s)` : 'selecionados'} para replicar
+          </Button>
+          {selectedFieldIds.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              Selecione campos no canvas primeiro.
+            </p>
+          )}
         </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label>Colunas</Label>
-            <Input
-              type="number"
-              min={1}
-              max={10}
-              value={config.columns}
-              onChange={(e) => updateConfigField('columns', Number(e.target.value))}
-            />
-          </div>
-          <div>
-            <Label>Linhas</Label>
-            <Input
-              type="number"
-              min={1}
-              max={10}
-              value={config.rows}
-              onChange={(e) => updateConfigField('rows', Number(e.target.value))}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label>Offset X</Label>
-            <Input
-              type="number"
-              min={0}
-              max={1}
-              step={0.01}
-              value={config.offsetX}
-              onChange={(e) => updateConfigField('offsetX', Number(e.target.value))}
-            />
-          </div>
-          <div>
-            <Label>Offset Y</Label>
-            <Input
-              type="number"
-              min={0}
-              max={1}
-              step={0.01}
-              value={config.offsetY}
-              onChange={(e) => updateConfigField('offsetY', Number(e.target.value))}
-            />
-          </div>
-        </div>
-
-        {validationErrors.length > 0 && (
-          <div className="text-xs text-destructive space-y-1">
-            {validationErrors.map((err, i) => (
-              <p key={i}>{err}</p>
+      ) : (
+        <>
+          {/* Source fields list */}
+          <div className="space-y-1">
+            <p className="text-xs font-medium">Campos marcados:</p>
+            {sourceFields.map((f) => (
+              <div key={f.id} className="flex items-center gap-2 text-xs">
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: FIELD_COLORS[f.type] }}
+                />
+                <span className="truncate">{f.config.label}</span>
+                <span className="text-muted-foreground capitalize">({f.type})</span>
+              </div>
             ))}
           </div>
-        )}
 
-        <div className="border rounded p-2">
-          <p className="text-xs font-medium mb-2">Preview (6 itens) - {previewLayout.totalPages} pagina(s)</p>
-          <div className="flex gap-2 overflow-x-auto">
-            {previewLayout.pageItems.map((page) => {
-              const cellW = config.offsetX * 100 * 0.9 || 90 / config.columns;
-              const cellH = config.offsetY * 100 * 0.9 || 90 / config.rows;
-              return (
-                <div key={page.pageIndex} className="flex-shrink-0">
-                  <p className="text-[10px] text-muted-foreground mb-1">Pag. {page.pageIndex + 1}</p>
-                  <svg viewBox="0 0 100 141.42" width={120} height={170} className="border bg-white rounded">
-                    {page.items.map((item) => {
-                      const x = item.offsetX * 100;
-                      const y = item.offsetY * 100;
-                      const color = PREVIEW_COLORS[item.itemIndex % PREVIEW_COLORS.length];
-                      return (
-                        <g key={item.itemIndex}>
-                          <rect x={x} y={y} width={cellW} height={cellH}
-                            fill={color} opacity={0.3} stroke={color} strokeWidth={0.5} rx={1} />
-                          <text x={x + cellW / 2} y={y + cellH / 2}
-                            textAnchor="middle" dominantBaseline="central"
-                            fontSize={4} fill="#333" fontWeight="bold">
-                            {item.itemIndex + 1}
-                          </text>
-                        </g>
-                      );
-                    })}
-                  </svg>
-                </div>
-              );
-            })}
+          {/* Replication parameters */}
+          <div className="space-y-3">
+            <div>
+              <Label>Numero de copias</Label>
+              <Input
+                type="number"
+                min={1}
+                max={50}
+                value={copies}
+                onChange={(e) => setCopies(Math.max(1, Math.min(50, Number(e.target.value))))}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Offset X</Label>
+                <Input
+                  type="number"
+                  min={-1}
+                  max={1}
+                  step={0.01}
+                  value={offsetX}
+                  onChange={(e) => setOffsetX(Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <Label>Offset Y</Label>
+                <Input
+                  type="number"
+                  min={-1}
+                  max={1}
+                  step={0.01}
+                  value={offsetY}
+                  onChange={(e) => setOffsetY(Number(e.target.value))}
+                />
+              </div>
+            </div>
           </div>
-        </div>
 
-        <Button
-          size="sm"
-          className="w-full"
-          onClick={() => saveMutation.mutate()}
-          disabled={validationErrors.length > 0 || saveMutation.isPending}
-        >
-          Salvar Configuracao
-        </Button>
-      </div>
+          {/* Warnings */}
+          {outOfBounds && (
+            <p className="text-xs text-amber-600">
+              Algumas copias ficam fora dos limites da pagina. Ajuste os offsets.
+            </p>
+          )}
+
+          {/* Preview info */}
+          {hasPreview && (
+            <div className="text-xs text-muted-foreground border rounded p-2 bg-muted/30">
+              <p className="font-medium mb-1">Preview no canvas:</p>
+              <p>{replicationPreview.ghosts.length} campo(s) fantasma visivel(is)</p>
+              <p className="mt-1">
+                Labels: {sourceFields.map((f) => `"${f.config.label}"` ).join(', ')}
+                {' → '}
+                {sourceFields.map((f) => `"${f.config.label} 2"` ).join(', ')}
+                {copies > 1 && `, ... "${sourceFields[0]?.config.label} ${copies + 1}"`}
+              </p>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="flex-1"
+              onClick={handleApply}
+              disabled={!hasPreview || !!outOfBounds}
+            >
+              Aplicar
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleClear}
+            >
+              Limpar
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
