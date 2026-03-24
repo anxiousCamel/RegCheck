@@ -55,14 +55,14 @@ export function CrudTable({
   };
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-6">
       <div>
         <h1 className="text-2xl font-bold">{title}</h1>
         <p className="text-muted-foreground">{description}</p>
       </div>
 
       {/* Create form */}
-      <div className="flex gap-3 items-end">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex-1">
           <label className="text-sm font-medium mb-1 block">Nome</label>
           <Input
@@ -72,63 +72,134 @@ export function CrudTable({
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
           />
         </div>
-        <Button onClick={handleCreate} disabled={!newName.trim() || isCreating}>
+        <Button onClick={handleCreate} disabled={!newName.trim() || isCreating} className="w-full sm:w-auto">
           Adicionar
         </Button>
       </div>
 
-      {/* Table */}
+      {/* Table / Cards */}
       {isLoading ? (
         <div className="text-center py-12 text-muted-foreground">Carregando...</div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="text-left px-4 py-3 text-sm font-medium">Nome</th>
-                <th className="text-left px-4 py-3 text-sm font-medium w-24">Status</th>
-                <th className="text-right px-4 py-3 text-sm font-medium w-48">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id} className="border-b last:border-0">
-                  <td className="px-4 py-3">
-                    {editingId === item.id ? (
-                      <div className="flex gap-2">
-                        <Input
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleUpdate();
-                            if (e.key === 'Escape') setEditingId(null);
-                          }}
-                          className="h-8"
-                          autoFocus
-                        />
-                        <Button size="sm" onClick={handleUpdate}>Salvar</Button>
-                        <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
-                          Cancelar
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block border rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left px-4 py-3 text-sm font-medium">Nome</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium w-24">Status</th>
+                  <th className="text-right px-4 py-3 text-sm font-medium">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item.id} className="border-b last:border-0">
+                    <td className="px-4 py-3">
+                      {editingId === item.id ? (
+                        <div className="flex gap-2">
+                          <Input
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleUpdate();
+                              if (e.key === 'Escape') setEditingId(null);
+                            }}
+                            className="h-8"
+                            autoFocus
+                          />
+                          <Button size="sm" onClick={handleUpdate}>Salvar</Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
+                            Cancelar
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className={!item.ativo ? 'text-muted-foreground line-through' : ''}>
+                          {item.nome}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant={item.ativo ? 'default' : 'secondary'}>
+                        {item.ativo ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => startEdit(item)}
+                          disabled={editingId === item.id}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onToggle(item.id)}
+                        >
+                          {item.ativo ? 'Inativar' : 'Ativar'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => onDelete(item.id)}
+                        >
+                          Excluir
                         </Button>
                       </div>
-                    ) : (
-                      <span className={!item.ativo ? 'text-muted-foreground line-through' : ''}>
+                    </td>
+                  </tr>
+                ))}
+                {items.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="text-center py-8 text-muted-foreground">
+                      Nenhum registro encontrado.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {items.map((item) => (
+              <div key={item.id} className="border rounded-lg p-3 space-y-2">
+                {editingId === item.id ? (
+                  <div className="space-y-2">
+                    <Input
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleUpdate();
+                        if (e.key === 'Escape') setEditingId(null);
+                      }}
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleUpdate} className="flex-1">Salvar</Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingId(null)} className="flex-1">
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className={!item.ativo ? 'text-muted-foreground line-through' : 'font-medium'}>
                         {item.nome}
                       </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant={item.ativo ? 'default' : 'secondary'}>
-                      {item.ativo ? 'Ativo' : 'Inativo'}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex gap-2 justify-end">
+                      <Badge variant={item.ativo ? 'default' : 'secondary'}>
+                        {item.ativo ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => startEdit(item)}
-                        disabled={editingId === item.id}
                       >
                         Editar
                       </Button>
@@ -147,19 +218,17 @@ export function CrudTable({
                         Excluir
                       </Button>
                     </div>
-                  </td>
-                </tr>
-              ))}
-              {items.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="text-center py-8 text-muted-foreground">
-                    Nenhum registro encontrado.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                  </>
+                )}
+              </div>
+            ))}
+            {items.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                Nenhum registro encontrado.
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

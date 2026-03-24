@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import { AppSidebar } from '@/components/layout/sidebar';
+import { MobileBottomNav } from '@/components/layout/mobile-nav';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,7 +19,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <div className="flex h-screen">
             <AppSidebar />
-            <main className="flex-1 overflow-auto">{children}</main>
+            <main className="flex-1 overflow-auto pb-16 md:pb-0">{children}</main>
+            <MobileBottomNav />
           </div>
         </Providers>
       </body>

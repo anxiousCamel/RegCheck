@@ -16,7 +16,7 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-56 border-r bg-muted/30 flex flex-col">
+    <aside className="hidden md:flex md:w-56 md:flex-col border-r bg-muted/30">
       <div className="p-4 border-b">
         <Link href="/" className="text-xl font-bold tracking-tight">
           RegCheck
