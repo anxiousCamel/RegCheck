@@ -8,6 +8,8 @@ const navItems = [
   { href: '/', label: 'Inicio' },
   { href: '/templates', label: 'Templates' },
   { href: '/documents', label: 'Documentos' },
+  { href: '/equipamentos', label: 'Equipamentos' },
+  { href: '/cadastros', label: 'Cadastros' },
 ];
 
 export function AppSidebar() {

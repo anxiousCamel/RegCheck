@@ -5,6 +5,10 @@ import { templateRouter } from './routes/templates';
 import { documentRouter } from './routes/documents';
 import { uploadRouter } from './routes/uploads';
 import { fieldRouter } from './routes/fields';
+import { lojaRouter } from './routes/lojas';
+import { setorRouter } from './routes/setores';
+import { tipoEquipamentoRouter } from './routes/tipos-equipamento';
+import { equipamentoRouter } from './routes/equipamentos';
 import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
 
@@ -30,6 +34,10 @@ app.use('/api/uploads', uploadRouter);
 app.use('/api/templates', templateRouter);
 app.use('/api/templates', fieldRouter);
 app.use('/api/documents', documentRouter);
+app.use('/api/lojas', lojaRouter);
+app.use('/api/setores', setorRouter);
+app.use('/api/tipos-equipamento', tipoEquipamentoRouter);
+app.use('/api/equipamentos', equipamentoRouter);
 
 // Error handling
 app.use(errorHandler);

@@ -1,4 +1,11 @@
-import type { ApiResponse, PaginatedResponse } from '@regcheck/shared';
+import type {
+  ApiResponse,
+  PaginatedResponse,
+  LojaDTO,
+  SetorDTO,
+  TipoEquipamentoDTO,
+  EquipamentoDTO,
+} from '@regcheck/shared';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -126,6 +133,114 @@ class ApiClient {
 
   uploadImage(file: File, type: 'image' | 'signature' = 'image') {
     return this.upload<{ fileKey: string }>('/api/uploads/image', file, { type });
+  }
+
+  // Lojas
+  listLojas(page = 1, pageSize = 100) {
+    return this.request<PaginatedResponse<LojaDTO>>(`/api/lojas?page=${page}&pageSize=${pageSize}`);
+  }
+
+  listActiveLojas() {
+    return this.request<LojaDTO[]>('/api/lojas/active');
+  }
+
+  createLoja(data: { nome: string }) {
+    return this.request<LojaDTO>('/api/lojas', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  updateLoja(id: string, data: { nome?: string; ativo?: boolean }) {
+    return this.request<LojaDTO>(`/api/lojas/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
+  toggleLoja(id: string) {
+    return this.request<LojaDTO>(`/api/lojas/${id}/toggle`, { method: 'PATCH' });
+  }
+
+  deleteLoja(id: string) {
+    return this.request<void>(`/api/lojas/${id}`, { method: 'DELETE' });
+  }
+
+  // Setores
+  listSetores(page = 1, pageSize = 100) {
+    return this.request<PaginatedResponse<SetorDTO>>(`/api/setores?page=${page}&pageSize=${pageSize}`);
+  }
+
+  listActiveSetores() {
+    return this.request<SetorDTO[]>('/api/setores/active');
+  }
+
+  createSetor(data: { nome: string }) {
+    return this.request<SetorDTO>('/api/setores', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  updateSetor(id: string, data: { nome?: string; ativo?: boolean }) {
+    return this.request<SetorDTO>(`/api/setores/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
+  toggleSetor(id: string) {
+    return this.request<SetorDTO>(`/api/setores/${id}/toggle`, { method: 'PATCH' });
+  }
+
+  deleteSetor(id: string) {
+    return this.request<void>(`/api/setores/${id}`, { method: 'DELETE' });
+  }
+
+  // Tipos Equipamento
+  listTipos(page = 1, pageSize = 100) {
+    return this.request<PaginatedResponse<TipoEquipamentoDTO>>(`/api/tipos-equipamento?page=${page}&pageSize=${pageSize}`);
+  }
+
+  listActiveTipos() {
+    return this.request<TipoEquipamentoDTO[]>('/api/tipos-equipamento/active');
+  }
+
+  createTipo(data: { nome: string }) {
+    return this.request<TipoEquipamentoDTO>('/api/tipos-equipamento', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  updateTipo(id: string, data: { nome?: string; ativo?: boolean }) {
+    return this.request<TipoEquipamentoDTO>(`/api/tipos-equipamento/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
+  toggleTipo(id: string) {
+    return this.request<TipoEquipamentoDTO>(`/api/tipos-equipamento/${id}/toggle`, { method: 'PATCH' });
+  }
+
+  deleteTipo(id: string) {
+    return this.request<void>(`/api/tipos-equipamento/${id}`, { method: 'DELETE' });
+  }
+
+  // Equipamentos
+  listEquipamentos(page = 1, pageSize = 20, filters?: Record<string, string>) {
+    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+    if (filters) {
+      Object.entries(filters).forEach(([k, v]) => { if (v) params.set(k, v); });
+    }
+    return this.request<PaginatedResponse<EquipamentoDTO>>(`/api/equipamentos?${params}`);
+  }
+
+  getEquipamento(id: string) {
+    return this.request<EquipamentoDTO>(`/api/equipamentos/${id}`);
+  }
+
+  createEquipamento(data: {
+    lojaId: string;
+    setorId: string;
+    tipoId: string;
+    numeroEquipamento: string;
+    serie?: string;
+    patrimonio?: string;
+    glpiId?: string;
+  }) {
+    return this.request<EquipamentoDTO>('/api/equipamentos', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  updateEquipamento(id: string, data: Record<string, unknown>) {
+    return this.request<EquipamentoDTO>(`/api/equipamentos/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
+  deleteEquipamento(id: string) {
+    return this.request<void>(`/api/equipamentos/${id}`, { method: 'DELETE' });
   }
 }
 
