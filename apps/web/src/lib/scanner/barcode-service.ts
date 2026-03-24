@@ -1,6 +1,7 @@
 /**
  * BarcodeService - Detects barcodes from image data.
- * Uses the native BarcodeDetector API (Chrome) with barcode-detector polyfill fallback.
+ * Uses the native BarcodeDetector API (Chrome/Edge).
+ * If not available, returns empty (falls through to OCR).
  */
 
 interface BarcodeResult {
@@ -8,33 +9,37 @@ interface BarcodeResult {
   value: string;
 }
 
-let detectorPromise: Promise<BarcodeDetector> | null = null;
+let detector: BarcodeDetector | null = null;
+let supported: boolean | null = null;
 
-async function getDetector(): Promise<BarcodeDetector> {
-  if (!detectorPromise) {
-    detectorPromise = (async () => {
-      // Use native BarcodeDetector if available, otherwise load polyfill
-      if (!('BarcodeDetector' in globalThis)) {
-        const { BarcodeDetector: Polyfill } = await import('barcode-detector');
-        (globalThis as Record<string, unknown>).BarcodeDetector = Polyfill;
-      }
-      return new BarcodeDetector({
-        formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'qr_code'],
-      });
-    })();
+function isSupported(): boolean {
+  if (supported === null) {
+    supported = 'BarcodeDetector' in globalThis;
   }
-  return detectorPromise;
+  return supported;
+}
+
+function getDetector(): BarcodeDetector | null {
+  if (!isSupported()) return null;
+  if (!detector) {
+    detector = new BarcodeDetector({
+      formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'qr_code'],
+    });
+  }
+  return detector;
 }
 
 export class BarcodeService {
   /**
    * Detect barcodes from an image source.
-   * Returns an array of detected barcode values with their format.
+   * Returns empty array if BarcodeDetector is not available (Firefox/Safari).
    */
   static async detect(source: ImageBitmapSource): Promise<BarcodeResult[]> {
     try {
-      const detector = await getDetector();
-      const results = await detector.detect(source);
+      const det = getDetector();
+      if (!det) return [];
+
+      const results = await det.detect(source);
       return results.map((r) => ({
         format: r.format,
         value: r.rawValue,

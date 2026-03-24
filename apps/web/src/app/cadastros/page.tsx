@@ -10,7 +10,7 @@ const items = [
 
 export default function CadastrosPage() {
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Cadastros</h1>
         <p className="text-muted-foreground">Gerencie os dados base do sistema</p>

@@ -48,8 +48,8 @@ export default function EquipamentosPage() {
   const totalPages = data?.totalPages ?? 0;
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-8 space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Equipamentos</h1>
           <p className="text-muted-foreground">
@@ -76,7 +76,8 @@ export default function EquipamentosPage() {
         </div>
       ) : (
         <>
-          <div className="border rounded-lg overflow-x-auto">
+          {/* Desktop table */}
+          <div className="hidden md:block border rounded-lg overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b bg-muted/50">
@@ -126,6 +127,45 @@ export default function EquipamentosPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {items.map((eq) => (
+              <div key={eq.id} className="border rounded-lg p-3 space-y-2">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span>{eq.loja?.nome ?? '-'}</span>
+                  <span>·</span>
+                  <span>{eq.setor?.nome ?? '-'}</span>
+                  <span>·</span>
+                  <span>{eq.tipo?.nome ?? '-'}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                  <div><span className="text-muted-foreground">Nº:</span> <span className="font-mono">{eq.numeroEquipamento}</span></div>
+                  <div><span className="text-muted-foreground">Série:</span> <span className="font-mono">{eq.serie ?? '-'}</span></div>
+                  <div><span className="text-muted-foreground">Pat:</span> <span className="font-mono">{eq.patrimonio ?? '-'}</span></div>
+                  <div><span className="text-muted-foreground">GLPI:</span> <span className="font-mono">{eq.glpiId ?? '-'}</span></div>
+                </div>
+                <div className="flex gap-2 justify-end pt-1">
+                  <Link href={`/equipamentos/${eq.id}/editar`}>
+                    <Button variant="outline" size="sm">Editar</Button>
+                  </Link>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => deleteMutation.mutate(eq.id)}
+                    disabled={deleteMutation.isPending}
+                  >
+                    Excluir
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {items.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground">
+                Nenhum equipamento encontrado.
+              </div>
+            )}
           </div>
 
           {/* Pagination */}
