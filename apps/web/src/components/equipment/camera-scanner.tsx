@@ -9,9 +9,10 @@ import { OCRService } from '@/lib/scanner/ocr-service';
 interface CameraScannerProps {
   onResult: (result: { serie?: string; patrimonio?: string }) => void;
   onClose: () => void;
+  targetField?: 'serie' | 'patrimonio';
 }
 
-export function CameraScanner({ onResult, onClose }: CameraScannerProps) {
+export function CameraScanner({ onResult, onClose, targetField }: CameraScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -36,7 +37,16 @@ export function CameraScanner({ onResult, onClose }: CameraScannerProps) {
         setIsStreaming(true);
       }
     } catch (err) {
-      setError('Não foi possível acessar a câmera. Verifique as permissões.');
+      const isPermissionDenied =
+        err instanceof DOMException &&
+        (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError');
+      if (isPermissionDenied) {
+        setError(
+          'Permissão de câmera negada. Toque no ícone de câmera/cadeado na barra do navegador e permita o acesso, depois tente novamente.'
+        );
+      } else {
+        setError('Não foi possível acessar a câmera. Verifique se outro app está usando a câmera e tente novamente.');
+      }
       console.error('[CameraScanner] Camera error:', err);
     }
   }, []);
@@ -86,20 +96,25 @@ export function CameraScanner({ onResult, onClose }: CameraScannerProps) {
 
   // Confirm selection
   const handleConfirm = () => {
-    onResult({
-      serie: selectedSerie || undefined,
-      patrimonio: selectedPatrimonio || undefined,
-    });
+    if (targetField === 'serie') {
+      onResult({ serie: selectedSerie || undefined });
+    } else if (targetField === 'patrimonio') {
+      onResult({ patrimonio: selectedPatrimonio || undefined });
+    } else {
+      onResult({
+        serie: selectedSerie || undefined,
+        patrimonio: selectedPatrimonio || undefined,
+      });
+    }
   };
 
-  // Auto-start camera on mount
+  // Cleanup on unmount
   useEffect(() => {
-    startCamera();
     return () => {
       stopCamera();
       OCRService.terminate();
     };
-  }, [startCamera, stopCamera]);
+  }, [stopCamera]);
 
   const hasCandidates = serieCandidates.length > 0 || patrimonioCandidates.length > 0;
 
@@ -107,125 +122,142 @@ export function CameraScanner({ onResult, onClose }: CameraScannerProps) {
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
       <div className="bg-background rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-4 border-b flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Leitura via Câmera</h2>
+          <h2 className="text-lg font-semibold">
+            {targetField === 'patrimonio' ? 'Ler Patrimônio via Câmera' : targetField === 'serie' ? 'Ler Série via Câmera' : 'Leitura via Câmera'}
+          </h2>
           <Button variant="outline" size="sm" onClick={() => { stopCamera(); onClose(); }}>
             Fechar
           </Button>
         </div>
 
         <div className="p-4 space-y-4">
-          {/* Camera preview */}
-          <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
-            {!isStreaming && !error && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Spinner />
-              </div>
-            )}
-          </div>
+          {/* Start camera button — shown before camera is started */}
+          {!isStreaming && !error && (
+            <Button onClick={startCamera} className="w-full">
+              Iniciar Câmera
+            </Button>
+          )}
+
+          {/* Camera preview — only shown when streaming */}
+          {(isStreaming || error) && (
+            <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
 
           {/* Hidden canvas for capture */}
           <canvas ref={canvasRef} className="hidden" />
 
           {/* Error message */}
           {error && (
-            <p className="text-sm text-destructive">{error}</p>
+            <div className="space-y-2">
+              <p className="text-sm text-destructive">{error}</p>
+              <Button variant="outline" size="sm" onClick={() => { setError(null); startCamera(); }}>
+                Tentar novamente
+              </Button>
+            </div>
           )}
 
           {/* Capture button */}
-          <div className="flex gap-3">
-            <Button
-              onClick={captureAndProcess}
-              disabled={!isStreaming || isProcessing}
-              className="flex-1"
-            >
-              {isProcessing ? (
-                <>
-                  <Spinner className="mr-2 h-4 w-4" />
-                  Processando...
-                </>
-              ) : (
-                'Capturar'
-              )}
-            </Button>
-          </div>
+          {isStreaming && (
+            <div className="flex gap-3">
+              <Button
+                onClick={captureAndProcess}
+                disabled={isProcessing}
+                className="flex-1"
+              >
+                {isProcessing ? (
+                  <>
+                    <Spinner className="mr-2 h-4 w-4" />
+                    Processando...
+                  </>
+                ) : (
+                  'Capturar'
+                )}
+              </Button>
+            </div>
+          )}
 
           {/* Candidates */}
           {hasCandidates && (
             <div className="space-y-4">
-              {/* Serie candidates */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium">Série (candidatos)</h3>
-                {serieCandidates.length > 0 ? (
-                  <div className="space-y-1">
-                    {serieCandidates.map((c, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setSelectedSerie(c.value)}
-                        className={`w-full text-left px-3 py-2 rounded-md border text-sm flex items-center justify-between transition-colors ${
-                          selectedSerie === c.value
-                            ? 'border-primary bg-primary/10'
-                            : 'border-input hover:bg-muted/50'
-                        }`}
-                      >
-                        <span className="font-mono">{c.value}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {c.source === 'barcode' ? 'Barcode' : 'OCR'} ({Math.round(c.confidence * 100)}%)
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">Nenhum candidato encontrado</p>
-                )}
-                <input
-                  type="text"
-                  value={selectedSerie}
-                  onChange={(e) => setSelectedSerie(e.target.value)}
-                  placeholder="Editar manualmente..."
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                />
-              </div>
+              {/* Serie candidates — hidden when targeting only patrimonio */}
+              {targetField !== 'patrimonio' && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium">Série (candidatos)</h3>
+                  {serieCandidates.length > 0 ? (
+                    <div className="space-y-1">
+                      {serieCandidates.map((c, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedSerie(c.value)}
+                          className={`w-full text-left px-3 py-2 rounded-md border text-sm flex items-center justify-between transition-colors ${
+                            selectedSerie === c.value
+                              ? 'border-primary bg-primary/10'
+                              : 'border-input hover:bg-muted/50'
+                          }`}
+                        >
+                          <span className="font-mono">{c.value}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {c.source === 'barcode' ? 'Barcode' : 'OCR'} ({Math.round(c.confidence * 100)}%)
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Nenhum candidato encontrado</p>
+                  )}
+                  <input
+                    type="text"
+                    value={selectedSerie}
+                    onChange={(e) => setSelectedSerie(e.target.value)}
+                    placeholder="Editar manualmente..."
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  />
+                </div>
+              )}
 
-              {/* Patrimonio candidates */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium">Patrimônio (candidatos)</h3>
-                {patrimonioCandidates.length > 0 ? (
-                  <div className="space-y-1">
-                    {patrimonioCandidates.map((c, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setSelectedPatrimonio(c.value)}
-                        className={`w-full text-left px-3 py-2 rounded-md border text-sm flex items-center justify-between transition-colors ${
-                          selectedPatrimonio === c.value
-                            ? 'border-primary bg-primary/10'
-                            : 'border-input hover:bg-muted/50'
-                        }`}
-                      >
-                        <span className="font-mono">{c.value}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {c.source === 'barcode' ? 'Barcode' : 'OCR'} ({Math.round(c.confidence * 100)}%)
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">Nenhum candidato encontrado</p>
-                )}
-                <input
-                  type="text"
-                  value={selectedPatrimonio}
-                  onChange={(e) => setSelectedPatrimonio(e.target.value)}
-                  placeholder="Editar manualmente..."
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                />
-              </div>
+              {/* Patrimonio candidates — hidden when targeting only serie */}
+              {targetField !== 'serie' && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium">Patrimônio (candidatos)</h3>
+                  {patrimonioCandidates.length > 0 ? (
+                    <div className="space-y-1">
+                      {patrimonioCandidates.map((c, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedPatrimonio(c.value)}
+                          className={`w-full text-left px-3 py-2 rounded-md border text-sm flex items-center justify-between transition-colors ${
+                            selectedPatrimonio === c.value
+                              ? 'border-primary bg-primary/10'
+                              : 'border-input hover:bg-muted/50'
+                          }`}
+                        >
+                          <span className="font-mono">{c.value}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {c.source === 'barcode' ? 'Barcode' : 'OCR'} ({Math.round(c.confidence * 100)}%)
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Nenhum candidato encontrado</p>
+                  )}
+                  <input
+                    type="text"
+                    value={selectedPatrimonio}
+                    onChange={(e) => setSelectedPatrimonio(e.target.value)}
+                    placeholder="Editar manualmente..."
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  />
+                </div>
+              )}
 
               {/* Confirm */}
               <div className="flex gap-3">
