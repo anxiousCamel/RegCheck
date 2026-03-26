@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { DocumentService } from '../services/document-service';
-import { createDocumentSchema, updateDocumentSchema, saveFilledDataSchema } from '@regcheck/validators';
+import { createDocumentSchema, updateDocumentSchema, saveFilledDataSchema, populateDocumentSchema } from '@regcheck/validators';
 import { paginationSchema, idParamSchema } from '@regcheck/validators';
 import type { ApiResponse } from '@regcheck/shared';
 import { getPresignedUrl } from '../lib/s3';
@@ -47,6 +47,18 @@ documentRouter.patch('/:id', async (req, res, next) => {
     const input = updateDocumentSchema.parse(req.body);
     const doc = await DocumentService.update(id, input);
     res.json({ success: true, data: doc } satisfies ApiResponse<typeof doc>);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** POST /api/documents/:id/populate - Populate document with equipment data */
+documentRouter.post('/:id/populate', async (req, res, next) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const input = populateDocumentSchema.parse(req.body);
+    const result = await DocumentService.populate(id, input);
+    res.json({ success: true, data: result } satisfies ApiResponse<typeof result>);
   } catch (err) {
     next(err);
   }

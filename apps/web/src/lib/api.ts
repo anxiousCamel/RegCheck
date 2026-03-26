@@ -104,8 +104,21 @@ class ApiClient {
     return this.request<unknown>(`/api/documents/${id}`);
   }
 
-  createDocument(data: { templateId: string; name: string; totalItems: number }) {
-    return this.request<unknown>('/api/documents', { method: 'POST', body: JSON.stringify(data) });
+  createDocument(data: { templateId: string; name: string; totalItems?: number }) {
+    return this.request<unknown>('/api/documents', { method: 'POST', body: JSON.stringify({ totalItems: 1, ...data }) });
+  }
+
+  populateDocument(documentId: string, data: { tipoId: string; lojaId: string }) {
+    return this.request<{
+      totalItems: number;
+      assignments: Array<{
+        itemIndex: number;
+        setorId: string;
+        setorNome: string;
+        equipamentoId: string;
+        numeroEquipamento: string;
+      }>;
+    }>(`/api/documents/${documentId}/populate`, { method: 'POST', body: JSON.stringify(data) });
   }
 
   saveFilledData(documentId: string, fields: Array<Record<string, unknown>>) {
