@@ -283,6 +283,8 @@ export class DocumentService {
     await pdfGenerationQueue.add('generate', { documentId }, {
       attempts: 3,
       backoff: { type: 'exponential', delay: 2000 },
+      // Abort job if it runs for more than 5 minutes
+      timeout: 5 * 60 * 1000,
     });
 
     return { message: 'PDF generation queued', documentId };

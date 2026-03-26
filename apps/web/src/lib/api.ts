@@ -139,6 +139,14 @@ class ApiClient {
     return this.request<{ downloadUrl: string }>(`/api/documents/${documentId}/download`);
   }
 
+  getDocumentStatus(documentId: string) {
+    return this.request<{
+      status: string;
+      generatedPdfKey: string | null;
+      job?: { state: string | null; progress: number; failedReason?: string };
+    }>(`/api/documents/${documentId}/status`);
+  }
+
   // Uploads
   uploadPdf(file: File) {
     return this.upload<{ fileKey: string; pageCount: number; pdfFileId: string }>('/api/uploads/pdf', file);

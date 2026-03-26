@@ -117,12 +117,44 @@ export default function FillDocumentPage() {
   }, [docData]);
 
   // ── PDF generation ─────────────────────────────────────────────────────────
+  const [generationState, setGenerationState] = useState<
+    'idle' | 'queuing' | 'generating' | 'done' | 'error'
+  >('idle');
+
+  // Sync generation state with document status on load
+  useEffect(() => {
+    if (!docData) return;
+    if (docData.status === 'generating') setGenerationState('generating');
+    else if (docData.status === 'generated') setGenerationState('done');
+    else if (docData.status === 'error') setGenerationState('error');
+  }, [docData?.status]);
+
+  // Poll status while generating
+  const { data: statusData } = useQuery({
+    queryKey: ['document-status', documentId],
+    queryFn: () => api.getDocumentStatus(documentId),
+    enabled: generationState === 'generating',
+    refetchInterval: 3000,
+  });
+
+  useEffect(() => {
+    if (!statusData) return;
+    if (statusData.status === 'GENERATED' || statusData.status === 'generated') {
+      setGenerationState('done');
+      queryClient.invalidateQueries({ queryKey: ['document', documentId] });
+    } else if (statusData.status === 'ERROR' || statusData.status === 'error') {
+      setGenerationState('error');
+    }
+  }, [statusData, documentId, queryClient]);
+
   const generateMutation = useMutation({
     mutationFn: async () => {
-      // Ensure everything is synced before generating
       await syncToServer();
       return api.generatePdf(documentId);
     },
+    onMutate: () => setGenerationState('queuing'),
+    onSuccess: () => setGenerationState('generating'),
+    onError: () => setGenerationState('error'),
   });
 
   // ── Navigation ─────────────────────────────────────────────────────────────
@@ -165,10 +197,18 @@ export default function FillDocumentPage() {
         <Button
           size="sm"
           onClick={() => generateMutation.mutate()}
-          disabled={generateMutation.isPending}
+          disabled={generationState === 'queuing' || generationState === 'generating'}
         >
-          {generateMutation.isPending ? <Spinner className="mr-2 h-4 w-4" /> : null}
-          Gerar PDF
+          {(generationState === 'queuing' || generationState === 'generating') ? (
+            <Spinner className="mr-2 h-4 w-4" />
+          ) : null}
+          {generationState === 'queuing'
+            ? 'Enfileirando…'
+            : generationState === 'generating'
+              ? 'Gerando PDF…'
+              : generationState === 'done'
+                ? 'Gerar novamente'
+                : 'Gerar PDF'}
         </Button>
       </div>
 
@@ -181,9 +221,28 @@ export default function FillDocumentPage() {
         onSyncNow={syncToServer}
       />
 
-      {generateMutation.isSuccess && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-          PDF em geração! Acompanhe na lista de documentos.
+      {generationState === 'generating' && (
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm flex items-center gap-2">
+          <Spinner className="h-4 w-4 flex-shrink-0" />
+          <span>
+            PDF sendo gerado em segundo plano. Você pode fechar esta página e voltar depois — o PDF ficará disponível na lista de documentos.
+          </span>
+        </div>
+      )}
+
+      {generationState === 'done' && (
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm flex items-center justify-between gap-2">
+          <span>PDF gerado com sucesso.</span>
+          <DownloadButton documentId={documentId} />
+        </div>
+      )}
+
+      {generationState === 'error' && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center justify-between gap-2">
+          <span>Falha na geração do PDF. Tente novamente.</span>
+          <Button size="sm" variant="outline" onClick={() => generateMutation.mutate()}>
+            Tentar novamente
+          </Button>
         </div>
       )}
 
@@ -293,6 +352,31 @@ export default function FillDocumentPage() {
         </>
       )}
     </div>
+  );
+}
+
+// ─── DownloadButton ───────────────────────────────────────────────────────────
+
+function DownloadButton({ documentId }: { documentId: string }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleDownload = async () => {
+    setLoading(true);
+    try {
+      const { downloadUrl } = await api.getDownloadUrl(documentId);
+      window.open(downloadUrl, '_blank');
+    } catch (err) {
+      console.error('Download failed:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button size="sm" onClick={handleDownload} disabled={loading}>
+      {loading ? <Spinner className="mr-2 h-4 w-4" /> : null}
+      Download PDF
+    </Button>
   );
 }
 

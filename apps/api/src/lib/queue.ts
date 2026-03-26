@@ -28,3 +28,21 @@ export function createPdfWorker(
     },
   );
 }
+
+/** Get the current BullMQ job status for a document */
+export async function getJobStatus(documentId: string): Promise<{
+  state: string | null;
+  progress: number;
+  failedReason?: string;
+} | null> {
+  const jobs = await pdfGenerationQueue.getJobs(['active', 'waiting', 'delayed', 'failed', 'completed']);
+  const job = jobs.find((j) => j.data.documentId === documentId);
+  if (!job) return null;
+
+  const state = await job.getState();
+  return {
+    state,
+    progress: typeof job.progress === 'number' ? job.progress : 0,
+    failedReason: job.failedReason,
+  };
+}

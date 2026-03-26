@@ -4,6 +4,7 @@ import { createDocumentSchema, updateDocumentSchema, saveFilledDataSchema, popul
 import { paginationSchema, idParamSchema } from '@regcheck/validators';
 import type { ApiResponse } from '@regcheck/shared';
 import { getPresignedUrl } from '../lib/s3';
+import { getJobStatus } from '../lib/queue';
 
 export const documentRouter = Router();
 
@@ -87,9 +88,27 @@ documentRouter.post('/:id/generate', async (req, res, next) => {
   }
 });
 
-/** GET /api/documents/:id/download - Download generated PDF */
-documentRouter.get('/:id/download', async (req, res, next) => {
+/** GET /api/documents/:id/status - Get document + job status for polling */
+documentRouter.get('/:id/status', async (req, res, next) => {
   try {
+    const { id } = idParamSchema.parse(req.params);
+    const doc = await DocumentService.getById(id);
+    const job = await getJobStatus(id).catch(() => null);
+
+    const result = {
+      status: doc.status,
+      generatedPdfKey: doc.generatedPdfKey,
+      job: job ?? undefined,
+    };
+
+    res.json({ success: true, data: result } satisfies ApiResponse<typeof result>);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** GET /api/documents/:id/download - Download generated PDF */
+documentRouter.get('/:id/download', async (req, res, next) => {  try {
     const { id } = idParamSchema.parse(req.params);
     const doc = await DocumentService.getById(id);
 

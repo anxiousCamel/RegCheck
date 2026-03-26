@@ -6,7 +6,7 @@
   "types": "./src/index.ts",
   "scripts": {
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist .turbo"
+    "clean": "rimraf dist .turbo"
   },
   "dependencies": {
     "zod": "^3.22.0"
