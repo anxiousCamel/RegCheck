@@ -6,7 +6,7 @@ Criar a documentação técnica completa do RegCheck: reescrever o `README.md` e
 
 ## Tasks
 
-- [ ] 1. Criar README.md na raiz do monorepo
+- [x] 1. Criar README.md na raiz do monorepo
   - Reescrever o arquivo `README.md` com conteúdo completo e real
   - Incluir diagrama Mermaid `graph LR` mostrando todos os pacotes e apps do monorepo com dependências internas
   - Incluir diagrama Mermaid de stack tecnológica organizado por camada (infra, backend, frontend, shared)
@@ -17,13 +17,13 @@ Criar a documentação técnica completa do RegCheck: reescrever o `README.md` e
   - Incluir seção de troubleshooting com erros comuns (porta ocupada, MinIO não sobe, Prisma migration falha, CORS)
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9_
 
-- [ ] 2. Criar docs/index.md — índice navegável
+- [x] 2. Criar docs/index.md — índice navegável
   - Criar o arquivo `docs/index.md` com índice completo de toda a documentação
   - Incluir links relativos para todos os arquivos em `docs/` agrupados por categoria (Arquitetura, Fluxos, Padrões, Pacotes, Contribuição, ADRs)
   - Incluir breve descrição de cada documento para orientar o leitor
   - _Requirements: 8.4, 8.7_
 
-- [ ] 3. Criar docs/architecture.md — arquitetura do sistema
+- [x] 3. Criar docs/architecture.md — arquitetura do sistema
   - Criar o arquivo `docs/architecture.md` com conteúdo completo
   - Incluir diagrama C4 nível 2 (Container Diagram) com `graph TD` mostrando: Next.js (3000), Express API (4000), PostgreSQL (5432), Redis (6379), MinIO (9000/9001) e suas conexões
   - Incluir diagrama de dependências entre pacotes do monorepo (`graph LR` mostrando quem importa quem entre `apps/api`, `apps/web`, `packages/*`)
@@ -33,7 +33,7 @@ Criar a documentação técnica completa do RegCheck: reescrever o `README.md` e
   - Incluir link para `docs/adr/002-coordenadas-relativas.md`
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
 
-- [ ] 4. Criar docs/flows.md — fluxos principais do sistema
+- [x] 4. Criar docs/flows.md — fluxos principais do sistema
   - Criar o arquivo `docs/flows.md` com todos os diagramas de fluxo
   - Incluir diagrama de estado (`stateDiagram-v2`) para ciclo de vida do Template: `DRAFT → PUBLISHED → ARCHIVED`
   - Incluir diagrama de estado (`stateDiagram-v2`) para ciclo de vida do Document: `DRAFT → IN_PROGRESS → GENERATING → GENERATED` e `GENERATING → ERROR`
@@ -43,7 +43,7 @@ Criar a documentação técnica completa do RegCheck: reescrever o `README.md` e
   - Incluir diagrama de fluxo (`flowchart TD`) explicando o RepetitionEngine: RepetitionConfig (rows, cols, offsetX, offsetY) → computeLayout → totalPages → FieldCloner.cloneForItems → campos com computedPageIndex e computedItemIndex
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
 
-- [ ] 5. Criar docs/conventions.md — padrões de código
+- [x] 5. Criar docs/conventions.md — padrões de código
   - Criar o arquivo `docs/conventions.md` com todas as convenções do projeto
   - Incluir seção de nomenclatura: arquivos em `kebab-case`, componentes React em `PascalCase`, funções/variáveis em `camelCase`, tipos/interfaces em `PascalCase`, constantes em `UPPER_SNAKE_CASE`
   - Incluir seção de estrutura de pastas esperada para `apps/api` (routes, services, middleware, lib, jobs) e `apps/web` (app, components, hooks, stores, lib) com exemplos reais do projeto
@@ -54,7 +54,7 @@ Criar a documentação técnica completa do RegCheck: reescrever o `README.md` e
   - Incluir seção de adição de novos pacotes ao monorepo: criar `packages/novo-pacote/package.json` com `name: "@regcheck/novo-pacote"`, configurar `tsconfig.json` com `extends: "../../tsconfig.base.json"`, adicionar ao `turbo.json` se necessário
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9_
 
-- [ ] 6. Criar docs/packages.md — API dos pacotes compartilhados
+- [x] 6. Criar docs/packages.md — API dos pacotes compartilhados
   - Criar o arquivo `docs/packages.md` com documentação de todos os pacotes
   - Documentar `@regcheck/editor-engine`: `RepetitionEngine.computeLayout(totalItems, config)`, `FieldCloner.cloneForItems(fields, totalItems, config)`, `SnapGrid`, `HistoryManager` — com exemplos de uso reais
   - Documentar `@regcheck/pdf-engine`: `PdfProcessor.duplicatePages()`, `PdfProcessor.getPageInfo()`, `PdfGenerator.generate({ originalPdf, pages, fieldOverlays })`, `ImageCompressor` — com exemplos de uso reais
@@ -64,7 +64,7 @@ Criar a documentação técnica completa do RegCheck: reescrever o `README.md` e
   - Incluir nota sobre qual pacote modificar para adicionar novo tipo de campo
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
 
-- [ ] 7. Criar docs/contributing.md — guia de contribuição
+- [x] 7. Criar docs/contributing.md — guia de contribuição
   - Criar o arquivo `docs/contributing.md` com o guia completo
   - Incluir fluxo de desenvolvimento local: `git checkout -b feat/nome` → código → `pnpm lint` → `pnpm type-check` → `git commit`
   - Incluir convenções de commit: formato `tipo(escopo): descrição` com tipos `feat`, `fix`, `docs`, `refactor`, `chore`, `test` e exemplos reais
@@ -74,14 +74,14 @@ Criar a documentação técnica completa do RegCheck: reescrever o `README.md` e
   - Incluir checklist de PR com itens `- [ ]` cobrindo: lint passa, type-check passa, testes passam, documentação atualizada, migrations criadas se necessário
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7_
 
-- [ ] 8. Criar docs/adr/README.md — índice de ADRs e template
+- [x] 8. Criar docs/adr/README.md — índice de ADRs e template
   - Criar o arquivo `docs/adr/README.md` com índice de todos os ADRs e template padrão
   - Incluir tabela com todos os 5 ADRs: número, título, status, link
   - Incluir template padrão de ADR com campos: Título, Status (Aceito/Proposto/Depreciado/Substituído), Contexto, Decisão, Alternativas Consideradas, Consequências
   - Incluir instruções de como criar um novo ADR (nomear arquivo, preencher template, atualizar índice)
   - _Requirements: 5.1, 5.2, 5.9_
 
-- [ ] 9. Criar docs/adr/001-konva-vs-fabricjs.md
+- [x] 9. Criar docs/adr/001-konva-vs-fabricjs.md
   - Criar ADR documentando a decisão de usar Konva.js em vez de Fabric.js no Editor Visual
   - Status: Aceito
   - Contexto: necessidade de canvas interativo para posicionar campos sobre PDFs renderizados
@@ -90,7 +90,7 @@ Criar a documentação técnica completa do RegCheck: reescrever o `README.md` e
   - Consequências: integração com React via `react-konva`, suporte a grupos, eventos de drag/drop nativos, sem suporte a texto editável inline
   - _Requirements: 5.3_
 
-- [ ] 10. Criar docs/adr/002-coordenadas-relativas.md
+- [x] 10. Criar docs/adr/002-coordenadas-relativas.md
   - Criar ADR documentando a decisão de armazenar coordenadas de campos como valores relativos (0–1)
   - Status: Aceito
   - Contexto: PDFs têm dimensões variáveis por página; coordenadas absolutas quebrariam ao trocar o PDF base
@@ -99,7 +99,7 @@ Criar a documentação técnica completa do RegCheck: reescrever o `README.md` e
   - Consequências: conversão necessária no `@regcheck/pdf-engine` na hora de gerar; editor precisa converter ao renderizar
   - _Requirements: 5.4_
 
-- [ ] 11. Criar docs/adr/003-bullmq-redis-pdf.md
+- [x] 11. Criar docs/adr/003-bullmq-redis-pdf.md
   - Criar ADR documentando a decisão de usar BullMQ + Redis para geração assíncrona de PDF
   - Status: Aceito
   - Contexto: geração de PDF é CPU/IO intensiva (download S3, pdf-lib overlay, upload S3) e não pode bloquear a request HTTP
@@ -108,7 +108,7 @@ Criar a documentação técnica completa do RegCheck: reescrever o `README.md` e
   - Consequências: frontend precisa fazer polling de status; Redis é dependência de infra; jobs podem ser retentados automaticamente
   - _Requirements: 5.5_
 
-- [ ] 12. Criar docs/adr/004-zustand-react-query.md
+- [x] 12. Criar docs/adr/004-zustand-react-query.md
   - Criar ADR documentando a decisão de usar Zustand para estado do editor e React Query para dados do servidor
   - Status: Aceito
   - Contexto: editor visual tem estado local complexo (campos selecionados, histórico, página atual) que não precisa ser sincronizado com servidor; dados de templates/documentos precisam de cache e invalidação
@@ -117,7 +117,7 @@ Criar a documentação técnica completa do RegCheck: reescrever o `README.md` e
   - Consequências: dois paradigmas de estado no frontend; Zustand é simples e sem boilerplate; React Query elimina loading/error states manuais
   - _Requirements: 5.6_
 
-- [ ] 13. Criar docs/adr/005-minio-s3-storage.md
+- [x] 13. Criar docs/adr/005-minio-s3-storage.md
   - Criar ADR documentando a decisão de usar MinIO/S3 para armazenamento de arquivos
   - Status: Aceito
   - Contexto: PDFs base, imagens de campos e PDFs gerados precisam de armazenamento persistente e acessível pelo worker
@@ -126,7 +126,7 @@ Criar a documentação técnica completa do RegCheck: reescrever o `README.md` e
   - Consequências: MinIO como dependência de infra local; `fileKey` armazenado no banco; URLs pré-assinadas para download seguro
   - _Requirements: 5.7_
 
-- [ ] 14. Checkpoint — verificar estrutura e links
+- [x] 14. Checkpoint — verificar estrutura e links
   - Verificar que todos os 13 arquivos foram criados: `README.md`, `docs/index.md`, `docs/architecture.md`, `docs/flows.md`, `docs/conventions.md`, `docs/packages.md`, `docs/contributing.md`, `docs/adr/README.md`, e os 5 ADRs
   - Verificar que `docs/index.md` contém links relativos para todos os arquivos em `docs/`
   - Verificar que `README.md` contém links para todos os documentos em `docs/`
