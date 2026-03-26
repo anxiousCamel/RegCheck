@@ -123,6 +123,9 @@ model Document {
   /// Generated PDF file key
   generatedPdfKey String?
 
+  /// Equipment assignment metadata (populated by /populate endpoint)
+  metadata Json?
+
   filledFields FilledField[]
 
   createdAt DateTime @default(now())

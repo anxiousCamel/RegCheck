@@ -101,7 +101,6 @@ function CreateDocumentSection({ onDone }: { onDone: () => void }) {
   const queryClient = useQueryClient();
   const [templateId, setTemplateId] = useState('');
   const [name, setName] = useState('');
-  const [totalItems, setTotalItems] = useState(1);
 
   const { data: templates } = useQuery({
     queryKey: ['templates'],
@@ -109,7 +108,7 @@ function CreateDocumentSection({ onDone }: { onDone: () => void }) {
   });
 
   const createMutation = useMutation({
-    mutationFn: () => api.createDocument({ templateId, name, totalItems }),
+    mutationFn: () => api.createDocument({ templateId, name }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
       onDone();
@@ -122,8 +121,13 @@ function CreateDocumentSection({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="p-4 border rounded-lg space-y-4 bg-muted/30">
-      <h3 className="font-medium">Novo Documento</h3>
-      <div className="grid grid-cols-3 gap-4">
+      <div>
+        <h3 className="font-medium">Novo Documento</h3>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Após criar, use &quot;Preencher&quot; para carregar os equipamentos automaticamente.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
         <select
           value={templateId}
           onChange={(e) => setTemplateId(e.target.value)}
@@ -141,15 +145,6 @@ function CreateDocumentSection({ onDone }: { onDone: () => void }) {
           placeholder="Nome do documento"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-        />
-        <input
-          type="number"
-          min={1}
-          max={1000}
-          placeholder="Qtd. itens"
-          value={totalItems}
-          onChange={(e) => setTotalItems(Number(e.target.value))}
           className="h-10 rounded-md border border-input bg-background px-3 text-sm"
         />
       </div>
