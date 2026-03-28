@@ -15,6 +15,8 @@
     "wait:infra": "pnpm exec wait-on tcp:localhost:5432 tcp:localhost:6379",
     "setup:env": "node scripts/setup-env.mjs",
     "seed:balanças": "node scripts/seed-balanças.mjs",
+    "db:export": "node scripts/db-export.mjs",
+    "db:import": "node scripts/db-import.mjs",
     "db:generate": "turbo db:generate",
     "db:push": "turbo db:push",
     "db:migrate": "turbo db:migrate",

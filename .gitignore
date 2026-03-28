@@ -38,3 +38,6 @@ tmp/
 
 # MinIO data
 minio-data/
+
+# Backups locais (não subir no git)
+backups/
