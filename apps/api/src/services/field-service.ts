@@ -16,9 +16,6 @@ export class FieldService {
   static async create(templateId: string, input: CreateFieldInput) {
     const template = await prisma.template.findUnique({ where: { id: templateId } });
     if (!template) throw new AppError(404, 'Template not found', 'NOT_FOUND');
-    if (template.status === 'PUBLISHED') {
-      throw new AppError(400, 'Cannot add fields to a published template', 'TEMPLATE_PUBLISHED');
-    }
 
     const field = await prisma.templateField.create({
       data: {
@@ -45,9 +42,6 @@ export class FieldService {
       include: { template: true },
     });
     if (!field) throw new AppError(404, 'Field not found', 'NOT_FOUND');
-    if (field.template.status === 'PUBLISHED') {
-      throw new AppError(400, 'Cannot modify fields on a published template', 'TEMPLATE_PUBLISHED');
-    }
 
     const data: Prisma.TemplateFieldUpdateInput = {};
     if (input.type) data.type = FIELD_TYPE_MAP[input.type] as PrismaFieldType;
