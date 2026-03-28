@@ -59,7 +59,7 @@ export function RepetitionConfig({ templateId }: { templateId: string }) {
   }, [clearReplicationPreview]);
 
   const createFieldMutation = useMutation({
-    mutationFn: async (fieldData: { clientId: string; type: FieldType; pageIndex: number; position: Record<string, number>; config: Record<string, unknown> }) => {
+    mutationFn: async (fieldData: { clientId: string; type: FieldType; pageIndex: number; position: Record<string, number>; config: Record<string, unknown>; repetitionGroupId?: string; repetitionIndex?: number; autoPopulate?: boolean; autoPopulateKey?: string }) => {
       const { clientId: _, ...payload } = fieldData;
       return api.createField(templateId, payload) as Promise<{ id: string }>;
     },
@@ -89,6 +89,10 @@ export function RepetitionConfig({ templateId }: { templateId: string }) {
             pageIndex: f.pageIndex,
             position: f.position as unknown as Record<string, number>,
             config: f.config as unknown as Record<string, unknown>,
+            repetitionGroupId: f.repetitionGroupId,
+            repetitionIndex: f.repetitionIndex,
+            autoPopulate: f.autoPopulate,
+            autoPopulateKey: f.autoPopulateKey,
           }),
         ),
       );
