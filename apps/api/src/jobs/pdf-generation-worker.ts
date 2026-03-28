@@ -72,7 +72,9 @@ export async function processPdfGeneration(data: PdfGenerationJobData): Promise<
     let finalPdf: Buffer;
 
     if (repetitionConfig) {
-      const baseFields: TemplateField[] = template.fields.map((f) => ({
+      const baseFields: TemplateField[] = template.fields
+        .filter((f) => f.repetitionIndex == null || f.repetitionIndex === 0)
+        .map((f) => ({
         id: f.id,
         type: FIELD_TYPE_REVERSE[f.type] as FieldType,
         pageIndex: f.pageIndex,

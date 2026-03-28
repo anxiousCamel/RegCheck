@@ -118,7 +118,7 @@ export default function FillDocumentPage() {
     if (!docData) return [];
     const hasRepetition = !!docData.template.repetitionConfig;
     return [...docData.template.fields]
-      .filter((f) => !hasRepetition || f.pageIndex === 0)
+      .filter((f) => !hasRepetition || (f.repetitionIndex ?? 0) === 0)
       .map((f) => ({ ...f, type: f.type.toLowerCase() as FieldType }))
       .sort((a, b) => (FIELD_TYPE_ORDER[a.type] ?? 99) - (FIELD_TYPE_ORDER[b.type] ?? 99));
   }, [docData]);
