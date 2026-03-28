@@ -70,17 +70,33 @@ export function RepetitionConfig({ templateId }: { templateId: string }) {
     },
   });
 
-  const handleApply = useCallback(() => {
-    const newFields = applyReplication();
-    // Persist each new field to API
-    for (const f of newFields) {
-      createFieldMutation.mutate({
-        clientId: f.id,
-        type: f.type,
-        pageIndex: f.pageIndex,
-        position: f.position as unknown as Record<string, number>,
-        config: f.config as unknown as Record<string, unknown>,
-      });
+  const [isApplying, setIsApplying] = useState(false);
+
+  const handleApply = useCallback(async () => {
+    setIsApplying(true);
+    // Block autosave while we create all fields
+    useEditorStore.getState().setBatchOperation(true);
+
+    try {
+      const newFields = applyReplication();
+      // Persist ALL fields to API and wait for all to resolve
+      // This prevents autosave from running with temporary UUIDs
+      await Promise.all(
+        newFields.map((f) =>
+          createFieldMutation.mutateAsync({
+            clientId: f.id,
+            type: f.type,
+            pageIndex: f.pageIndex,
+            position: f.position as unknown as Record<string, number>,
+            config: f.config as unknown as Record<string, unknown>,
+          }),
+        ),
+      );
+    } catch (err) {
+      console.error('[Replication] Some fields failed to persist:', err);
+    } finally {
+      useEditorStore.getState().setBatchOperation(false);
+      setIsApplying(false);
     }
     setSourceIds([]);
   }, [applyReplication, createFieldMutation]);
@@ -206,9 +222,9 @@ export function RepetitionConfig({ templateId }: { templateId: string }) {
               size="sm"
               className="flex-1"
               onClick={handleApply}
-              disabled={!hasPreview || !!outOfBounds}
+              disabled={!hasPreview || !!outOfBounds || isApplying}
             >
-              Aplicar
+              {isApplying ? 'Aplicando...' : 'Aplicar'}
             </Button>
             <Button
               size="sm"

@@ -5,8 +5,8 @@ export const fieldTypeSchema = z.enum(['text', 'image', 'signature', 'checkbox']
 export const fieldPositionSchema = z.object({
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
-  width: z.number().min(0.01).max(1),
-  height: z.number().min(0.01).max(1),
+  width: z.number().nonnegative().max(1),
+  height: z.number().nonnegative().max(1),
 });
 
 export const fieldConfigSchema = z.object({
@@ -24,12 +24,20 @@ export const fieldConfigSchema = z.object({
   maxLength: z.number().int().min(1).max(10000).optional(),
 });
 
+export const autoPopulateKeySchema = z.enum(['numero', 'serie', 'patrimonio', 'setor']);
+
 export const createFieldSchema = z.object({
   type: fieldTypeSchema,
   pageIndex: z.number().int().min(0),
   position: fieldPositionSchema,
   config: fieldConfigSchema,
   repetitionGroupId: z.string().uuid().optional(),
+  /** 0 = base field, 1+ = replicated copy index */
+  repetitionIndex: z.number().int().min(0).optional(),
+  /** Whether this field is auto-populated from equipment data (readonly in documents) */
+  autoPopulate: z.boolean().optional(),
+  /** Mapping key for auto-population */
+  autoPopulateKey: autoPopulateKeySchema.optional(),
 });
 
 export const updateFieldSchema = createFieldSchema.partial();

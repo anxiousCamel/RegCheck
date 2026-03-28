@@ -28,6 +28,9 @@ export class FieldService {
         position: input.position as unknown as Prisma.JsonObject,
         config: input.config as unknown as Prisma.JsonObject,
         repetitionGroupId: input.repetitionGroupId,
+        repetitionIndex: input.repetitionIndex,
+        autoPopulate: input.autoPopulate ?? false,
+        autoPopulateKey: input.autoPopulateKey,
       },
     });
 
@@ -51,6 +54,8 @@ export class FieldService {
     if (input.pageIndex !== undefined) data.pageIndex = input.pageIndex;
     if (input.position) data.position = input.position as unknown as Prisma.JsonObject;
     if (input.config) data.config = input.config as unknown as Prisma.JsonObject;
+    if (input.autoPopulate !== undefined) data.autoPopulate = input.autoPopulate;
+    if (input.autoPopulateKey !== undefined) data.autoPopulateKey = input.autoPopulateKey;
 
     const updated = await prisma.templateField.update({
       where: { id: fieldId },
@@ -73,12 +78,16 @@ export class FieldService {
     await invalidateCache(`template:${field.templateId}*`);
   }
 
-  /** Batch update fields (positions and optionally config) */
+  /** Batch update fields (positions, config, repetition markers, and autoPopulate settings) */
   static async batchUpdateFields(
     updates: Array<{
       id: string;
       position: { x: number; y: number; width: number; height: number };
       config?: Record<string, unknown>;
+      repetitionGroupId?: string | null;
+      repetitionIndex?: number | null;
+      autoPopulate?: boolean;
+      autoPopulateKey?: string;
     }>,
   ) {
     // Filter to only existing fields before updating (avoids P2025 on deleted fields)
@@ -97,6 +106,18 @@ export class FieldService {
       };
       if (u.config) {
         data.config = u.config as unknown as Prisma.JsonObject;
+      }
+      if (u.repetitionGroupId !== undefined) {
+        data.repetitionGroupId = u.repetitionGroupId;
+      }
+      if (u.repetitionIndex !== undefined) {
+        data.repetitionIndex = u.repetitionIndex;
+      }
+      if (u.autoPopulate !== undefined) {
+        data.autoPopulate = u.autoPopulate;
+      }
+      if (u.autoPopulateKey !== undefined) {
+        data.autoPopulateKey = u.autoPopulateKey;
       }
       return prisma.templateField.update({
         where: { id: u.id },

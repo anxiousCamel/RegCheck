@@ -237,10 +237,25 @@ export async function processPdfGeneration(data: PdfGenerationJobData): Promise<
       message: error instanceof Error ? error.message : String(error),
     });
 
-    await prisma.document.update({
-      where: { id: documentId },
-      data: { status: 'ERROR' },
-    }).catch(() => {/* ignore secondary failure */});
+    // Robust status recovery: retry the status update to prevent stuck GENERATING state
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await prisma.document.update({
+          where: { id: documentId },
+          data: { status: 'ERROR' },
+        });
+        log('status_recovered', documentId, { attempt });
+        break;
+      } catch (updateErr) {
+        log('status_recovery_failed', documentId, {
+          attempt,
+          message: updateErr instanceof Error ? updateErr.message : String(updateErr),
+        });
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+        }
+      }
+    }
 
     throw error;
   }

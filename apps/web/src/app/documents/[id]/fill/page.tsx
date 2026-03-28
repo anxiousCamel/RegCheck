@@ -18,6 +18,8 @@ interface TemplateField {
   config: FieldConfig;
   repetitionGroupId?: string;
   repetitionIndex?: number;
+  autoPopulate?: boolean;
+  autoPopulateKey?: string;
 }
 
 interface ItemAssignment {
@@ -109,9 +111,14 @@ export default function FillDocumentPage() {
   const currentItemIndex = currentAssignment?.itemIndex ?? 0;
 
   // ── Sorted fields ──────────────────────────────────────────────────────────
+  // When repetition is configured, only show base fields (pageIndex 0)
+  // to prevent rendering duplicate fields from all pages simultaneously.
+  // Each item is displayed one at a time via the assignment navigator.
   const sortedFields = useMemo(() => {
     if (!docData) return [];
+    const hasRepetition = !!docData.template.repetitionConfig;
     return [...docData.template.fields]
+      .filter((f) => !hasRepetition || f.pageIndex === 0)
       .map((f) => ({ ...f, type: f.type.toLowerCase() as FieldType }))
       .sort((a, b) => (FIELD_TYPE_ORDER[a.type] ?? 99) - (FIELD_TYPE_ORDER[b.type] ?? 99));
   }, [docData]);
@@ -120,39 +127,60 @@ export default function FillDocumentPage() {
   const [generationState, setGenerationState] = useState<
     'idle' | 'queuing' | 'generating' | 'done' | 'error'
   >('idle');
+  // Polling safety: max 100 polls × 3s = 5 min before giving up
+  const [pollCount, setPollCount] = useState(0);
+  const MAX_POLL_COUNT = 100;
 
   // Sync generation state with document status on load
   useEffect(() => {
     if (!docData) return;
-    if (docData.status === 'generating') setGenerationState('generating');
-    else if (docData.status === 'generated') setGenerationState('done');
-    else if (docData.status === 'error') setGenerationState('error');
+    const status = docData.status?.toLowerCase();
+    if (status === 'generating') setGenerationState('generating');
+    else if (status === 'generated') setGenerationState('done');
+    else if (status === 'error') setGenerationState('error');
   }, [docData?.status]);
 
-  // Poll status while generating
+  // Poll status while generating — with safety limit to prevent infinite polling
   const { data: statusData } = useQuery({
     queryKey: ['document-status', documentId],
-    queryFn: () => api.getDocumentStatus(documentId),
-    enabled: generationState === 'generating',
+    queryFn: () => {
+      setPollCount((c) => c + 1);
+      return api.getDocumentStatus(documentId);
+    },
+    enabled: generationState === 'generating' && pollCount < MAX_POLL_COUNT,
     refetchInterval: 3000,
   });
 
   useEffect(() => {
     if (!statusData) return;
-    if (statusData.status === 'GENERATED' || statusData.status === 'generated') {
+    const status = statusData.status?.toUpperCase();
+    if (status === 'GENERATED') {
       setGenerationState('done');
+      setPollCount(0);
       queryClient.invalidateQueries({ queryKey: ['document', documentId] });
-    } else if (statusData.status === 'ERROR' || statusData.status === 'error') {
+    } else if (status === 'ERROR') {
       setGenerationState('error');
+      setPollCount(0);
     }
   }, [statusData, documentId, queryClient]);
+
+  // Timeout: if polling exhausted, assume failure
+  useEffect(() => {
+    if (pollCount >= MAX_POLL_COUNT && generationState === 'generating') {
+      setGenerationState('error');
+      setPollCount(0);
+    }
+  }, [pollCount, generationState]);
 
   const generateMutation = useMutation({
     mutationFn: async () => {
       await syncToServer();
       return api.generatePdf(documentId);
     },
-    onMutate: () => setGenerationState('queuing'),
+    onMutate: () => {
+      setGenerationState('queuing');
+      setPollCount(0);
+    },
     onSuccess: () => setGenerationState('generating'),
     onError: () => setGenerationState('error'),
   });
@@ -453,6 +481,7 @@ interface FieldInputProps {
 function FieldInput({ field, value, fileKey, pendingBlob, onChange, onImageChange }: FieldInputProps) {
   // Create a local object URL for pending blobs so we can show a preview
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const isReadonly = field.autoPopulate === true;
 
   useEffect(() => {
     if (!pendingBlob) { setPreviewUrl(null); return; }
@@ -462,12 +491,17 @@ function FieldInput({ field, value, fileKey, pendingBlob, onChange, onImageChang
   }, [pendingBlob]);
 
   return (
-    <div className="space-y-1.5 border rounded-lg p-3 bg-card">
+    <div className={`space-y-1.5 border rounded-lg p-3 ${isReadonly ? 'bg-muted/40' : 'bg-card'}`}>
       <div className="flex items-center gap-2">
         <label className="font-medium text-sm">{field.config.label}</label>
         {field.config.required && (
           <Badge variant="destructive" className="text-xs px-1.5 py-0">
             Obrigatório
+          </Badge>
+        )}
+        {isReadonly && (
+          <Badge className="text-xs px-1.5 py-0 bg-slate-200 text-slate-600">
+            Auto
           </Badge>
         )}
       </div>
@@ -476,9 +510,10 @@ function FieldInput({ field, value, fileKey, pendingBlob, onChange, onImageChang
         <input
           type="text"
           value={String(value || '')}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => !isReadonly && onChange(e.target.value)}
+          readOnly={isReadonly}
           placeholder={field.config.placeholder ?? ''}
-          className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className={`w-full h-10 rounded-md border border-input px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring ${isReadonly ? 'bg-muted cursor-not-allowed text-muted-foreground' : 'bg-background'}`}
           maxLength={field.config.maxLength}
         />
       )}

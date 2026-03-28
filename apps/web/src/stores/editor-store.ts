@@ -11,6 +11,12 @@ interface EditorField {
   position: FieldPosition;
   config: FieldConfig;
   repetitionGroupId?: string;
+  /** 0 = base field, 1+ = replicated copy index */
+  repetitionIndex?: number;
+  /** Whether this field is auto-populated from equipment data (readonly in documents) */
+  autoPopulate?: boolean;
+  /** Mapping key for auto-population */
+  autoPopulateKey?: string;
 }
 
 /** Ghost field shown as preview before applying replication */
@@ -48,6 +54,8 @@ interface EditorState {
   history: HistoryManager<EditorField[]>;
   /** Preview state for intelligent replication */
   replicationPreview: ReplicationPreview | null;
+  /** Flag to block autosave during batch operations (paste, replication) */
+  isBatchOperation: boolean;
 
   // Actions
   setFields: (fields: EditorField[]) => void;
@@ -76,6 +84,8 @@ interface EditorState {
   redo: () => void;
   saveSnapshot: () => void;
   markClean: () => void;
+  /** Set batch operation flag — blocks autosave while true */
+  setBatchOperation: (active: boolean) => void;
 
   /** Replication preview actions */
   setReplicationPreview: (sourceFieldIds: string[], copies: number, offsetX: number, offsetY: number) => void;
@@ -104,6 +114,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   isDirty: false,
   history: new HistoryManager<EditorField[]>(50),
   replicationPreview: null,
+  isBatchOperation: false,
 
   get selectedFieldId() {
     return get().selectedFieldIds[0] ?? null;
@@ -128,7 +139,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   updateFieldId: (oldId, newId) => {
     const fields = get().fields.map((f) => (f.id === oldId ? { ...f, id: newId } : f));
     const selectedFieldIds = get().selectedFieldIds.map((sid) => (sid === oldId ? newId : sid));
-    set({ fields, selectedFieldIds });
+    // Also update clipboard references so chained copy-paste works
+    const clipboard = get().clipboard.map((f) => (f.id === oldId ? { ...f, id: newId } : f));
+    set({ fields, selectedFieldIds, clipboard });
   },
 
   removeField: (id) => {
@@ -160,7 +173,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   copyFields: () => {
     const { fields, selectedFieldIds } = get();
     const selected = fields.filter((f) => selectedFieldIds.includes(f.id));
-    set({ clipboard: selected });
+    // Deep clone to break ALL references — prevents cascading edits
+    set({ clipboard: structuredClone(selected) });
   },
 
   pasteFields: () => {
@@ -168,15 +182,23 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (clipboard.length === 0) return [];
 
     const OFFSET = 0.02;
-    const newFields = clipboard.map((f) => ({
-      ...f,
+    const newFields: EditorField[] = clipboard.map((f) => ({
       id: crypto.randomUUID(),
+      type: f.type,
       pageIndex: currentPage,
       position: {
-        ...f.position,
         x: Math.min(f.position.x + OFFSET, 1 - f.position.width),
         y: Math.min(f.position.y + OFFSET, 1 - f.position.height),
+        width: f.position.width,
+        height: f.position.height,
       },
+      // Deep clone config to guarantee total isolation from source
+      config: structuredClone(f.config),
+      // Break repetition group link — paste creates independent fields
+      repetitionGroupId: undefined,
+      // Preserve auto-populate settings
+      autoPopulate: f.autoPopulate,
+      autoPopulateKey: f.autoPopulateKey,
     }));
 
     const fields = [...get().fields, ...newFields];
@@ -221,6 +243,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     get().history.push(get().fields);
   },
 
+  setBatchOperation: (active) => set({ isBatchOperation: active }),
+
   setReplicationPreview: (sourceFieldIds, copies, offsetX, offsetY) => {
     const { fields } = get();
     const sourceFields = fields.filter((f) => sourceFieldIds.includes(f.id));
@@ -246,7 +270,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             width: src.position.width,
             height: src.position.height,
           },
-          config: { ...src.config, label: newLabel },
+          config: { ...structuredClone(src.config), label: newLabel },
           copyIndex: copyIdx,
         });
       }
@@ -260,18 +284,44 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   clearReplicationPreview: () => set({ replicationPreview: null }),
 
   applyReplication: () => {
-    const { replicationPreview } = get();
+    const { replicationPreview, fields: currentFields } = get();
     if (!replicationPreview || replicationPreview.ghosts.length === 0) return [];
 
-    const newFields: EditorField[] = replicationPreview.ghosts.map((ghost) => ({
-      id: crypto.randomUUID(),
-      type: ghost.type,
-      pageIndex: ghost.pageIndex,
-      position: ghost.position,
-      config: ghost.config,
-    }));
+    // Generate a shared group ID for this replication batch
+    const groupId = crypto.randomUUID();
 
-    const fields = [...get().fields, ...newFields];
+    // Mark source fields as base (repetitionIndex = 0)
+    const sourceIdSet = new Set(replicationPreview.sourceFieldIds);
+    const updatedFields = currentFields.map((f) => {
+      if (sourceIdSet.has(f.id)) {
+        return { ...f, repetitionGroupId: groupId, repetitionIndex: 0 };
+      }
+      return f;
+    });
+
+    // Build source field lookup for inheriting autoPopulate settings
+    const sourceFieldMap = new Map(
+      currentFields.filter((f) => sourceIdSet.has(f.id)).map((f) => [f.id, f]),
+    );
+
+    const newFields: EditorField[] = replicationPreview.ghosts.map((ghost) => {
+      const source = sourceFieldMap.get(ghost.sourceId);
+      return {
+        id: crypto.randomUUID(),
+        type: ghost.type,
+        pageIndex: ghost.pageIndex,
+        // Deep clone position and config to isolate from ghost objects
+        position: structuredClone(ghost.position),
+        config: structuredClone(ghost.config),
+        repetitionGroupId: groupId,
+        repetitionIndex: ghost.copyIndex,
+        // Inherit auto-populate settings from source
+        autoPopulate: source?.autoPopulate,
+        autoPopulateKey: source?.autoPopulateKey,
+      };
+    });
+
+    const fields = [...updatedFields, ...newFields];
     set({ fields, isDirty: true, replicationPreview: null, selectedFieldIds: newFields.map((f) => f.id) });
     get().history.push(fields);
     return newFields;

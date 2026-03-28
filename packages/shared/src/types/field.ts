@@ -36,6 +36,10 @@ export interface TemplateField {
   repetitionGroupId?: string;
   /** Order within the repetition group */
   repetitionIndex?: number;
+  /** Whether this field is auto-populated from equipment data (readonly in documents) */
+  autoPopulate?: boolean;
+  /** Mapping key for auto-population: 'numero', 'serie', 'patrimonio', 'setor' */
+  autoPopulateKey?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -11,6 +11,8 @@ import { tipoEquipamentoRouter } from './routes/tipos-equipamento';
 import { equipamentoRouter } from './routes/equipamentos';
 import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
+import { createPdfWorker } from './lib/queue';
+import { processPdfGeneration } from './jobs/pdf-generation-worker';
 
 const app = express();
 const PORT = process.env.API_PORT ?? 4000;
@@ -44,6 +46,16 @@ app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`[API] Server running on port ${PORT}`);
+
+  // Start the PDF generation worker (BullMQ consumer)
+  const worker = createPdfWorker(processPdfGeneration);
+  worker.on('completed', (job) => {
+    console.log(`[Worker] PDF job ${job.id} completed`);
+  });
+  worker.on('failed', (job, err) => {
+    console.error(`[Worker] PDF job ${job?.id} failed:`, err.message);
+  });
+  console.log('[Worker] PDF generation worker started');
 });
 
 export { app };

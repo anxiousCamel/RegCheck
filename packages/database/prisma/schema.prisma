@@ -93,6 +93,12 @@ model TemplateField {
   /// Order within the group
   repetitionIndex Int?
 
+  /// Whether this field is auto-populated from equipment data (readonly in documents)
+  autoPopulate Boolean @default(false)
+
+  /// Mapping key for auto-population: 'numero', 'serie', 'patrimonio', 'setor'
+  autoPopulateKey String?
+
   filledData FilledField[]
 
   createdAt DateTime @default(now())

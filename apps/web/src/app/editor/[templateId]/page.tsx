@@ -38,6 +38,9 @@ export default function EditorPage() {
         position: FieldPosition;
         config: FieldConfig;
         repetitionGroupId?: string;
+        repetitionIndex?: number;
+        autoPopulate?: boolean;
+        autoPopulateKey?: string;
       }>;
       pdfFile: { pageCount: number };
     };
@@ -54,6 +57,9 @@ export default function EditorPage() {
       position: f.position,
       config: f.config,
       repetitionGroupId: f.repetitionGroupId,
+      repetitionIndex: f.repetitionIndex ?? undefined,
+      autoPopulate: f.autoPopulate,
+      autoPopulateKey: f.autoPopulateKey,
     }));
 
     console.debug('[EditorPage] Initializing', editorFields.length, 'fields from template');
@@ -62,7 +68,10 @@ export default function EditorPage() {
     initializedRef.current = true;
   }, [template, setFields]);
 
-  // Autosave fields to API (positions + config)
+  // Autosave fields to API (positions + config + autoPopulate)
+  // markClean() is called BEFORE the API request so that any changes the user makes
+  // while the request is in-flight re-set isDirty=true and get saved in the next cycle.
+  // Placing markClean in onSuccess would swallow those mid-flight changes.
   const saveMutation = useMutation({
     mutationFn: async () => {
       const currentFields = useEditorStore.getState().fields;
@@ -70,10 +79,19 @@ export default function EditorPage() {
         id: f.id,
         position: f.position,
         config: f.config as Record<string, unknown>,
+        repetitionGroupId: f.repetitionGroupId,
+        repetitionIndex: f.repetitionIndex,
+        autoPopulate: f.autoPopulate,
+        autoPopulateKey: f.autoPopulateKey,
       }));
+      // Mark clean before async work — changes during save will re-dirty
+      markClean();
       await api.batchUpdatePositions(templateId, updates);
     },
-    onSuccess: () => markClean(),
+    onError: () => {
+      // Re-dirty on failure so autosave retries
+      useEditorStore.setState({ isDirty: true });
+    },
   });
 
   useAutosave(fields, isDirty, async () => {

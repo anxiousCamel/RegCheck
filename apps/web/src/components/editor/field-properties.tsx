@@ -181,6 +181,43 @@ export function FieldProperties({ templateId }: { templateId: string }) {
           <Label htmlFor="field-required">Obrigatorio</Label>
         </div>
 
+        {/* Auto-populate toggle — marks field as readonly in documents */}
+        {selectedField.type === 'text' && (
+          <div className="space-y-2 border rounded-md p-2 bg-muted/20">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="field-autopopulate"
+                checked={selectedField.autoPopulate ?? false}
+                onChange={(e) =>
+                  updateField(selectedField.id, { autoPopulate: e.target.checked })
+                }
+                className="rounded"
+              />
+              <Label htmlFor="field-autopopulate">Pre-preenchido (readonly)</Label>
+            </div>
+            {selectedField.autoPopulate && (
+              <div>
+                <Label htmlFor="field-autopopulate-key">Chave de mapeamento</Label>
+                <select
+                  id="field-autopopulate-key"
+                  value={selectedField.autoPopulateKey ?? ''}
+                  onChange={(e) =>
+                    updateField(selectedField.id, { autoPopulateKey: e.target.value || undefined })
+                  }
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Selecione...</option>
+                  <option value="numero">Numero do equipamento</option>
+                  <option value="serie">Serie / Serial</option>
+                  <option value="patrimonio">Patrimonio</option>
+                  <option value="setor">Setor</option>
+                </select>
+              </div>
+            )}
+          </div>
+        )}
+
         {selectedField.type === 'text' && (
           <>
             <div>

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { prisma } from '@regcheck/database';
 import { DocumentService } from '../services/document-service';
 import { createDocumentSchema, updateDocumentSchema, saveFilledDataSchema, populateDocumentSchema } from '@regcheck/validators';
 import { paginationSchema, idParamSchema } from '@regcheck/validators';
@@ -94,6 +95,20 @@ documentRouter.get('/:id/status', async (req, res, next) => {
     const { id } = idParamSchema.parse(req.params);
     const doc = await DocumentService.getById(id);
     const job = await getJobStatus(id).catch(() => null);
+
+    // Auto-recover stuck GENERATING: if no active job and stuck > 10 min, reset to ERROR
+    if (doc.status === 'GENERATING' && !job) {
+      const elapsed = Date.now() - new Date(doc.updatedAt).getTime();
+      if (elapsed > 10 * 60 * 1000) {
+        await prisma.document.update({
+          where: { id },
+          data: { status: 'ERROR' },
+        });
+        const result = { status: 'ERROR', generatedPdfKey: doc.generatedPdfKey, job: undefined };
+        res.json({ success: true, data: result } satisfies ApiResponse<typeof result>);
+        return;
+      }
+    }
 
     const result = {
       status: doc.status,
