@@ -241,6 +241,7 @@ export class DocumentService {
 
       for (const field of doc.template.fields) {
         if (field.type !== 'TEXT') continue;
+        if (field.repetitionIndex != null && field.repetitionIndex > 0) continue;
 
         const mapping = getFieldMapping(field);
         if (!mapping) continue;
