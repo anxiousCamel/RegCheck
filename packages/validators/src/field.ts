@@ -37,7 +37,7 @@ export const createFieldSchema = z.object({
   /** Whether this field is auto-populated from equipment data (readonly in documents) */
   autoPopulate: z.boolean().optional(),
   /** Mapping key for auto-population */
-  autoPopulateKey: autoPopulateKeySchema.optional(),
+  autoPopulateKey: autoPopulateKeySchema.optional().nullable(),
 });
 
 export const updateFieldSchema = createFieldSchema.partial();
