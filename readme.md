@@ -227,44 +227,7 @@ pnpm db:migrate -- --name reset
 CORS_ORIGIN=http://localhost:3000
 ```
 
-Para múltiplas origens (ex.: mobile + web), separe por vírgula:
-
-```env
-CORS_ORIGIN=http://localhost:3000,http://10.101.6.26:3000
-```
-
 Reinicie a API após alterar o `.env`:
 ```bash
 pnpm dev:api
 ```
-
----
-
-### Mobile não consegue acessar a API (WSL2)
-
-**Sintoma:** O app mobile não carrega dados ou recebe erros de rede. No terminal do Next.js aparece:
-```
-Cross origin request detected from <IP-DO-MOBILE> to /_next/* resource
-```
-
-**Causa:** Em ambientes Windows com Docker rodando no WSL2, o `setup-env.mjs` detecta o IP interno do WSL2 (ex.: `172.x.x.x`) e o usa para todas as URLs — incluindo `NEXT_PUBLIC_API_URL`, que é enviada ao browser/mobile. Esse IP não é roteável fora da máquina host.
-
-**Solução:** O `setup-env.mjs` já trata isso automaticamente: usa o IP WSL2 para conexões server-side (banco, Redis, S3) e o IP da máquina Windows na rede local para `NEXT_PUBLIC_API_URL`. Basta rodar:
-
-```bash
-node scripts/setup-env.mjs
-```
-
-E reiniciar o ambiente:
-```bash
-pnpm dev
-```
-
-O script imprime os dois IPs detectados:
-```
-[setup-env] WSL2 detectado, usando host: 172.19.x.x
-[setup-env] IP público (mobile/browser): 10.x.x.x
-[setup-env] .env gerado com host: 172.19.x.x
-```
-
-> O IP público muda se você trocar de rede. Rode `node scripts/setup-env.mjs` sempre que mudar de rede Wi-Fi.
