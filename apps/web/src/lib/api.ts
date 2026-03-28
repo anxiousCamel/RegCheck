@@ -7,13 +7,21 @@ import type {
   EquipamentoDTO,
 } from '@regcheck/shared';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+// Em dev, usa o mesmo host que serviu a página (funciona no mobile e no desktop)
+// Em prod, usa a variável de ambiente configurada
+function getApiUrl(): string {
+  if (typeof window !== 'undefined') {
+    // Browser/mobile: usa o mesmo host que está servindo o Next.js
+    const { protocol, hostname } = window.location;
+    return `${protocol}//${hostname}:4000`;
+  }
+  // SSR / build time
+  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+}
 
 class ApiClient {
-  private baseUrl: string;
-
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
+  private get baseUrl(): string {
+    return getApiUrl();
   }
 
   private async request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -265,4 +273,4 @@ class ApiClient {
   }
 }
 
-export const api = new ApiClient(API_URL);
+export const api = new ApiClient();

@@ -20,7 +20,7 @@ const PORT = process.env.API_PORT ?? 4000;
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : true,
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -44,7 +44,7 @@ app.use('/api/equipamentos', equipamentoRouter);
 // Error handling
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`[API] Server running on port ${PORT}`);
 
   // Start the PDF generation worker (BullMQ consumer)

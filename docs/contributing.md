@@ -63,6 +63,8 @@ docs(contributing): adicionar seção de migrations
 refactor(loja-service): extrair lógica de cache para helper
 chore(deps): atualizar @aws-sdk/client-s3 para 3.x
 test(validators): adicionar testes para createEquipamentoSchema
+fix(api): bind em 0.0.0.0 para acesso via mobile na rede local
+fix(scripts): separar host WSL2 do IP público no setup-env
 ```
 
 ---
