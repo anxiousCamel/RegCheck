@@ -25,6 +25,7 @@ export default function EditorPage() {
     queryKey: ['template', templateId],
     queryFn: () => api.getTemplate(templateId),
     enabled: !!templateId,
+    gcTime: 0,
   });
 
   // Initialize editor fields from template — only once on first load
