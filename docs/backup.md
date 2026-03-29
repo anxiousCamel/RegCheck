@@ -28,30 +28,47 @@ Copie esse zip para um pendrive, Google Drive, etc.
 
 ## Importar (restaurar backup)
 
-Na máquina de destino, com a infra rodando:
+Na máquina de destino, suba a infra e a aplicação primeiro:
+
+```bash
+pnpm infra:up
+pnpm dev:all   # a API precisa estar rodando em localhost:4000
+```
+
+Em outro terminal, rode o import:
 
 ```bash
 pnpm db:import backups/backup-<timestamp>.zip
 ```
 
-Ou com o caminho completo do arquivo:
-
-```bash
-node scripts/db-import.mjs /caminho/para/backup-2026-03-28T12-00-00.zip
-```
-
 O script vai:
 1. Extrair o zip
-2. Restaurar o banco no PostgreSQL existente (sobrescreve os dados atuais)
-3. Restaurar os arquivos no MinIO
+2. Restaurar o banco no PostgreSQL (sobrescreve os dados atuais)
+3. Fazer upload dos PDFs via API da aplicação e atualizar as referências no banco
 
-> ⚠️ A restauração sobrescreve os dados atuais do banco. Use com cuidado em ambientes com dados que não devem ser perdidos.
+> ⚠️ A restauração sobrescreve os dados atuais do banco. Use com cuidado.
+
+> ℹ️ **Por que a API precisa estar rodando?**
+> O MinIO não indexa arquivos copiados diretamente no volume do container.
+> O script faz upload via `POST /api/uploads/pdf`, que usa a API do MinIO corretamente,
+> e atualiza as referências no banco automaticamente.
 
 ---
 
 ## Pré-requisitos
 
-- Docker rodando com os containers `postgres` e `minio` ativos
+- Docker/Podman rodando com os containers `postgres`, `minio` e `redis` ativos
+- Aplicação rodando (`pnpm dev:all`) — necessário para o upload dos PDFs
 - Node.js >= 20
+- Linux/Mac: requer `unzip` instalado
 - Windows: usa `Compress-Archive` / `Expand-Archive` (nativo no PowerShell)
-- Linux/Mac: requer `zip` e `unzip` instalados
+
+---
+
+## Após o import
+
+Rode as migrações pendentes para garantir que o schema está atualizado:
+
+```bash
+cd packages/database && npx prisma db push
+```

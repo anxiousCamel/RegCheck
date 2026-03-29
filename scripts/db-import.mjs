@@ -3,19 +3,24 @@
  * Restaura o banco PostgreSQL + arquivos MinIO a partir de um zip gerado pelo db-export.
  * Uso: node scripts/db-import.mjs <arquivo.zip>
  *      node scripts/db-import.mjs backups/backup-2026-03-28T12-00-00.zip
+ *
+ * IMPORTANTE — MinIO no Linux/Podman:
+ *   Copiar arquivos diretamente no volume do MinIO NÃO funciona — o MinIO não indexa
+ *   arquivos adicionados fora da sua API. O script faz upload via API da aplicação
+ *   (POST /api/uploads/pdf) e atualiza as referências no banco automaticamente.
+ *   A API precisa estar rodando em http://localhost:4000 durante o import.
  */
 
 import { execSync } from 'child_process';
-import { mkdirSync, rmSync, existsSync, readFileSync } from 'fs';
+import { mkdirSync, rmSync, existsSync, readFileSync, readdirSync } from 'fs';
 import { join, resolve, basename } from 'path';
-import { platform } from 'os';
 
 const IS_WINDOWS = process.platform === 'win32';
 const docker = IS_WINDOWS ? 'wsl -- docker' : 'docker';
 
 const POSTGRES_USER = 'regcheck';
 const POSTGRES_DB = 'regcheck';
-const MINIO_BUCKET = 'regcheck';
+const API_URL = process.env.API_URL ?? 'http://localhost:4000';
 
 const zipArg = process.argv[2];
 if (!zipArg) {
@@ -47,16 +52,41 @@ function getContainer(name) {
   }
 }
 
-function toWslPath(winPath) {
-  return winPath.replace(/\\/g, '/').replace(/^([A-Za-z]):/, (_, d) => `/mnt/${d.toLowerCase()}`);
-}
-
 function extract(zipFile, destDir) {
   if (IS_WINDOWS) {
     run(`powershell -Command "Expand-Archive -Path '${zipFile}' -DestinationPath '${destDir}' -Force"`);
   } else {
-    run(`unzip -o "${zipFile}" -d "${destDir}"`);
+    // exit code 1 = warnings only (e.g. backslash separators from Windows zips), still ok
+    try {
+      run(`unzip -o "${zipFile}" -d "${destDir}"`);
+    } catch (e) {
+      if (!existsSync(join(destDir, 'database.sql'))) throw e;
+      console.warn('  ⚠️  unzip retornou warnings, mas arquivos foram extraídos com sucesso.');
+    }
   }
+}
+
+function psql(pgContainer, sql) {
+  return execSync(`${docker} exec -i ${pgContainer} psql -U ${POSTGRES_USER} ${POSTGRES_DB} -t`, {
+    input: sql,
+    encoding: 'utf8',
+    shell: true,
+    stdio: ['pipe', 'pipe', 'inherit'],
+  }).trim();
+}
+
+/**
+ * Faz upload de um PDF via API e retorna a nova fileKey gerada.
+ * Necessário porque o MinIO não indexa arquivos copiados diretamente no volume.
+ */
+function uploadPdf(filePath) {
+  const result = execSync(
+    `curl -s -X POST "${API_URL}/api/uploads/pdf" -F "file=@${filePath};type=application/pdf"`,
+    { encoding: 'utf8', shell: true }
+  );
+  const data = JSON.parse(result);
+  if (!data.success) throw new Error(`Upload falhou: ${JSON.stringify(data.error)}`);
+  return data.data.fileKey;
 }
 
 async function main() {
@@ -77,6 +107,11 @@ async function main() {
   }
 
   console.log('\n🗄️  Restaurando banco de dados...');
+  // Drop e recria o schema público para limpar tudo antes de restaurar
+  execSync(`${docker} exec -i ${pgContainer} psql -U ${POSTGRES_USER} ${POSTGRES_DB} -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"`, {
+    shell: true,
+    stdio: 'inherit',
+  });
   const sqlContent = readFileSync(sqlFile);
   execSync(`${docker} exec -i ${pgContainer} psql -U ${POSTGRES_USER} ${POSTGRES_DB}`, {
     input: sqlContent,
@@ -86,24 +121,49 @@ async function main() {
   });
   console.log('  ✓ banco restaurado');
 
-  // 3. Restaurar arquivos MinIO
-  const minioDir = join(TMP_DIR, 'minio');
-  if (existsSync(minioDir)) {
-    console.log('\n🗂️  Restaurando arquivos (MinIO)...');
-    const minioDirWsl = IS_WINDOWS ? toWslPath(minioDir) : minioDir;
+  // 3. Restaurar arquivos MinIO via API
+  // O MinIO não indexa arquivos copiados diretamente no volume — é necessário
+  // fazer upload via API, que gera uma nova key, e atualizar as referências no banco.
+  const pdfsDir = join(TMP_DIR, 'minio', 'pdfs');
+  if (existsSync(pdfsDir)) {
+    console.log('\n🗂️  Restaurando PDFs (via API)...');
+
+    // Verifica se a API está acessível
     try {
-      run(
-        `${docker} run --rm --network infra_default ` +
-        `-v "${minioDirWsl}:/backup" ` +
-        `--entrypoint sh minio/mc:latest -c ` +
-        `"mc alias set local http://minio:9000 minioadmin minioadmin && mc mirror /backup local/${MINIO_BUCKET} --overwrite"`
-      );
-      console.log('  ✓ arquivos restaurados');
+      execSync(`curl -sf "${API_URL}/api/templates?page=1&pageSize=1" -o /dev/null`, { shell: true });
     } catch {
-      console.warn('  ⚠️  MinIO offline ou sem arquivos, pulando...');
+      console.error(`❌ API não acessível em ${API_URL}. Suba a aplicação com 'pnpm dev:all' e tente novamente.`);
+      process.exit(1);
     }
+
+    const files = readdirSync(pdfsDir).filter(f => f.endsWith('.pdf'));
+    for (const file of files) {
+      const oldKey = `pdfs/${file}`;
+      const filePath = join(pdfsDir, file);
+
+      try {
+        const newKey = uploadPdf(filePath);
+
+        // O upload já criou um novo registro em pdf_files com a nova key.
+        // Atualiza templates que referenciam o pdf_file com a oldKey para apontar
+        // para o novo registro.
+        psql(pgContainer, `
+          UPDATE templates
+          SET "pdfFileId" = (SELECT id FROM pdf_files WHERE "fileKey" = '${newKey}')
+          WHERE "pdfFileId" = (SELECT id FROM pdf_files WHERE "fileKey" = '${oldKey}');
+        `);
+
+        // Remove o registro antigo de pdf_files (agora órfão)
+        psql(pgContainer, `DELETE FROM pdf_files WHERE "fileKey" = '${oldKey}';`);
+
+        console.log(`  ✓ ${oldKey} → ${newKey}`);
+      } catch (e) {
+        console.warn(`  ⚠️  ${file}: ${e.message}`);
+      }
+    }
+    console.log('  ✓ PDFs restaurados');
   } else {
-    console.log('\n⚠️  Sem pasta minio no backup, pulando restauração de arquivos.');
+    console.log('\n⚠️  Sem pasta minio/pdfs no backup, pulando restauração de arquivos.');
   }
 
   // 4. Limpar tmp
