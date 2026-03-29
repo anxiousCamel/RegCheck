@@ -37,6 +37,10 @@ const FIELD_COLORS: Record<FieldType, string> = {
   checkbox: '#8b5cf6',
 };
 
+/** Slot badge colors by group index */
+const SLOT_COLORS = ['#2563eb', '#16a34a', '#ea580c', '#9333ea', '#dc2626', '#0891b2', '#ca8a04', '#be185d'];
+const getSlotColor = (group: number) => SLOT_COLORS[group % SLOT_COLORS.length];
+
 interface EditorCanvasProps {
   pdfFileKey: string;
   templateId: string;
@@ -647,6 +651,31 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
                   verticalAlign="middle"
                   listening={false}
                 />
+                {field.equipmentGroup != null && (
+                  <>
+                    <Rect
+                      x={width - 18 / zoom}
+                      y={0}
+                      width={18 / zoom}
+                      height={12 / zoom}
+                      fill={getSlotColor(field.equipmentGroup)}
+                      cornerRadius={2}
+                      listening={false}
+                    />
+                    <Text
+                      x={width - 18 / zoom}
+                      y={0}
+                      width={18 / zoom}
+                      height={12 / zoom}
+                      text={`S${field.equipmentGroup}`}
+                      fontSize={8 / zoom}
+                      fill="white"
+                      align="center"
+                      verticalAlign="middle"
+                      listening={false}
+                    />
+                  </>
+                )}
               </Group>
             );
           })}

@@ -40,6 +40,8 @@ export interface TemplateField {
   autoPopulate?: boolean;
   /** Mapping key for auto-population: 'numero', 'serie', 'patrimonio', 'setor' */
   autoPopulateKey?: string;
+  /** Equipment slot index within the page (0, 1, 2, ...) */
+  equipmentGroup?: number | null;
   createdAt: string;
   updatedAt: string;
 }
