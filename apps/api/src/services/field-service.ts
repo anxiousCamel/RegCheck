@@ -28,6 +28,7 @@ export class FieldService {
         repetitionIndex: input.repetitionIndex,
         autoPopulate: input.autoPopulate ?? false,
         autoPopulateKey: input.autoPopulateKey,
+        equipmentGroup: input.equipmentGroup,
       },
     });
 
@@ -50,6 +51,7 @@ export class FieldService {
     if (input.config) data.config = input.config as unknown as Prisma.JsonObject;
     if (input.autoPopulate !== undefined) data.autoPopulate = input.autoPopulate;
     if (input.autoPopulateKey !== undefined) data.autoPopulateKey = input.autoPopulateKey;
+    if (input.equipmentGroup !== undefined) data.equipmentGroup = input.equipmentGroup;
 
     const updated = await prisma.templateField.update({
       where: { id: fieldId },
@@ -82,6 +84,7 @@ export class FieldService {
       repetitionIndex?: number | null;
       autoPopulate?: boolean;
       autoPopulateKey?: string;
+      equipmentGroup?: number | null;
     }>,
   ) {
     // Filter to only existing fields before updating (avoids P2025 on deleted fields)
@@ -112,6 +115,9 @@ export class FieldService {
       }
       if (u.autoPopulateKey !== undefined) {
         data.autoPopulateKey = u.autoPopulateKey;
+      }
+      if (u.equipmentGroup !== undefined) {
+        data.equipmentGroup = u.equipmentGroup;
       }
       return prisma.templateField.update({
         where: { id: u.id },

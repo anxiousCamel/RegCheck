@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Input, Label } from '@regcheck/ui';
 import { useEditorStore } from '@/stores/editor-store';
@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 
 export function FieldProperties({ templateId }: { templateId: string }) {
   const queryClient = useQueryClient();
-  const { fields, selectedFieldIds, updateField, updateFields, removeFields } = useEditorStore();
+  const { fields, selectedFieldIds, updateField, updateFields, removeFields, setEquipmentGroup } = useEditorStore();
 
   const selectedFields = useMemo(
     () => fields.filter((f) => selectedFieldIds.includes(f.id)),
@@ -123,6 +123,13 @@ export function FieldProperties({ templateId }: { templateId: string }) {
             </>
           )}
         </div>
+
+        {/* Equipment slot assignment */}
+        <EquipmentGroupSection
+          selectedFields={selectedFields}
+          selectedFieldIds={selectedFieldIds}
+          setEquipmentGroup={setEquipmentGroup}
+        />
 
         <p className="text-xs text-muted-foreground">
           Shift+Clique para selecionar varios. Delete para excluir. Ctrl+C para copiar.
@@ -266,6 +273,13 @@ export function FieldProperties({ templateId }: { templateId: string }) {
           </>
         )}
 
+        {/* Equipment slot assignment */}
+        <EquipmentGroupSection
+          selectedFields={[selectedField]}
+          selectedFieldIds={[selectedField.id]}
+          setEquipmentGroup={setEquipmentGroup}
+        />
+
         {/* Position (read-only display) */}
         <div className="border-t pt-3 space-y-2">
           <p className="text-xs font-medium text-muted-foreground">Posicao</p>
@@ -287,6 +301,75 @@ export function FieldProperties({ templateId }: { templateId: string }) {
           Excluir Campo
         </Button>
       </div>
+    </div>
+  );
+}
+
+// ─── Equipment Group (Slot) Section ──────────────────────────────────────────
+
+interface EquipmentGroupSectionProps {
+  selectedFields: Array<{ id: string; equipmentGroup?: number | null }>;
+  selectedFieldIds: string[];
+  setEquipmentGroup: (fieldIds: string[], group: number | null) => void;
+}
+
+function EquipmentGroupSection({ selectedFields, selectedFieldIds, setEquipmentGroup }: EquipmentGroupSectionProps) {
+  const [slotInput, setSlotInput] = useState('');
+
+  const currentGroups = selectedFields.map((f) => f.equipmentGroup);
+  const allSameGroup = currentGroups.every((g) => g === currentGroups[0]);
+  const currentGroup = allSameGroup ? currentGroups[0] : undefined;
+  const hasGroup = currentGroups.some((g) => g != null);
+
+  return (
+    <div className="border-t pt-3 space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">Slot de Equipamento</p>
+      {currentGroup != null && (
+        <p className="text-sm font-medium">Slot {currentGroup}</p>
+      )}
+      {currentGroup === undefined && hasGroup && (
+        <p className="text-xs text-muted-foreground">(slots mistos)</p>
+      )}
+      {currentGroup === null && !hasGroup && (
+        <p className="text-xs text-muted-foreground">Nenhum slot atribuido</p>
+      )}
+      <div className="flex gap-2">
+        <Input
+          type="number"
+          min={0}
+          placeholder="Slot (0, 1, 2...)"
+          value={slotInput}
+          onChange={(e) => setSlotInput(e.target.value)}
+          className="flex-1 h-8 text-sm"
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={slotInput === ''}
+          onClick={() => {
+            const n = parseInt(slotInput, 10);
+            if (!isNaN(n) && n >= 0) {
+              setEquipmentGroup(selectedFieldIds, n);
+              setSlotInput('');
+            }
+          }}
+        >
+          Atribuir
+        </Button>
+      </div>
+      {hasGroup && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full text-xs"
+          onClick={() => {
+            setEquipmentGroup(selectedFieldIds, null);
+            setSlotInput('');
+          }}
+        >
+          Remover do slot
+        </Button>
+      )}
     </div>
   );
 }

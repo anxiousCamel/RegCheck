@@ -38,6 +38,8 @@ export const createFieldSchema = z.object({
   autoPopulate: z.boolean().optional(),
   /** Mapping key for auto-population */
   autoPopulateKey: autoPopulateKeySchema.optional().nullable(),
+  /** Equipment slot index within the page (0, 1, 2, ...) */
+  equipmentGroup: z.number().int().min(0).optional().nullable(),
 });
 
 export const updateFieldSchema = createFieldSchema.partial();

@@ -61,6 +61,7 @@ export default function EditorPage() {
       repetitionIndex: f.repetitionIndex ?? undefined,
       autoPopulate: f.autoPopulate,
       autoPopulateKey: f.autoPopulateKey,
+      equipmentGroup: f.equipmentGroup,
     }));
 
     console.debug('[EditorPage] Initializing', editorFields.length, 'fields from template');
@@ -84,6 +85,7 @@ export default function EditorPage() {
         repetitionIndex: f.repetitionIndex,
         autoPopulate: f.autoPopulate,
         autoPopulateKey: f.autoPopulateKey,
+        equipmentGroup: f.equipmentGroup,
       }));
       // Mark clean before async work — changes during save will re-dirty
       markClean();

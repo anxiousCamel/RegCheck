@@ -71,7 +71,106 @@ export async function processPdfGeneration(data: PdfGenerationJobData): Promise<
 
     let finalPdf: Buffer;
 
-    if (repetitionConfig) {
+    // Determine if template uses equipmentGroup slots
+    const distinctGroups = new Set(
+      template.fields.map((f) => f.equipmentGroup).filter((g): g is number => g != null),
+    );
+    const groupCount = distinctGroups.size;
+
+    if (groupCount > 0) {
+      // ── Slot-based rendering (equipmentGroup) ───────────────────────────────
+      const totalPages = Math.ceil(doc.totalItems / groupCount);
+
+      log('pages_duplicate_start', documentId, { totalPages, groupCount });
+      const expandedPdf = await PdfProcessor.duplicatePages(
+        pdfBytes,
+        totalPages,
+        template.pdfFile.pageCount,
+      );
+      const expandedPages = await PdfProcessor.getPageInfo(expandedPdf);
+      log('pages_duplicate_done', documentId, { pages: expandedPages.length });
+
+      // Collect image/signature downloads
+      const imageDownloadTasks: Array<{
+        key: string; // fieldId:itemIndex
+        fileKey: string;
+      }> = [];
+
+      for (const field of template.fields) {
+        if (field.equipmentGroup == null) continue;
+        if (field.type !== 'IMAGE' && field.type !== 'SIGNATURE') continue;
+
+        for (let page = 0; page < totalPages; page++) {
+          const itemIndex = page * groupCount + field.equipmentGroup;
+          if (itemIndex >= doc.totalItems) continue;
+
+          const filled = doc.filledFields.find(
+            (f) => f.fieldId === field.id && f.itemIndex === itemIndex,
+          );
+          if (filled?.fileKey) {
+            imageDownloadTasks.push({ key: `${field.id}:${itemIndex}`, fileKey: filled.fileKey });
+          }
+        }
+      }
+
+      log('image_downloads_start', documentId, { count: imageDownloadTasks.length });
+      const imageMap = new Map<string, Buffer>();
+      if (imageDownloadTasks.length > 0) {
+        const results = await Promise.all(
+          imageDownloadTasks.map(async (task) => ({
+            key: task.key,
+            bytes: await downloadFile(task.fileKey),
+          })),
+        );
+        for (const r of results) imageMap.set(r.key, r.bytes);
+      }
+      log('image_downloads_done', documentId, { count: imageMap.size });
+
+      // Build overlays by iterating fields × pages
+      const overlays: FieldOverlay[] = [];
+      for (const field of template.fields) {
+        if (field.equipmentGroup == null) continue;
+
+        const fieldType = FIELD_TYPE_REVERSE[field.type] as FieldType;
+        const fieldConfig = field.config as { fontSize?: number; fontColor?: string };
+
+        for (let page = 0; page < totalPages; page++) {
+          const itemIndex = page * groupCount + field.equipmentGroup;
+          if (itemIndex >= doc.totalItems) continue;
+
+          const filled = doc.filledFields.find(
+            (f) => f.fieldId === field.id && f.itemIndex === itemIndex,
+          );
+          if (!filled) continue;
+
+          const overlay: FieldOverlay = {
+            pageIndex: page * template.pdfFile.pageCount + field.pageIndex,
+            type: fieldType,
+            position: field.position as unknown as FieldPosition,
+            value: filled.value,
+            checked: filled.value === 'true',
+            fontSize: fieldConfig.fontSize,
+            fontColor: fieldConfig.fontColor,
+          };
+
+          if (fieldType === 'image' || fieldType === 'signature') {
+            overlay.imageBytes = imageMap.get(`${field.id}:${itemIndex}`);
+          }
+
+          overlays.push(overlay);
+        }
+      }
+
+      log('build_overlays_done', documentId, { overlayCount: overlays.length });
+
+      log('generate_start', documentId);
+      finalPdf = await PdfGenerator.generate({
+        originalPdf: expandedPdf,
+        pages: expandedPages,
+        fieldOverlays: overlays,
+      });
+    } else if (repetitionConfig) {
+      // ── Legacy FieldCloner path (fallback for templates without equipmentGroup) ──
       const baseFields: TemplateField[] = template.fields
         .filter((f) => f.repetitionIndex == null || f.repetitionIndex === 0)
         .map((f) => ({

@@ -17,6 +17,8 @@ interface EditorField {
   autoPopulate?: boolean;
   /** Mapping key for auto-population */
   autoPopulateKey?: string;
+  /** Equipment slot index within the page (0, 1, 2, ...) */
+  equipmentGroup?: number | null;
 }
 
 /** Ghost field shown as preview before applying replication */
@@ -96,6 +98,9 @@ interface EditorState {
   selectFields: (ids: string[]) => void;
   /** Update multiple fields with the same partial updates (batch edit) */
   updateFields: (ids: string[], updates: Partial<EditorField>) => void;
+
+  /** Set equipment group (slot) for fields — pass null to remove */
+  setEquipmentGroup: (fieldIds: string[], group: number | null) => void;
 
   /** Derived: first selected field ID (backward compat) */
   readonly selectedFieldId: string | null;
@@ -199,6 +204,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Preserve auto-populate settings
       autoPopulate: f.autoPopulate,
       autoPopulateKey: f.autoPopulateKey,
+      // Preserve equipment group assignment
+      equipmentGroup: f.equipmentGroup,
     }));
 
     const fields = [...get().fields, ...newFields];
@@ -225,6 +232,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       idSet.has(f.id) ? { ...f, ...updates } : f,
     );
     set({ fields, isDirty: true });
+  },
+
+  setEquipmentGroup: (fieldIds, group) => {
+    const idSet = new Set(fieldIds);
+    const fields = get().fields.map((f) =>
+      idSet.has(f.id) ? { ...f, equipmentGroup: group } : f,
+    );
+    set({ fields, isDirty: true });
+    get().history.push(fields);
   },
 
   setActiveTool: (tool) => set({ activeTool: tool, selectedFieldIds: [] }),

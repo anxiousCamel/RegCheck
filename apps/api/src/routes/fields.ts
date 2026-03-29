@@ -55,6 +55,7 @@ fieldRouter.post('/:id/fields/batch-positions', async (req, res, next) => {
           repetitionIndex: z.number().int().min(0).optional().nullable(),
           autoPopulate: z.boolean().optional(),
           autoPopulateKey: z.string().optional().nullable(),
+          equipmentGroup: z.number().int().min(0).optional().nullable(),
         }),
       ),
     });

@@ -99,6 +99,9 @@ model TemplateField {
   /// Mapping key for auto-population: 'numero', 'serie', 'patrimonio', 'setor'
   autoPopulateKey String?
 
+  /// Equipment slot index within the page (0, 1, 2, ...). Defines fixed position.
+  equipmentGroup Int?
+
   filledData FilledField[]
 
   createdAt DateTime @default(now())
@@ -106,6 +109,7 @@ model TemplateField {
 
   @@index([templateId, pageIndex])
   @@index([repetitionGroupId])
+  @@index([templateId, equipmentGroup])
   @@map("template_fields")
 }
 

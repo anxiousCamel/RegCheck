@@ -20,6 +20,7 @@ interface TemplateField {
   repetitionIndex?: number;
   autoPopulate?: boolean;
   autoPopulateKey?: string;
+  equipmentGroup?: number | null;
 }
 
 interface ItemAssignment {
@@ -57,7 +58,7 @@ export default function FillDocumentPage() {
     name: string;
     totalItems: number;
     status: string;
-    metadata?: { assignments?: ItemAssignment[] } | null;
+    metadata?: { assignments?: ItemAssignment[]; groupCount?: number } | null;
     template: {
       fields: TemplateField[];
       repetitionConfig?: RepetitionConfig;
@@ -110,18 +111,51 @@ export default function FillDocumentPage() {
   const currentAssignment = filteredAssignments[currentAssignmentIdx] ?? null;
   const currentItemIndex = currentAssignment?.itemIndex ?? 0;
 
-  // ── Sorted fields ──────────────────────────────────────────────────────────
-  // When repetition is configured, only show base fields (pageIndex 0)
-  // to prevent rendering duplicate fields from all pages simultaneously.
-  // Each item is displayed one at a time via the assignment navigator.
+  // ── Fields grouped by equipment slot ─────────────────────────────────────────
+  const { groupedFields, ungroupedFields, groupCount } = useMemo(() => {
+    if (!docData) return { groupedFields: new Map<number, (TemplateField & { type: FieldType })[]>(), ungroupedFields: [] as (TemplateField & { type: FieldType })[], groupCount: 0 };
+
+    const allFields = docData.template.fields.map((f) => ({
+      ...f,
+      type: f.type.toLowerCase() as FieldType,
+    }));
+
+    const grouped = new Map<number, typeof allFields>();
+    const ungrouped: typeof allFields = [];
+
+    for (const f of allFields) {
+      if (f.equipmentGroup != null) {
+        if (!grouped.has(f.equipmentGroup)) grouped.set(f.equipmentGroup, []);
+        grouped.get(f.equipmentGroup)!.push(f);
+      } else {
+        ungrouped.push(f);
+      }
+    }
+
+    // Sort within each group
+    const sortFn = (a: { type: FieldType }, b: { type: FieldType }) =>
+      (FIELD_TYPE_ORDER[a.type] ?? 99) - (FIELD_TYPE_ORDER[b.type] ?? 99);
+
+    for (const [, gFields] of grouped) gFields.sort(sortFn);
+    ungrouped.sort(sortFn);
+
+    return { groupedFields: grouped, ungroupedFields: ungrouped, groupCount: grouped.size };
+  }, [docData]);
+
+  // Fallback: if no equipmentGroup is set, show all fields (legacy behavior)
   const sortedFields = useMemo(() => {
+    if (groupCount > 0) return []; // using slot-based rendering
     if (!docData) return [];
     const hasRepetition = !!docData.template.repetitionConfig;
     return [...docData.template.fields]
       .filter((f) => !hasRepetition || (f.repetitionIndex ?? 0) === 0)
       .map((f) => ({ ...f, type: f.type.toLowerCase() as FieldType }))
       .sort((a, b) => (FIELD_TYPE_ORDER[a.type] ?? 99) - (FIELD_TYPE_ORDER[b.type] ?? 99));
-  }, [docData]);
+  }, [docData, groupCount]);
+
+  // Current slot for equipment based on itemIndex
+  const currentSlot = groupCount > 0 ? currentItemIndex % groupCount : 0;
+  const currentSlotFields = groupCount > 0 ? (groupedFields.get(currentSlot) ?? []) : sortedFields;
 
   // ── PDF generation ─────────────────────────────────────────────────────────
   const [generationState, setGenerationState] = useState<
@@ -336,9 +370,25 @@ export default function FillDocumentPage() {
                 </div>
               </div>
 
-              {/* Fields */}
+              {/* Fields — ungrouped (shared) shown first */}
               <div className="space-y-3">
-                {sortedFields.map((field) => (
+                {groupCount > 0 && ungroupedFields.length > 0 && (
+                  <>
+                    {ungroupedFields.map((field) => (
+                      <FieldInput
+                        key={`${field.id}_shared`}
+                        field={field}
+                        value={getValue(field.id, 0)}
+                        fileKey={getFileKey(field.id, 0)}
+                        pendingBlob={getPendingBlobForField(field.id, 0)}
+                        onChange={(value) => updateField(field.id, 0, value)}
+                        onImageChange={(file) => updateImageField(field.id, 0, file)}
+                      />
+                    ))}
+                    <div className="border-t" />
+                  </>
+                )}
+                {currentSlotFields.map((field) => (
                   <FieldInput
                     key={`${field.id}_${currentItemIndex}`}
                     field={field}
@@ -349,7 +399,7 @@ export default function FillDocumentPage() {
                     onImageChange={(file) => updateImageField(field.id, currentItemIndex, file)}
                   />
                 ))}
-                {sortedFields.length === 0 && (
+                {currentSlotFields.length === 0 && ungroupedFields.length === 0 && (
                   <p className="text-sm text-muted-foreground">Nenhum campo neste template.</p>
                 )}
               </div>

@@ -1,7 +1,6 @@
 import { prisma } from '@regcheck/database';
 import type { Prisma, DocumentStatus as PrismaDocStatus } from '@regcheck/database';
 import type { CreateDocumentInput, UpdateDocumentInput, SaveFilledDataInput, PopulateDocumentInput } from '@regcheck/validators';
-import type { RepetitionConfig } from '@regcheck/shared';
 import { AppError } from '../middleware/error-handler';
 import { pdfGenerationQueue } from '../lib/queue';
 
@@ -136,7 +135,11 @@ export class DocumentService {
     return prisma.document.update({ where: { id }, data });
   }
 
-  /** Populate document with equipment data, grouping by setor and respecting itemsPerPage */
+  /** Populate document with equipment data using explicit page-based pagination.
+   *  groupCount = number of distinct equipmentGroup slots = page capacity.
+   *  Each setor always starts on a new page (never mix setores on the same page).
+   *  itemIndex = currentPage * groupCount + slotOnPage (explicit, no modulo inference).
+   */
   static async populate(documentId: string, input: PopulateDocumentInput) {
     const doc = await prisma.document.findUnique({
       where: { id: documentId },
@@ -144,8 +147,11 @@ export class DocumentService {
     });
     if (!doc) throw new AppError(404, 'Document not found', 'NOT_FOUND');
 
-    const repetitionConfig = doc.template.repetitionConfig as RepetitionConfig | null;
-    const itemsPerPage = repetitionConfig?.itemsPerPage ?? 1;
+    // Derive groupCount from distinct equipmentGroup values in template fields
+    const distinctGroups = new Set(
+      doc.template.fields.map((f) => f.equipmentGroup).filter((g): g is number => g != null),
+    );
+    const groupCount = distinctGroups.size || 1;
 
     // Fetch all equipment matching tipo + loja, sorted by setor name then numero
     const equipamentos = await prisma.equipamento.findMany({
@@ -169,7 +175,8 @@ export class DocumentService {
       bySetor.get(eq.setorId)!.push(eq);
     }
 
-    // Assign item indices, padding to page boundary at each setor boundary
+    // Assign item indices with explicit page-based pagination.
+    // Each setor starts on a new page. Each page has `groupCount` slots.
     const assignments: Array<{
       itemIndex: number;
       setorId: string;
@@ -178,30 +185,39 @@ export class DocumentService {
       numeroEquipamento: string;
     }> = [];
 
-    let currentIndex = 0;
+    let currentPage = 0;
+    let slotOnPage = 0;
+
     for (const setorId of setorOrder) {
       const equips = bySetor.get(setorId)!;
-      const setorNome = equips[0].setor.nome;
+      const setorNome = equips[0]!.setor.nome;
+
+      // Each setor always starts on a new page
+      if (slotOnPage > 0) {
+        currentPage++;
+        slotOnPage = 0;
+      }
 
       for (const eq of equips) {
+        const itemIndex = currentPage * groupCount + slotOnPage;
+
         assignments.push({
-          itemIndex: currentIndex,
+          itemIndex,
           setorId,
           setorNome,
           equipamentoId: eq.id,
           numeroEquipamento: eq.numeroEquipamento,
         });
-        currentIndex++;
-      }
 
-      // Pad to next page boundary to prevent setor mixing
-      const remainder = equips.length % itemsPerPage;
-      if (remainder > 0) {
-        currentIndex += itemsPerPage - remainder;
+        slotOnPage++;
+        if (slotOnPage >= groupCount) {
+          currentPage++;
+          slotOnPage = 0;
+        }
       }
     }
 
-    const totalItems = currentIndex;
+    const totalItems = (slotOnPage > 0 ? currentPage + 1 : currentPage) * groupCount;
 
     // Resolve auto-populate mapping for each field.
     // Priority: use explicit autoPopulate/autoPopulateKey from DB if set,
@@ -214,7 +230,7 @@ export class DocumentService {
         .trim();
     }
 
-    function getFieldMapping(field: typeof doc.template.fields[number]): 'numero' | 'serie' | 'patrimonio' | 'setor' | null {
+    function getFieldMapping(field: NonNullable<typeof doc>['template']['fields'][number]): 'numero' | 'serie' | 'patrimonio' | 'setor' | null {
       // Explicit mapping takes priority
       if (field.autoPopulate && field.autoPopulateKey) {
         return field.autoPopulateKey as 'numero' | 'serie' | 'patrimonio' | 'setor';
@@ -233,18 +249,23 @@ export class DocumentService {
     // Clear existing filled fields
     await prisma.filledField.deleteMany({ where: { documentId } });
 
-    // Build pre-filled field records
+    // Build pre-filled field records — match fields to equipment by slot position
     const fieldsToCreate: Prisma.FilledFieldCreateManyInput[] = [];
 
-    for (const assignment of assignments) {
-      const eq = equipamentos.find((e) => e.id === assignment.equipamentoId)!;
+    for (const field of doc.template.fields) {
+      if (field.type !== 'TEXT') continue;
+      if (field.equipmentGroup == null) continue;
 
-      for (const field of doc.template.fields) {
-        if (field.type !== 'TEXT') continue;
-        if (field.repetitionIndex != null && field.repetitionIndex > 0) continue;
+      const mapping = getFieldMapping(field);
+      if (!mapping) continue;
 
-        const mapping = getFieldMapping(field);
-        if (!mapping) continue;
+      for (const assignment of assignments) {
+        // Field belongs to this equipment if the field's slot matches
+        // the equipment's position within its page
+        const slotOfEquipment = assignment.itemIndex % groupCount;
+        if (slotOfEquipment !== field.equipmentGroup) continue;
+
+        const eq = equipamentos.find((e) => e.id === assignment.equipamentoId)!;
 
         let value: string | null = null;
         if (mapping === 'numero') value = eq.numeroEquipamento;
@@ -272,12 +293,12 @@ export class DocumentService {
       where: { id: documentId },
       data: {
         totalItems,
-        metadata: { assignments } as unknown as Prisma.InputJsonValue,
+        metadata: { assignments, groupCount } as unknown as Prisma.InputJsonValue,
         status: 'IN_PROGRESS',
       },
     });
 
-    return { totalItems, assignments };
+    return { totalItems, assignments, groupCount };
   }
 
   /** Queue PDF generation for a document */
