@@ -269,6 +269,34 @@ O TypeScript resolve `@regcheck/ui` via workspace do pnpm — não é necessári
 
 ---
 
+## Desenvolvimento Cross-platform (Windows ↔ Linux)
+
+Este projeto roda em Windows e Linux. Alguns pacotes têm binários nativos compilados por plataforma (`msgpackr-extract`, `sharp`, `canvas`), então o `node_modules` precisa ser recriado ao trocar de OS.
+
+### Comandos de reinstalação
+
+| Comando                | Descrição                                      |
+|------------------------|------------------------------------------------|
+| `pnpm reinstall`       | Detecta o OS automaticamente e reinstala       |
+| `pnpm reinstall:win`   | Força reinstalação via PowerShell (Windows)    |
+| `pnpm reinstall:linux` | Força reinstalação via bash (Linux/WSL)        |
+
+### Regras importantes
+
+- Sempre use `pnpm` para instalar dependências. Nunca use `npm install` — ele não entende as configs do pnpm (`.npmrc`, `shamefully-hoist`, etc.) e vai gerar erros de peer dependency.
+- O `node_modules` nunca deve ser commitado. Está no `.gitignore` e os binários nativos estão marcados como `binary` no `.gitattributes`.
+- Line endings: todos os arquivos de texto usam LF. O `.gitattributes` garante isso automaticamente — não altere essa config.
+
+### Sintoma típico ao esquecer de reinstalar
+
+```
+EACCES: permission denied, open '.../@msgpackr-extract/msgpackr-extract-linux-x64/package.json'
+```
+
+Solução: `pnpm reinstall` (ou o script específico da plataforma acima).
+
+---
+
 ## Checklist de PR
 
 Antes de abrir o pull request, verifique cada item:

@@ -24,7 +24,10 @@
     "up": "pnpm infra:up && pnpm wait:infra && pnpm setup:env && pnpm dev:all",
     "up:studio": "pnpm exec concurrently -k -n INFRA,APPS,STUDIO -c auto \"pnpm infra:logs\" \"pnpm wait:infra && pnpm setup:env && pnpm dev:all\" \"pnpm wait:infra && pnpm db:studio\"",
     "clean": "turbo clean",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "reinstall": "node -e \"require('os').platform()==='win32' ? require('child_process').execSync('powershell -ExecutionPolicy Bypass -File scripts/reinstall.ps1', {stdio:'inherit'}) : require('child_process').execSync('bash scripts/reinstall.sh', {stdio:'inherit'})\"",
+    "reinstall:win": "powershell -ExecutionPolicy Bypass -File scripts/reinstall.ps1",
+    "reinstall:linux": "bash scripts/reinstall.sh"
   },
   "devDependencies": {
     "@types/node": "^20.19.37",

@@ -165,6 +165,8 @@ pnpm dev
 
 ## Troubleshooting
 
+> Rodando em Windows e Linux? Veja [docs/contributing.md — Desenvolvimento Cross-platform](docs/contributing.md#desenvolvimento-cross-platform).
+
 ### Porta já em uso
 
 **Sintoma:** `Error: listen EADDRINUSE :::4000` ou `:::3000`

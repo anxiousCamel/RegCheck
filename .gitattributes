@@ -1,2 +1,12 @@
 # Force LF line endings for shell scripts (avoids \r issues in WSL/bash)
 *.sh text eol=lf
+*.mjs text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+
+# Binários nativos — nunca fazer merge, são platform-specific
+*.node binary
+node_modules/.pnpm/**/prebuilds/** binary
+node_modules/.pnpm/**/*.node binary

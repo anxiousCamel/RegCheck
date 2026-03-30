@@ -1,6 +1,13 @@
 # Dependencies
 node_modules/
 .pnpm-store/
+.pnpm-debug.log*
+
+# Binários nativos compilados por plataforma (não subir — quebra ao trocar de OS)
+**/@msgpackr-extract/
+**/canvas/build/
+**/sharp/build/
+**/*.node
 
 # Build outputs
 dist/
