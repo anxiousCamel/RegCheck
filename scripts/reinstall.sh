@@ -1,9 +1,11 @@
 #!/bin/bash
 # Limpa node_modules de todos os workspaces e reinstala
-# Necessário ao trocar entre Linux e Windows (binários nativos são platform-specific)
+# Necessario ao trocar entre Linux e Windows (binarios nativos sao platform-specific)
 
-echo "🧹 Limpando node_modules..."
+echo "Limpando node_modules..."
 find . -name "node_modules" -not -path "*/.git/*" -prune -exec rm -rf {} + 2>/dev/null
-echo "📦 Reinstalando dependências..."
+echo "Reinstalando dependencias..."
 pnpm install
-echo "✅ Pronto!"
+echo "Gerando Prisma Client..."
+pnpm db:generate
+echo "Pronto!"

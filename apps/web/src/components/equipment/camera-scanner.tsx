@@ -1,183 +1,166 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { Button, Spinner } from '@regcheck/ui';
-import {
-  runScanPipeline,
-  cancelScan,
-  cleanupScanner,
-  warmupScanner,
-} from '@/lib/scanner';
-import type { ScanCandidate, PipelineProgress } from '@/lib/scanner';
+import { useRef, useCallback } from 'react';
+import { Button, Input, Spinner } from '@regcheck/ui';
+import { useOcr } from '@/hooks/use-ocr';
+import type { OCRCandidate } from '@/lib/scanner/types';
+import { warmupScanner, cleanupScanner } from '@/lib/scanner';
+import { useEffect, useState } from 'react';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
+export type ScannerTarget = 'serie' | 'patrimonio' | 'modelo' | 'all';
+
+export interface ScannerResult {
+  serie?: string;
+  patrimonio?: string;
+  modelo?: string;
+}
+
 interface CameraScannerProps {
-  onResult: (result: { serie?: string; patrimonio?: string }) => void;
+  onResult: (result: ScannerResult) => void;
   onClose: () => void;
-  targetField?: 'serie' | 'patrimonio';
+  targetField?: ScannerTarget;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function CameraScanner({ onResult, onClose, targetField }: CameraScannerProps) {
+export function CameraScanner({ onResult, onClose, targetField = 'all' }: CameraScannerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { status, candidates, progress, error, process, recapture, logUserChoice } = useOcr();
 
-  const [progress, setProgress] = useState<PipelineProgress | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [candidates, setCandidates] = useState<ScanCandidate[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Seleção única por tipo — usuário escolhe, nunca auto-selecionado
+  const [selectedSerie, setSelectedSerie] = useState<string>('');
+  const [selectedPatrimonio, setSelectedPatrimonio] = useState<string>('');
+  const [selectedModelo, setSelectedModelo] = useState<string>('');
 
-  // Warm up OCR engine on mount
+  // Campos manuais (fallback)
+  const [manualSerie, setManualSerie] = useState('');
+  const [manualPatrimonio, setManualPatrimonio] = useState('');
+  const [manualModelo, setManualModelo] = useState('');
+
   useEffect(() => {
     warmupScanner();
-    return () => {
-      cleanupScanner();
-    };
+    return () => { cleanupScanner(); };
   }, []);
 
-  // ─── Capture + Pipeline ──────────────────────────────────────────────────
+  // Limpa seleções ao receber novos candidatos
+  useEffect(() => {
+    if (status === 'done') {
+      setSelectedSerie('');
+      setSelectedPatrimonio('');
+      setSelectedModelo('');
+    }
+  }, [status, candidates]);
 
-  const handleCapture = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ─── Captura ─────────────────────────────────────────────────────────────
+
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
+    const bitmap = await createImageBitmap(file);
+    await process(bitmap);
+  }, [process]);
 
-    setIsProcessing(true);
-    setError(null);
-    setCandidates([]);
-    setSelected(new Set());
+  const handleNewCapture = useCallback(() => {
+    recapture();
+    setSelectedSerie('');
+    setSelectedPatrimonio('');
+    setSelectedModelo('');
+    fileInputRef.current?.click();
+  }, [recapture]);
 
-    try {
-      const bitmap = await createImageBitmap(file);
-      const result = await runScanPipeline(bitmap, {
-        onProgress: setProgress,
-      });
-
-      if (result.candidates.length > 0) {
-        setCandidates(result.candidates);
-        // Auto-select the best candidate of each type
-        const autoSelected = new Set<string>();
-        const bestSerial = result.candidates.find((c) => c.type === 'serial');
-        const bestAsset = result.candidates.find((c) => c.type === 'asset');
-        if (bestSerial) autoSelected.add(bestSerial.value);
-        if (bestAsset) autoSelected.add(bestAsset.value);
-        setSelected(autoSelected);
-      } else {
-        setError('Nenhum dado encontrado. Tente novamente com melhor iluminação.');
-      }
-
-      if (result.fromCache) {
-        setProgress({ stage: 'done', percent: 100, label: 'Resultado otimizado (cache)' });
-      }
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-      setError('Erro ao processar imagem. Tente novamente.');
-      console.error('[CameraScanner] Pipeline error:', err);
-    } finally {
-      setIsProcessing(false);
-    }
+  const openCamera = useCallback(() => {
+    fileInputRef.current?.click();
   }, []);
 
-  // ─── Selection toggle ────────────────────────────────────────────────────
+  // ─── Seleção de candidato ─────────────────────────────────────────────────
 
-  const toggleCandidate = (value: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(value)) next.delete(value);
-      else next.add(value);
-      return next;
-    });
+  const selectCandidate = (c: OCRCandidate) => {
+    logUserChoice(c);
+    if (c.type === 'serial') setSelectedSerie(c.value);
+    else if (c.type === 'patrimonio') setSelectedPatrimonio(c.value);
+    else if (c.type === 'modelo') setSelectedModelo(c.value);
   };
 
-  // ─── Confirm ─────────────────────────────────────────────────────────────
+  // ─── Confirmar ────────────────────────────────────────────────────────────
 
   const handleConfirm = () => {
-    const selectedCandidates = candidates.filter((c) => selected.has(c.value));
-    const serie = selectedCandidates.find((c) => c.type === 'serial')?.value;
-    const patrimonio = selectedCandidates.find((c) => c.type === 'asset')?.value;
+    const serie = selectedSerie || manualSerie.trim() || undefined;
+    const patrimonio = selectedPatrimonio || manualPatrimonio.trim() || undefined;
+    const modelo = selectedModelo || manualModelo.trim() || undefined;
 
-    if (targetField === 'serie') {
-      onResult({ serie });
-    } else if (targetField === 'patrimonio') {
-      onResult({ patrimonio });
-    } else {
-      onResult({ serie, patrimonio });
-    }
+    if (targetField === 'serie') onResult({ serie });
+    else if (targetField === 'patrimonio') onResult({ patrimonio });
+    else if (targetField === 'modelo') onResult({ modelo });
+    else onResult({ serie, patrimonio, modelo });
   };
 
-  // ─── Reset ───────────────────────────────────────────────────────────────
+  // ─── Candidatos filtrados por target ─────────────────────────────────────
 
-  const handleNewCapture = () => {
-    cancelScan();
-    setCandidates([]);
-    setSelected(new Set());
-    setError(null);
-    setProgress(null);
-    fileInputRef.current?.click();
-  };
-
-  // ─── Render ──────────────────────────────────────────────────────────────
+  const showSerie = targetField === 'serie' || targetField === 'all';
+  const showPatrimonio = targetField === 'patrimonio' || targetField === 'all';
+  const showModelo = targetField === 'modelo' || targetField === 'all';
 
   const serialCandidates = candidates.filter((c) => c.type === 'serial');
-  const assetCandidates = candidates.filter((c) => c.type === 'asset');
+  const patrimonioCandidates = candidates.filter((c) => c.type === 'patrimonio');
+  const modeloCandidates = candidates.filter((c) => c.type === 'modelo');
+
+  const isProcessing = status === 'processing';
   const hasCandidates = candidates.length > 0;
+
+  const hasSelection =
+    selectedSerie || selectedPatrimonio || selectedModelo ||
+    manualSerie.trim() || manualPatrimonio.trim() || manualModelo.trim();
+
+  const titleMap: Record<ScannerTarget, string> = {
+    serie: 'Ler Série via Câmera',
+    patrimonio: 'Ler Patrimônio via Câmera',
+    modelo: 'Ler Modelo via Câmera',
+    all: 'Leitura via Câmera',
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
       <div className="bg-background rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+
         {/* Header */}
         <div className="p-4 border-b flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            {targetField === 'patrimonio'
-              ? 'Ler Patrimônio via Câmera'
-              : targetField === 'serie'
-              ? 'Ler Série via Câmera'
-              : 'Leitura via Câmera'}
-          </h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => { cancelScan(); onClose(); }}
-          >
-            Fechar
-          </Button>
+          <h2 className="text-lg font-semibold">{titleMap[targetField]}</h2>
+          <Button variant="outline" size="sm" onClick={onClose}>Fechar</Button>
         </div>
 
         <div className="p-4 space-y-4">
-          {/* Camera input */}
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Tire uma foto da etiqueta do equipamento para extrair os dados automaticamente.
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={handleCapture}
-            />
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isProcessing}
-              className="w-full"
-            >
-              {isProcessing ? (
-                <>
-                  <Spinner className="mr-2 h-4 w-4" />
-                  Processando...
-                </>
-              ) : hasCandidates ? (
-                'Nova Captura'
-              ) : (
-                'Abrir Câmera'
-              )}
-            </Button>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Tire uma foto da etiqueta. Os candidatos encontrados serão listados — você escolhe qual usar.
+          </p>
 
-          {/* Progress bar */}
+          {/* Input câmera */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
+          <Button
+            onClick={hasCandidates ? handleNewCapture : openCamera}
+            disabled={isProcessing}
+            className="w-full"
+          >
+            {isProcessing ? (
+              <><Spinner className="mr-2 h-4 w-4" />Processando...</>
+            ) : hasCandidates ? (
+              'Nova Captura'
+            ) : (
+              'Abrir Câmera'
+            )}
+          </Button>
+
+          {/* Progress */}
           {isProcessing && progress && (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -193,55 +176,96 @@ export function CameraScanner({ onResult, onClose, targetField }: CameraScannerP
             </div>
           )}
 
-          {/* Error */}
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
+          {/* Erro */}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {status === 'done' && !hasCandidates && (
+            <p className="text-sm text-muted-foreground">
+              Nenhum dado encontrado. Use os campos manuais abaixo ou tente nova captura.
+            </p>
           )}
 
-          {/* Candidates with checkboxes */}
+          {/* Candidatos — usuário escolhe */}
           {hasCandidates && (
             <div className="space-y-4">
-              {/* Serial candidates */}
-              {targetField !== 'patrimonio' && serialCandidates.length > 0 && (
+              {showSerie && serialCandidates.length > 0 && (
                 <CandidateGroup
-                  title="Série"
+                  title="Série — selecione uma opção"
                   candidates={serialCandidates}
-                  selected={selected}
-                  onToggle={toggleCandidate}
+                  selected={selectedSerie}
+                  onSelect={selectCandidate}
                 />
               )}
-
-              {/* Asset (patrimônio) candidates */}
-              {targetField !== 'serie' && assetCandidates.length > 0 && (
+              {showPatrimonio && patrimonioCandidates.length > 0 && (
                 <CandidateGroup
-                  title="Patrimônio"
-                  candidates={assetCandidates}
-                  selected={selected}
-                  onToggle={toggleCandidate}
+                  title="Patrimônio — selecione uma opção"
+                  candidates={patrimonioCandidates}
+                  selected={selectedPatrimonio}
+                  onSelect={selectCandidate}
                 />
               )}
-
-              {/* No candidates for target type */}
-              {targetField === 'serie' && serialCandidates.length === 0 && (
-                <p className="text-xs text-muted-foreground">Nenhum candidato de série encontrado</p>
+              {showModelo && modeloCandidates.length > 0 && (
+                <CandidateGroup
+                  title="Modelo — selecione uma opção"
+                  candidates={modeloCandidates}
+                  selected={selectedModelo}
+                  onSelect={selectCandidate}
+                />
               )}
-              {targetField === 'patrimonio' && assetCandidates.length === 0 && (
-                <p className="text-xs text-muted-foreground">Nenhum candidato de patrimônio encontrado</p>
-              )}
+            </div>
+          )}
 
-              {/* Actions */}
-              <div className="flex gap-3">
-                <Button
-                  onClick={handleConfirm}
-                  className="flex-1"
-                  disabled={selected.size === 0}
-                >
-                  Confirmar Seleção
-                </Button>
-                <Button variant="outline" onClick={handleNewCapture}>
-                  Nova Captura
-                </Button>
-              </div>
+          {/* Campos manuais (fallback sempre visível após tentativa) */}
+          {(hasCandidates || status === 'done' || status === 'error') && (
+            <div className="space-y-3 border-t pt-4">
+              <p className="text-xs text-muted-foreground font-medium">
+                Ou preencha manualmente:
+              </p>
+              {showSerie && (
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Série (manual)</label>
+                  <Input
+                    value={manualSerie}
+                    onChange={(e) => setManualSerie(e.target.value)}
+                    placeholder="Digite o número de série"
+                  />
+                </div>
+              )}
+              {showPatrimonio && (
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Patrimônio (manual)</label>
+                  <Input
+                    value={manualPatrimonio}
+                    onChange={(e) => setManualPatrimonio(e.target.value)}
+                    placeholder="Digite o número do patrimônio"
+                  />
+                </div>
+              )}
+              {showModelo && (
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Modelo (manual)</label>
+                  <Input
+                    value={manualModelo}
+                    onChange={(e) => setManualModelo(e.target.value)}
+                    placeholder="Digite o modelo"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Ações */}
+          {(hasCandidates || status === 'done' || status === 'error') && (
+            <div className="flex gap-3 pt-2">
+              <Button
+                onClick={handleConfirm}
+                className="flex-1"
+                disabled={!hasSelection}
+              >
+                Confirmar
+              </Button>
+              <Button variant="outline" onClick={handleNewCapture}>
+                Nova Captura
+              </Button>
             </div>
           )}
         </div>
@@ -256,12 +280,12 @@ function CandidateGroup({
   title,
   candidates,
   selected,
-  onToggle,
+  onSelect,
 }: {
   title: string;
-  candidates: ScanCandidate[];
-  selected: Set<string>;
-  onToggle: (value: string) => void;
+  candidates: OCRCandidate[];
+  selected: string;
+  onSelect: (c: OCRCandidate) => void;
 }) {
   return (
     <div className="space-y-2">
@@ -270,29 +294,23 @@ function CandidateGroup({
         {candidates.map((c, i) => (
           <button
             key={i}
-            onClick={() => onToggle(c.value)}
+            type="button"
+            onClick={() => onSelect(c)}
             className={`w-full text-left px-3 py-2 rounded-md border text-sm flex items-center gap-3 transition-colors ${
-              selected.has(c.value)
+              selected === c.value
                 ? 'border-primary bg-primary/10'
                 : 'border-input hover:bg-muted/50'
             }`}
           >
+            {/* Radio visual */}
             <div
-              className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center ${
-                selected.has(c.value)
-                  ? 'bg-primary border-primary text-primary-foreground'
-                  : 'border-input'
+              className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
+                selected === c.value ? 'border-primary bg-primary' : 'border-input'
               }`}
-            >
-              {selected.has(c.value) && (
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M2 5L4 7L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </div>
+            />
             <span className="font-mono flex-1">{c.value}</span>
             <span className="text-xs text-muted-foreground">
-              {c.source === 'barcode' ? 'Barcode' : 'OCR'} ({Math.round(c.confidence * 100)}%)
+              {Math.round(c.confidence * 100)}%
             </span>
           </button>
         ))}

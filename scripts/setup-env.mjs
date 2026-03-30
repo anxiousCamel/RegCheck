@@ -19,7 +19,7 @@ function getDockerHost() {
   // Linux nativo: Docker roda local, usa localhost
   if (process.platform === 'linux') return 'localhost';
 
-  // Windows: tenta pegar o IP do WSL2
+  // Windows: Docker roda dentro do WSL2, precisa do IP do WSL2
   try {
     const ip = execSync('wsl hostname -I', { encoding: 'utf8' })
       .trim()

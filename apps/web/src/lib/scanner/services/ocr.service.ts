@@ -1,11 +1,15 @@
 /**
- * OCR service using Tesseract.js.
- * Lazy loads, caches worker, reports real progress, supports cancellation.
+ * OCR service usando Tesseract.js.
+ * Retorna lista de OCRCandidate[] — nunca decide automaticamente.
+ * Quem escolhe é o usuário.
  */
 
 import type { Worker as TesseractWorker } from 'tesseract.js';
+import type { OCRCandidate } from '../types';
+import { parseOCRText } from '../ocr-parser';
+import { deduplicateCandidates } from '../dedupe';
 
-const OCR_TIMEOUT = 30_000; // 30s defensive timeout
+const OCR_TIMEOUT = 30_000;
 
 let worker: TesseractWorker | null = null;
 let initPromise: Promise<void> | null = null;
@@ -23,28 +27,27 @@ async function initWorker(): Promise<void> {
 }
 
 export const OCRService = {
-  /** Initialize worker ahead of time (call during component mount). */
   async warmup(): Promise<void> {
     await initWorker();
   },
 
-  /** Recognize text from a canvas. Reports progress via callback. */
+  /**
+   * Reconhece texto e retorna candidatos classificados.
+   * Ordenados por confidence DESC, sem duplicatas, sem auto-seleção.
+   */
   async recognize(
     canvas: OffscreenCanvas,
     onProgress?: (percent: number) => void,
     signal?: AbortSignal,
-  ): Promise<string> {
+  ): Promise<OCRCandidate[]> {
     if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
 
     await initWorker();
     if (!worker) throw new Error('OCR worker failed to initialize');
 
-    // Convert OffscreenCanvas to blob for tesseract
     const blob = await canvas.convertToBlob({ type: 'image/png' });
-
     if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
 
-    // Race OCR against timeout and abort signal
     const result = await Promise.race([
       worker.recognize(blob),
       new Promise<never>((_, reject) => {
@@ -57,10 +60,16 @@ export const OCRService = {
     ]);
 
     onProgress?.(100);
-    return result.data.text;
+
+    const rawText = result.data.text;
+    const parsed = parseOCRText(rawText);
+    const deduped = deduplicateCandidates(parsed);
+
+    console.debug('[OCR] candidatos retornados:', deduped);
+
+    return deduped.slice(0, 8);
   },
 
-  /** Terminate worker to free memory. */
   async terminate(): Promise<void> {
     if (worker) {
       await worker.terminate();

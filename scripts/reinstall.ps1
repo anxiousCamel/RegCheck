@@ -1,12 +1,30 @@
 # Limpa node_modules de todos os workspaces e reinstala
-# Necessário ao trocar entre Linux e Windows (binários nativos são platform-specific)
+# Necessario ao trocar entre Linux e Windows (binarios nativos sao platform-specific)
 
-Write-Host "🧹 Limpando node_modules..."
-Get-ChildItem -Path . -Filter "node_modules" -Recurse -Directory -Force |
-  Where-Object { $_.FullName -notmatch '\.git' } |
-  ForEach-Object { Remove-Item -Recurse -Force $_.FullName }
+$dirs = @(
+    "node_modules",
+    "apps\api\node_modules",
+    "apps\web\node_modules",
+    "packages\database\node_modules",
+    "packages\pdf-engine\node_modules",
+    "packages\editor-engine\node_modules",
+    "packages\shared\node_modules",
+    "packages\validators\node_modules",
+    "packages\ui\node_modules"
+)
 
-Write-Host "📦 Reinstalando dependências..."
+Write-Host "Limpando node_modules..."
+foreach ($dir in $dirs) {
+    if (Test-Path $dir) {
+        Write-Host "  Removendo $dir"
+        cmd /c "rmdir /s /q $dir"
+    }
+}
+
+Write-Host "Reinstalando dependencias..."
 pnpm install
 
-Write-Host "✅ Pronto!"
+Write-Host "Gerando Prisma Client..."
+pnpm db:generate
+
+Write-Host "Pronto!"

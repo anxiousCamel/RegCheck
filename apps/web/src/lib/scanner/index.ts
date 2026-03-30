@@ -1,4 +1,5 @@
 export type {
+  OCRCandidate,
   ScanCandidate,
   ScanResult,
   PipelineProgress,
@@ -12,6 +13,9 @@ export {
   cleanupScanner,
   warmupScanner,
 } from './scan-pipeline';
+
+export { parseOCRText } from './ocr-parser';
+export { deduplicateCandidates } from './dedupe';
 
 export { AnalyticsService } from './services/analytics.service';
 export { DeduplicationService } from './services/deduplication.service';

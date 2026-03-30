@@ -2,9 +2,17 @@
 
 // ─── Candidate & Result ──────────────────────────────────────────────────────
 
-export type CandidateType = 'serial' | 'asset';
+export type CandidateType = 'serial' | 'asset' | 'modelo' | 'unknown';
 export type CandidateSource = 'barcode' | 'ocr';
 
+/** OCR candidate — always a suggestion, never auto-selected. */
+export interface OCRCandidate {
+  value: string;
+  confidence: number;
+  type: 'patrimonio' | 'serial' | 'modelo' | 'unknown';
+}
+
+/** Internal pipeline candidate (superset of OCRCandidate). */
 export interface ScanCandidate {
   type: CandidateType;
   value: string;

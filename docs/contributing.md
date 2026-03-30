@@ -273,6 +273,35 @@ O TypeScript resolve `@regcheck/ui` via workspace do pnpm — não é necessári
 
 Este projeto roda em Windows e Linux. Alguns pacotes têm binários nativos compilados por plataforma (`msgpackr-extract`, `sharp`, `canvas`), então o `node_modules` precisa ser recriado ao trocar de OS.
 
+### Como o setup-env funciona
+
+O script `scripts/setup-env.mjs` é responsável por gerar os arquivos `.env` corretos para cada ambiente. Ele é executado automaticamente pelo `pnpm up` e `pnpm up:studio`, mas pode ser rodado manualmente:
+
+```bash
+pnpm setup:env
+```
+
+O script lê o `.env` da raiz e gera três arquivos derivados com os hosts corretos:
+
+| Arquivo gerado | Usado por |
+|---|---|
+| `apps/api/.env` | API Express (DATABASE_URL, REDIS_URL, S3_ENDPOINT) |
+| `packages/database/.env` | Prisma CLI (migrations, studio) |
+| `apps/web/.env.local` | Next.js (NEXT_PUBLIC_API_URL) |
+
+**Por que isso é necessário?** O `localhost` tem significado diferente dependendo de onde a aplicação roda:
+
+| Ambiente | Docker roda em | Host para serviços | Host para celular/browser |
+|---|---|---|---|
+| Linux nativo | Linux | `localhost` | `localhost` |
+| Windows (Docker no WSL2) | WSL2 | IP do WSL2 (`172.x.x.x`) | IP da rede local (`10.x.x.x`) |
+
+No Windows com Docker no WSL2, os containers expõem as portas dentro do WSL2. A API roda no Windows e precisa do IP do WSL2 para alcançar o PostgreSQL, Redis e MinIO. Esse IP muda a cada boot do WSL2, por isso o script detecta dinamicamente via `wsl hostname -I`.
+
+O `NEXT_PUBLIC_API_URL` usa um IP diferente: o IP da rede local Wi-Fi/Ethernet (`10.x` ou `192.168.x`), que é o endereço que o celular consegue alcançar.
+
+**Nunca edite `apps/api/.env`, `packages/database/.env` ou `apps/web/.env.local` manualmente** — eles são sobrescritos pelo `setup-env` a cada execução. Edite sempre o `.env` da raiz.
+
 ### Comandos de reinstalação
 
 | Comando                | Descrição                                      |

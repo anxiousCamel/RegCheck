@@ -18,7 +18,6 @@ import { BarcodeService } from './services/barcode.service';
 import { ImageWorkerService } from './services/image-worker.service';
 import { OCRService } from './services/ocr.service';
 import { AdaptiveOCRService } from './services/adaptive-ocr.service';
-import { TextExtractorService } from './services/text-extractor.service';
 import { AnalyticsService } from './services/analytics.service';
 
 // ─── Stage labels ────────────────────────────────────────────────────────────
@@ -48,6 +47,8 @@ export type ProgressCallback = (progress: PipelineProgress) => void;
 
 export interface ScanOptions {
   onProgress?: ProgressCallback;
+  /** Se true, ignora cache e dedup — usado em recaptura explícita. */
+  forceRefresh?: boolean;
 }
 
 function report(
@@ -62,7 +63,7 @@ export async function runScanPipeline(
   image: ImageBitmap,
   options: ScanOptions = {},
 ): Promise<ScanResult> {
-  const { onProgress } = options;
+  const { onProgress, forceRefresh = false } = options;
   const { signal } = TaskController.createTask();
   const start = performance.now();
   const timing: PipelineTiming = { total: 0 };
@@ -78,21 +79,23 @@ export async function runScanPipeline(
 
       // ── Cache check ───────────────────────────────────────────────────
       report(onProgress, 'cache-check');
-      const cached = await ResultCacheService.get(hash);
-      if (cached) {
-        AnalyticsService.track({
-          type: 'cache_hit',
-          stage: 'cache',
-          duration: performance.now() - start,
-        });
-        timing.total = performance.now() - start;
-        report(onProgress, 'done', 100);
-        return { candidates: cached.candidates, fromCache: true, hash, timing };
+      if (!forceRefresh) {
+        const cached = await ResultCacheService.get(hash);
+        if (cached) {
+          AnalyticsService.track({
+            type: 'cache_hit',
+            stage: 'cache',
+            duration: performance.now() - start,
+          });
+          timing.total = performance.now() - start;
+          report(onProgress, 'done', 100);
+          return { candidates: cached.candidates, fromCache: true, hash, timing };
+        }
       }
 
       // ── Dedup check ───────────────────────────────────────────────────
       report(onProgress, 'dedup-check');
-      if (DeduplicationService.isDuplicate(hash)) {
+      if (!forceRefresh && DeduplicationService.isDuplicate(hash)) {
         const dupCandidates = DeduplicationService.get(hash) ?? [];
         AnalyticsService.track({
           type: 'dedup_hit',
@@ -161,7 +164,8 @@ export async function runScanPipeline(
           const ocrCanvas = new OffscreenCanvas(data.width, data.height);
           ocrCanvas.getContext('2d')!.putImageData(data, 0, 0);
 
-          const text = await OCRService.recognize(
+          // OCRService agora retorna OCRCandidate[] — sem auto-seleção
+          const ocrCandidateList = await OCRService.recognize(
             ocrCanvas,
             (pct) => report(onProgress, 'ocr', pct),
             signal,
@@ -171,7 +175,14 @@ export async function runScanPipeline(
           // ── Extract ───────────────────────────────────────────────────
           report(onProgress, 'extracting');
           const extractStart = performance.now();
-          const candidates = TextExtractorService.extract(text);
+
+          // Mapeia OCRCandidate → ScanCandidate para compatibilidade interna
+          const candidates: import('./types').ScanCandidate[] = ocrCandidateList.map((c) => ({
+            type: c.type === 'patrimonio' ? 'asset' : c.type === 'serial' ? 'serial' : 'serial',
+            value: c.value,
+            confidence: c.confidence,
+            source: 'ocr' as const,
+          }));
           timing.extract = performance.now() - extractStart;
 
           if (candidates.length === 0) {

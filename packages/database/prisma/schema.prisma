@@ -236,6 +236,8 @@ model Equipamento {
   numeroEquipamento String
   serie             String?
   patrimonio        String?
+  modelo            String?
+  ip                String?
   glpiId            String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
