@@ -33,7 +33,15 @@ export const ImageWorkerService = {
         return;
       }
 
-      const w = getWorker();
+      let w: Worker;
+      try {
+        w = getWorker();
+      } catch {
+        // Worker failed to construct (e.g. mobile with cross-origin asset URL).
+        // Fall back to main-thread preprocessing.
+        resolve(preprocessMainThread(imageData, params));
+        return;
+      }
 
       const onAbort = () => {
         w.removeEventListener('message', onMessage);
@@ -76,3 +84,44 @@ export const ImageWorkerService = {
     return workerReady;
   },
 };
+
+/** Fallback: runs the same preprocessing logic on the main thread. */
+function preprocessMainThread(imageData: ImageData, params: PreprocessParams): ImageData {
+  const pixels = new Uint8ClampedArray(imageData.data);
+  const contrast = params.contrast ?? 1.0;
+  const thresholdOverride = params.threshold;
+
+  // Grayscale
+  for (let i = 0; i < pixels.length; i += 4) {
+    const gray = pixels[i]! * 0.299 + pixels[i + 1]! * 0.587 + pixels[i + 2]! * 0.114;
+    pixels[i] = gray; pixels[i + 1] = gray; pixels[i + 2] = gray;
+  }
+
+  // Contrast stretch
+  let min = 255, max = 0;
+  for (let i = 0; i < pixels.length; i += 4) {
+    const v = pixels[i]!;
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  const range = max - min || 1;
+  for (let i = 0; i < pixels.length; i += 4) {
+    let val = ((pixels[i]! - min) / range) * 255;
+    val = (val - 128) * contrast + 128;
+    pixels[i] = Math.max(0, Math.min(255, val));
+    pixels[i + 1] = pixels[i]!; pixels[i + 2] = pixels[i]!;
+  }
+
+  // Binary threshold
+  let sum = 0;
+  for (let i = 0; i < pixels.length; i += 4) sum += pixels[i]!;
+  const threshold = thresholdOverride && thresholdOverride > 0
+    ? thresholdOverride
+    : sum / (pixels.length / 4);
+  for (let i = 0; i < pixels.length; i += 4) {
+    const val = pixels[i]! > threshold ? 255 : 0;
+    pixels[i] = val; pixels[i + 1] = val; pixels[i + 2] = val;
+  }
+
+  return new ImageData(pixels, imageData.width, imageData.height);
+}

@@ -58,7 +58,10 @@ function applyHost(content, serverHost, publicHost) {
     .replace(/(\/\/)localhost(:\d+)/g, `//${serverHost}$2`);
 }
 
-const host = getDockerHost();
+// On Windows, the API runs natively (not inside WSL), so Docker ports are
+// reachable via localhost (Windows automatically forwards WSL2 exposed ports).
+// The WSL2 IP is only needed when the consumer runs *inside* WSL.
+const host = process.platform === 'win32' ? 'localhost' : getDockerHost();
 const publicHost = process.platform !== 'linux' ? (getWindowsLocalIP() || host) : host;
 
 if (publicHost !== host) {
