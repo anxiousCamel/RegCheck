@@ -79,9 +79,15 @@ export function CameraScanner({ onResult, onClose, targetField = 'all' }: Camera
 
   const selectCandidate = (c: OCRCandidate) => {
     logUserChoice(c);
-    if (c.type === 'serial') setSelectedSerie(c.value);
-    else if (c.type === 'patrimonio') setSelectedPatrimonio(c.value);
-    else if (c.type === 'modelo') setSelectedModelo(c.value);
+    // When targeting a specific field, always set that field regardless of candidate type
+    if (targetField === 'serie') setSelectedSerie(c.value);
+    else if (targetField === 'patrimonio') setSelectedPatrimonio(c.value);
+    else if (targetField === 'modelo') setSelectedModelo(c.value);
+    else {
+      if (c.type === 'serial') setSelectedSerie(c.value);
+      else if (c.type === 'patrimonio') setSelectedPatrimonio(c.value);
+      else if (c.type === 'modelo') setSelectedModelo(c.value);
+    }
   };
 
   // ─── Confirmar ────────────────────────────────────────────────────────────
@@ -106,6 +112,15 @@ export function CameraScanner({ onResult, onClose, targetField = 'all' }: Camera
   const serialCandidates = candidates.filter((c) => c.type === 'serial');
   const patrimonioCandidates = candidates.filter((c) => c.type === 'patrimonio');
   const modeloCandidates = candidates.filter((c) => c.type === 'modelo');
+
+  // For specific targets: if no candidates of the expected type were found,
+  // show ALL candidates so the user can pick whichever text matches.
+  const serialCandidatesDisplay =
+    targetField === 'serie' && serialCandidates.length === 0 ? candidates : serialCandidates;
+  const patrimonioCandidatesDisplay =
+    targetField === 'patrimonio' && patrimonioCandidates.length === 0 ? candidates : patrimonioCandidates;
+  const modeloCandidatesDisplay =
+    targetField === 'modelo' && modeloCandidates.length === 0 ? candidates : modeloCandidates;
 
   const isProcessing = status === 'processing';
   const hasCandidates = candidates.length > 0;
@@ -187,26 +202,26 @@ export function CameraScanner({ onResult, onClose, targetField = 'all' }: Camera
           {/* Candidatos — usuário escolhe */}
           {hasCandidates && (
             <div className="space-y-4">
-              {showSerie && serialCandidates.length > 0 && (
+              {showSerie && serialCandidatesDisplay.length > 0 && (
                 <CandidateGroup
                   title="Série — selecione uma opção"
-                  candidates={serialCandidates}
+                  candidates={serialCandidatesDisplay}
                   selected={selectedSerie}
                   onSelect={selectCandidate}
                 />
               )}
-              {showPatrimonio && patrimonioCandidates.length > 0 && (
+              {showPatrimonio && patrimonioCandidatesDisplay.length > 0 && (
                 <CandidateGroup
                   title="Patrimônio — selecione uma opção"
-                  candidates={patrimonioCandidates}
+                  candidates={patrimonioCandidatesDisplay}
                   selected={selectedPatrimonio}
                   onSelect={selectCandidate}
                 />
               )}
-              {showModelo && modeloCandidates.length > 0 && (
+              {showModelo && modeloCandidatesDisplay.length > 0 && (
                 <CandidateGroup
                   title="Modelo — selecione uma opção"
-                  candidates={modeloCandidates}
+                  candidates={modeloCandidatesDisplay}
                   selected={selectedModelo}
                   onSelect={selectCandidate}
                 />
