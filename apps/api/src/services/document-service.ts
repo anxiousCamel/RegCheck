@@ -301,6 +301,17 @@ export class DocumentService {
     return { totalItems, assignments, groupCount };
   }
 
+  /** Delete a document and all its FilledFields in a single transaction */
+  static async delete(id: string): Promise<void> {
+    const doc = await prisma.document.findUnique({ where: { id } });
+    if (!doc) throw new AppError(404, 'Document not found', 'NOT_FOUND');
+
+    await prisma.$transaction([
+      prisma.filledField.deleteMany({ where: { documentId: id } }),
+      prisma.document.delete({ where: { id } }),
+    ]);
+  }
+
   /** Queue PDF generation for a document */
   static async generatePdf(documentId: string) {
     const doc = await prisma.document.findUnique({ where: { id: documentId } });

@@ -3,16 +3,26 @@
 import { useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
 import { Button, Spinner } from '@regcheck/ui';
 import { api } from '@/lib/api';
 import { useEditorStore } from '@/stores/editor-store';
-import { EditorCanvas } from '@/components/editor/editor-canvas';
+import { EditorCanvasSkeleton } from '@/components/editor/editor-canvas-skeleton';
 import { EditorToolbar } from '@/components/editor/editor-toolbar';
 import { FieldProperties } from '@/components/editor/field-properties';
 import { PageNavigator } from '@/components/editor/page-navigator';
 import { RepetitionConfig } from '@/components/editor/repetition-config';
 import { useAutosave } from '@/hooks/use-autosave';
 import type { FieldType, FieldPosition, FieldConfig } from '@regcheck/shared';
+
+// Lazy load the editor canvas (Konva) to reduce initial bundle size
+const EditorCanvas = dynamic(
+  () => import('@/components/editor/editor-canvas').then((mod) => ({ default: mod.EditorCanvas })),
+  {
+    loading: () => <EditorCanvasSkeleton />,
+    ssr: false,
+  }
+);
 
 export default function EditorPage() {
   const params = useParams<{ templateId: string }>();

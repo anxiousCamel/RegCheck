@@ -7,16 +7,18 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
-    "clean": "rimraf dist .turbo"
+    "clean": "rimraf dist .turbo",
+    "test": "vitest --run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "@regcheck/database": "workspace:*",
-    "@regcheck/shared": "workspace:*",
-    "@regcheck/validators": "workspace:*",
-    "@regcheck/pdf-engine": "workspace:*",
-    "@regcheck/editor-engine": "workspace:*",
     "@aws-sdk/client-s3": "^3.500.0",
     "@aws-sdk/s3-request-presigner": "^3.500.0",
+    "@regcheck/database": "workspace:*",
+    "@regcheck/editor-engine": "workspace:*",
+    "@regcheck/pdf-engine": "workspace:*",
+    "@regcheck/shared": "workspace:*",
+    "@regcheck/validators": "workspace:*",
     "bullmq": "^5.1.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
@@ -30,8 +32,12 @@
     "@types/express": "^4.17.21",
     "@types/multer": "^1.4.11",
     "@types/node": "^20.11.0",
+    "@types/supertest": "^6.0.0",
     "dotenv-cli": "^7.3.0",
+    "fast-check": "^3.23.2",
+    "supertest": "^7.0.0",
     "tsx": "^4.7.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
   }
 }

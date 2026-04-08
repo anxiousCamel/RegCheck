@@ -4,6 +4,7 @@ import './globals.css';
 import { Providers } from './providers';
 import { AppSidebar } from '@/components/layout/sidebar';
 import { MobileBottomNav } from '@/components/layout/mobile-nav';
+import { WebVitals } from '@/components/web-vitals';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR">
       <body className={inter.className}>
         <Providers>
+          <WebVitals />
           <div className="flex h-screen">
             <AppSidebar />
             <main className="flex-1 overflow-auto pb-16 md:pb-0">{children}</main>

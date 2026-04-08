@@ -11,6 +11,7 @@ interface PdfPage {
 /**
  * Hook for rendering PDF pages to canvas using pdfjs-dist.
  * Supports lazy loading of pages and zoom.
+ * PDF.js is dynamically imported to reduce initial bundle size.
  */
 export function usePdfRenderer(pdfUrl: string | null) {
   const [pages, setPages] = useState<PdfPage[]>([]);
@@ -27,6 +28,7 @@ export function usePdfRenderer(pdfUrl: string | null) {
 
     (async () => {
       try {
+        // Dynamically import pdfjs-dist only when needed
         const pdfjs = await import('pdfjs-dist');
         pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 

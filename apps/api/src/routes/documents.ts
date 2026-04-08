@@ -122,6 +122,26 @@ documentRouter.get('/:id/status', async (req, res, next) => {
   }
 });
 
+/**
+ * DELETE /api/documents/:id — Exclui permanentemente um documento e todos os seus FilledFields.
+ *
+ * @param {string} req.params.id - UUID do documento a ser excluído (validado por `idParamSchema`)
+ *
+ * @returns {204} Sem corpo — exclusão realizada com sucesso
+ * @returns {400} VALIDATION_ERROR — `id` não é um UUID v4 válido
+ * @returns {404} NOT_FOUND — documento não encontrado
+ * @returns {500} INTERNAL_ERROR — falha inesperada no banco de dados
+ */
+documentRouter.delete('/:id', async (req, res, next) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    await DocumentService.delete(id);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** GET /api/documents/:id/download - Download generated PDF */
 documentRouter.get('/:id/download', async (req, res, next) => {  try {
     const { id } = idParamSchema.parse(req.params);

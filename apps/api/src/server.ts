@@ -44,18 +44,21 @@ app.use('/api/equipamentos', equipamentoRouter);
 // Error handling
 app.use(errorHandler);
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[API] Server running on port ${PORT}`);
+// Only start listening when this file is run directly (not imported in tests)
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[API] Server running on port ${PORT}`);
 
-  // Start the PDF generation worker (BullMQ consumer)
-  const worker = createPdfWorker(processPdfGeneration);
-  worker.on('completed', (job) => {
-    console.log(`[Worker] PDF job ${job.id} completed`);
+    // Start the PDF generation worker (BullMQ consumer)
+    const worker = createPdfWorker(processPdfGeneration);
+    worker.on('completed', (job) => {
+      console.log(`[Worker] PDF job ${job.id} completed`);
+    });
+    worker.on('failed', (job, err) => {
+      console.error(`[Worker] PDF job ${job?.id} failed:`, err.message);
+    });
+    console.log('[Worker] PDF generation worker started');
   });
-  worker.on('failed', (job, err) => {
-    console.error(`[Worker] PDF job ${job?.id} failed:`, err.message);
-  });
-  console.log('[Worker] PDF generation worker started');
-});
+}
 
 export { app };
