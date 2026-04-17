@@ -9,9 +9,26 @@ const nextConfig = {
   ...(publicHostname && publicHostname !== 'localhost'
     ? { allowedDevOrigins: [publicHostname] }
     : {}),
-  webpack: (config) => {
+  // Otimizações de performance
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+  experimental: {
+    optimizePackageImports: ['@regcheck/ui', '@regcheck/shared'],
+  },
+  webpack: (config, { dev }) => {
     // Required for pdfjs-dist
     config.resolve.alias.canvas = false;
+    
+    // Otimizações para dev
+    if (dev) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+      };
+    }
+    
     return config;
   },
 };

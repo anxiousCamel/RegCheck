@@ -16,7 +16,7 @@ import { mkdirSync, rmSync, existsSync, readFileSync, readdirSync } from 'fs';
 import { join, resolve, basename } from 'path';
 
 const IS_WINDOWS = process.platform === 'win32';
-const docker = IS_WINDOWS ? 'wsl -- docker' : 'docker';
+const docker = 'docker';
 
 const POSTGRES_USER = 'regcheck';
 const POSTGRES_DB = 'regcheck';
@@ -46,9 +46,9 @@ function getContainer(name) {
     const out = execSync(`${docker} ps --filter "name=${name}" --format "{{.Names}}"`, {
       encoding: 'utf8', shell: true,
     }).trim();
-    return out.split('\n').filter(Boolean)[0] || name;
+    return out.split('\n').filter(Boolean)[0] || `regcheck-${name}`;
   } catch {
-    return name;
+    return `regcheck-${name}`;
   }
 }
 

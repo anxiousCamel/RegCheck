@@ -108,6 +108,11 @@ export default function DocumentsPage() {
                 {doc.status === 'generated' && (
                   <DownloadButton documentId={doc.id} />
                 )}
+
+                <DeleteButton
+                  documentId={doc.id}
+                  onSuccess={() => queryClient.invalidateQueries({ queryKey: ['documents'] })}
+                />
               </div>
             </div>
           ))}
@@ -160,6 +165,39 @@ function DownloadButton({ documentId }: { documentId: string }) {
     <Button size="sm" onClick={handleDownload} disabled={loading}>
       {loading ? <Spinner className="mr-2 h-4 w-4" /> : null}
       Download PDF
+    </Button>
+  );
+}
+
+function DeleteButton({ documentId, onSuccess }: { documentId: string; onSuccess: () => void }) {
+  const mutation = useMutation({
+    mutationFn: () => api.deleteDocument(documentId),
+    onSuccess,
+    onError: (error: Error) => {
+      if (error.message.includes('404') || error.message.includes('not found') || error.message.includes('Not Found')) {
+        // Documento já foi excluído ou não existe, apenas atualiza a lista
+        onSuccess();
+      } else {
+        alert(`Erro ao excluir documento: ${error.message}`);
+      }
+    },
+  });
+
+  const handleDelete = () => {
+    if (confirm('Tem certeza que deseja excluir este documento?')) {
+      mutation.mutate();
+    }
+  };
+
+  return (
+    <Button
+      size="sm"
+      variant="destructive"
+      onClick={handleDelete}
+      disabled={mutation.isPending}
+    >
+      {mutation.isPending ? <Spinner className="mr-2 h-4 w-4" /> : null}
+      Excluir
     </Button>
   );
 }

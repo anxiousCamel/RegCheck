@@ -10,9 +10,8 @@ import { mkdirSync, rmSync, existsSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 import { platform } from 'os';
 
-// No Windows o docker roda via WSL (igual ao scripts/docker.mjs)
 const IS_WINDOWS = process.platform === 'win32';
-const docker = IS_WINDOWS ? 'wsl -- docker' : 'docker';
+const docker = 'docker';
 
 const BACKUP_DIR = resolve('backups');
 const TIMESTAMP = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -33,9 +32,9 @@ function getContainer(name) {
     const out = execSync(`${docker} ps --filter "name=${name}" --format "{{.Names}}"`, {
       encoding: 'utf8', shell: true,
     }).trim();
-    return out.split('\n').filter(Boolean)[0] || name;
+    return out.split('\n').filter(Boolean)[0] || `regcheck-${name}`;
   } catch {
-    return name;
+    return `regcheck-${name}`;
   }
 }
 
@@ -76,10 +75,10 @@ async function main() {
   const minioDirWsl = IS_WINDOWS ? toWslPath(minioDir) : minioDir;
   try {
     run(
-      `${docker} run --rm --network infra_default ` +
+      `${docker} run --rm --network regcheck_default ` +
       `-v "${minioDirWsl}:/backup" ` +
       `--entrypoint sh minio/mc:latest -c ` +
-      `"mc alias set local http://minio:9000 minioadmin minioadmin && mc mirror local/${MINIO_BUCKET} /backup --overwrite"`
+      `"mc alias set local http://regcheck-minio:9000 minioadmin minioadmin && mc mirror local/${MINIO_BUCKET} /backup --overwrite"`
     );
     console.log('  ✓ arquivos exportados');
   } catch {

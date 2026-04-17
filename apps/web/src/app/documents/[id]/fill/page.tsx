@@ -120,6 +120,12 @@ export default function FillDocumentPage() {
       type: f.type.toLowerCase() as FieldType,
     }));
 
+    console.log('[FillDocument] All fields:', allFields.map(f => ({ 
+      id: f.id, 
+      label: f.config.label, 
+      equipmentGroup: f.equipmentGroup 
+    })));
+
     const grouped = new Map<number, typeof allFields>();
     const ungrouped: typeof allFields = [];
 
@@ -139,6 +145,12 @@ export default function FillDocumentPage() {
     for (const [, gFields] of grouped) gFields.sort(sortFn);
     ungrouped.sort(sortFn);
 
+    console.log('[FillDocument] Grouped fields:', {
+      groupCount: grouped.size,
+      groups: Array.from(grouped.keys()),
+      ungroupedCount: ungrouped.length,
+    });
+
     return { groupedFields: grouped, ungroupedFields: ungrouped, groupCount: grouped.size };
   }, [docData]);
 
@@ -156,6 +168,15 @@ export default function FillDocumentPage() {
   // Current slot for equipment based on itemIndex
   const currentSlot = groupCount > 0 ? currentItemIndex % groupCount : 0;
   const currentSlotFields = groupCount > 0 ? (groupedFields.get(currentSlot) ?? []) : sortedFields;
+
+  console.log('[FillDocument] Debug:', {
+    currentItemIndex,
+    groupCount,
+    currentSlot,
+    currentAssignment,
+    fieldsInSlot: currentSlotFields.length,
+    allGroupedFields: Array.from(groupedFields.keys()),
+  });
 
   // ── PDF generation ─────────────────────────────────────────────────────────
   const [generationState, setGenerationState] = useState<
@@ -344,7 +365,7 @@ export default function FillDocumentPage() {
           {filteredAssignments.length === 0 ? (
             <p className="text-muted-foreground text-sm">Nenhum equipamento neste setor.</p>
           ) : (
-            <div className="space-y-4" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+            <div key={`equipment-${currentItemIndex}`} className="space-y-4" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
               {/* Equipment info + top navigation */}
               <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg border">
                 <div>
@@ -376,13 +397,13 @@ export default function FillDocumentPage() {
                   <>
                     {ungroupedFields.map((field) => (
                       <FieldInput
-                        key={`${field.id}_shared`}
+                        key={`${field.id}_${currentItemIndex}`}
                         field={field}
-                        value={getValue(field.id, 0)}
-                        fileKey={getFileKey(field.id, 0)}
-                        pendingBlob={getPendingBlobForField(field.id, 0)}
-                        onChange={(value) => updateField(field.id, 0, value)}
-                        onImageChange={(file) => updateImageField(field.id, 0, file)}
+                        value={getValue(field.id, currentItemIndex)}
+                        fileKey={getFileKey(field.id, currentItemIndex)}
+                        pendingBlob={getPendingBlobForField(field.id, currentItemIndex)}
+                        onChange={(value) => updateField(field.id, currentItemIndex, value)}
+                        onImageChange={(file) => updateImageField(field.id, currentItemIndex, file)}
                       />
                     ))}
                     <div className="border-t" />

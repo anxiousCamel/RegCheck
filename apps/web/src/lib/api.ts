@@ -33,6 +33,12 @@ class ApiClient {
       },
     });
 
+    // Check if response is JSON
+    const contentType = res.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      throw new Error(`Server error: ${res.status} ${res.statusText}`);
+    }
+
     const body = (await res.json()) as ApiResponse<T>;
 
     if (!body.success || !res.ok) {
@@ -153,6 +159,10 @@ class ApiClient {
       generatedPdfKey: string | null;
       job?: { state: string | null; progress: number; failedReason?: string };
     }>(`/api/documents/${documentId}/status`);
+  }
+
+  deleteDocument(documentId: string) {
+    return this.request<{ message: string }>(`/api/documents/${documentId}`, { method: 'DELETE' });
   }
 
   // Uploads

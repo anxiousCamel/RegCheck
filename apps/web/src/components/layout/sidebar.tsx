@@ -18,7 +18,7 @@ export function AppSidebar() {
   return (
     <aside className="hidden md:flex md:w-56 md:flex-col border-r bg-muted/30">
       <div className="p-4 border-b">
-        <Link href="/" className="text-xl font-bold tracking-tight">
+        <Link href="/" className="text-xl font-bold tracking-tight" prefetch={true}>
           RegCheck
         </Link>
       </div>
@@ -27,6 +27,7 @@ export function AppSidebar() {
           <Link
             key={item.href}
             href={item.href}
+            prefetch={true}
             className={cn(
               'flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors',
               pathname === item.href

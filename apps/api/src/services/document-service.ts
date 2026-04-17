@@ -301,7 +301,17 @@ export class DocumentService {
     return { totalItems, assignments, groupCount };
   }
 
+  /** Delete a document */
+  static async delete(id: string) {
+    const doc = await prisma.document.findUnique({ where: { id } });
+    if (!doc) throw new AppError(404, 'Document not found', 'NOT_FOUND');
+
+    await prisma.document.delete({ where: { id } });
+    return { message: 'Document deleted successfully' };
+  }
+
   /** Queue PDF generation for a document */
+
   static async generatePdf(documentId: string) {
     const doc = await prisma.document.findUnique({ where: { id: documentId } });
     if (!doc) throw new AppError(404, 'Document not found', 'NOT_FOUND');
