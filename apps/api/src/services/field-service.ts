@@ -11,6 +11,21 @@ const FIELD_TYPE_MAP: Record<string, PrismaFieldType> = {
   checkbox: 'CHECKBOX',
 };
 
+/**
+ * Normalize incoming scope/slotIndex/bindingKey values so DB invariants hold:
+ *   - globals always have slotIndex = null
+ *   - items always have slotIndex ≥ 0 (validator should have enforced this; defensive default to 0)
+ */
+function normalizeSlotFor(
+  scope: 'global' | 'item' | undefined,
+  slotIndex: number | null | undefined,
+): number | null | undefined {
+  if (scope === undefined && slotIndex === undefined) return undefined;
+  if (scope === 'global') return null;
+  if (scope === 'item') return slotIndex ?? 0;
+  return slotIndex;
+}
+
 export class FieldService {
   /** Add a field to a template */
   static async create(templateId: string, input: CreateFieldInput) {
@@ -24,11 +39,9 @@ export class FieldService {
         pageIndex: input.pageIndex,
         position: input.position as unknown as Prisma.JsonObject,
         config: input.config as unknown as Prisma.JsonObject,
-        repetitionGroupId: input.repetitionGroupId,
-        repetitionIndex: input.repetitionIndex,
-        autoPopulate: input.autoPopulate ?? false,
-        autoPopulateKey: input.autoPopulateKey,
-        equipmentGroup: input.equipmentGroup,
+        scope: input.scope,
+        slotIndex: normalizeSlotFor(input.scope, input.slotIndex) ?? null,
+        bindingKey: input.bindingKey ?? null,
       },
     });
 
@@ -49,9 +62,10 @@ export class FieldService {
     if (input.pageIndex !== undefined) data.pageIndex = input.pageIndex;
     if (input.position) data.position = input.position as unknown as Prisma.JsonObject;
     if (input.config) data.config = input.config as unknown as Prisma.JsonObject;
-    if (input.autoPopulate !== undefined) data.autoPopulate = input.autoPopulate;
-    if (input.autoPopulateKey !== undefined) data.autoPopulateKey = input.autoPopulateKey;
-    if (input.equipmentGroup !== undefined) data.equipmentGroup = input.equipmentGroup;
+    if (input.scope !== undefined) data.scope = input.scope;
+    const nextSlot = normalizeSlotFor(input.scope, input.slotIndex);
+    if (nextSlot !== undefined) data.slotIndex = nextSlot;
+    if (input.bindingKey !== undefined) data.bindingKey = input.bindingKey;
 
     const updated = await prisma.templateField.update({
       where: { id: fieldId },
@@ -74,17 +88,15 @@ export class FieldService {
     await invalidateCache(`template:${field.templateId}*`);
   }
 
-  /** Batch update fields (positions, config, repetition markers, and autoPopulate settings) */
+  /** Batch update fields (position + optional scope/slot/binding/config). */
   static async batchUpdateFields(
     updates: Array<{
       id: string;
       position: { x: number; y: number; width: number; height: number };
       config?: Record<string, unknown>;
-      repetitionGroupId?: string | null;
-      repetitionIndex?: number | null;
-      autoPopulate?: boolean;
-      autoPopulateKey?: string;
-      equipmentGroup?: number | null;
+      scope?: 'global' | 'item';
+      slotIndex?: number | null;
+      bindingKey?: string | null;
     }>,
   ) {
     // Filter to only existing fields before updating (avoids P2025 on deleted fields)
@@ -101,37 +113,15 @@ export class FieldService {
       const data: Prisma.TemplateFieldUpdateInput = {
         position: u.position as unknown as Prisma.JsonObject,
       };
-      if (u.config) {
-        data.config = u.config as unknown as Prisma.JsonObject;
-      }
-      if (u.repetitionGroupId !== undefined) {
-        data.repetitionGroupId = u.repetitionGroupId;
-      }
-      if (u.repetitionIndex !== undefined) {
-        data.repetitionIndex = u.repetitionIndex;
-      }
-      if (u.autoPopulate !== undefined) {
-        data.autoPopulate = u.autoPopulate;
-      }
-      if (u.autoPopulateKey !== undefined) {
-        data.autoPopulateKey = u.autoPopulateKey;
-      }
-      if (u.equipmentGroup !== undefined) {
-        data.equipmentGroup = u.equipmentGroup;
-      }
-      return prisma.templateField.update({
-        where: { id: u.id },
-        data,
-      });
+      if (u.config) data.config = u.config as unknown as Prisma.JsonObject;
+      if (u.scope !== undefined) data.scope = u.scope;
+      const nextSlot = normalizeSlotFor(u.scope, u.slotIndex);
+      if (nextSlot !== undefined) data.slotIndex = nextSlot;
+      if (u.bindingKey !== undefined) data.bindingKey = u.bindingKey;
+
+      return prisma.templateField.update({ where: { id: u.id }, data });
     });
 
     await prisma.$transaction(operations);
-  }
-
-  /** @deprecated Use batchUpdateFields instead */
-  static async batchUpdatePositions(
-    updates: Array<{ id: string; position: { x: number; y: number; width: number; height: number } }>,
-  ) {
-    return this.batchUpdateFields(updates);
   }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { FieldType, FieldPosition, FieldConfig } from '@regcheck/shared';
+import type { FieldType, FieldPosition, FieldConfig, FieldScope } from '@regcheck/shared';
 import { HistoryManager } from '@regcheck/editor-engine';
 
 interface EditorField {
@@ -10,15 +10,12 @@ interface EditorField {
   pageIndex: number;
   position: FieldPosition;
   config: FieldConfig;
-  repetitionGroupId?: string;
-  /** 0 = base field, 1+ = replicated copy index */
-  repetitionIndex?: number;
-  /** Whether this field is auto-populated from equipment data (readonly in documents) */
-  autoPopulate?: boolean;
-  /** Mapping key for auto-population */
-  autoPopulateKey?: string;
-  /** Equipment slot index within the page (0, 1, 2, ...) */
-  equipmentGroup?: number | null;
+  /** Field scope: 'global' (one value, rendered on every page) or 'item' (per SX slot). */
+  scope: FieldScope;
+  /** SX slot index on the page. null for scope='global'. */
+  slotIndex: number | null;
+  /** Free-form auto-populate binding like `eq.serie` or `global.data`. null for manual fill. */
+  bindingKey: string | null;
 }
 
 /** Ghost field shown as preview before applying replication */
@@ -42,9 +39,7 @@ interface ReplicationPreview {
 
 interface EditorState {
   fields: EditorField[];
-  /** Set of selected field IDs (supports multi-select) */
   selectedFieldIds: string[];
-  /** Clipboard for copy/paste */
   clipboard: EditorField[];
   currentPage: number;
   totalPages: number;
@@ -54,9 +49,7 @@ interface EditorState {
   activeTool: FieldType | null;
   isDirty: boolean;
   history: HistoryManager<EditorField[]>;
-  /** Preview state for intelligent replication */
   replicationPreview: ReplicationPreview | null;
-  /** Flag to block autosave during batch operations (paste, replication) */
   isBatchOperation: boolean;
 
   // Actions
@@ -66,13 +59,9 @@ interface EditorState {
   updateFieldId: (oldId: string, newId: string) => void;
   removeField: (id: string) => void;
   removeFields: (ids: string[]) => void;
-  /** Select a single field (clears multi-select) */
   selectField: (id: string | null) => void;
-  /** Toggle field in multi-select (Shift+Click) */
   toggleFieldSelection: (id: string) => void;
-  /** Copy selected fields to clipboard */
   copyFields: () => void;
-  /** Paste fields from clipboard with new IDs */
   pasteFields: () => EditorField[];
   setCurrentPage: (page: number) => void;
   setTotalPages: (total: number) => void;
@@ -86,23 +75,24 @@ interface EditorState {
   redo: () => void;
   saveSnapshot: () => void;
   markClean: () => void;
-  /** Set batch operation flag — blocks autosave while true */
   setBatchOperation: (active: boolean) => void;
 
-  /** Replication preview actions */
   setReplicationPreview: (sourceFieldIds: string[], copies: number, offsetX: number, offsetY: number) => void;
   clearReplicationPreview: () => void;
   applyReplication: () => EditorField[];
 
-  /** Select multiple fields at once (e.g. rubber band) */
   selectFields: (ids: string[]) => void;
-  /** Update multiple fields with the same partial updates (batch edit) */
   updateFields: (ids: string[], updates: Partial<EditorField>) => void;
 
-  /** Set equipment group (slot) for fields — pass null to remove */
-  setEquipmentGroup: (fieldIds: string[], group: number | null) => void;
+  /**
+   * Atomically update scope + slot index so the invariant
+   *   (scope='global' ⇒ slotIndex=null)  ∧  (scope='item' ⇒ slotIndex≠null)
+   * always holds in the editor state.
+   */
+  setFieldScope: (fieldIds: string[], scope: FieldScope, slotIndex?: number) => void;
+  setFieldSlot: (fieldIds: string[], slotIndex: number | null) => void;
+  setFieldBinding: (fieldIds: string[], bindingKey: string | null) => void;
 
-  /** Derived: first selected field ID (backward compat) */
   readonly selectedFieldId: string | null;
 }
 
@@ -144,7 +134,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   updateFieldId: (oldId, newId) => {
     const fields = get().fields.map((f) => (f.id === oldId ? { ...f, id: newId } : f));
     const selectedFieldIds = get().selectedFieldIds.map((sid) => (sid === oldId ? newId : sid));
-    // Also update clipboard references so chained copy-paste works
     const clipboard = get().clipboard.map((f) => (f.id === oldId ? { ...f, id: newId } : f));
     set({ fields, selectedFieldIds, clipboard });
   },
@@ -178,7 +167,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   copyFields: () => {
     const { fields, selectedFieldIds } = get();
     const selected = fields.filter((f) => selectedFieldIds.includes(f.id));
-    // Deep clone to break ALL references — prevents cascading edits
     set({ clipboard: structuredClone(selected) });
   },
 
@@ -197,15 +185,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         width: f.position.width,
         height: f.position.height,
       },
-      // Deep clone config to guarantee total isolation from source
       config: structuredClone(f.config),
-      // Break repetition group link — paste creates independent fields
-      repetitionGroupId: undefined,
-      // Preserve auto-populate settings
-      autoPopulate: f.autoPopulate,
-      autoPopulateKey: f.autoPopulateKey,
-      // Preserve equipment group assignment
-      equipmentGroup: f.equipmentGroup,
+      scope: f.scope,
+      slotIndex: f.slotIndex,
+      bindingKey: f.bindingKey,
     }));
 
     const fields = [...get().fields, ...newFields];
@@ -228,17 +211,38 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   updateFields: (ids, updates) => {
     const idSet = new Set(ids);
-    const fields = get().fields.map((f) =>
-      idSet.has(f.id) ? { ...f, ...updates } : f,
-    );
+    const fields = get().fields.map((f) => (idSet.has(f.id) ? { ...f, ...updates } : f));
     set({ fields, isDirty: true });
   },
 
-  setEquipmentGroup: (fieldIds, group) => {
+  setFieldScope: (fieldIds, scope, slotIndex) => {
     const idSet = new Set(fieldIds);
-    const fields = get().fields.map((f) =>
-      idSet.has(f.id) ? { ...f, equipmentGroup: group } : f,
-    );
+    const fields = get().fields.map((f) => {
+      if (!idSet.has(f.id)) return f;
+      if (scope === 'global') return { ...f, scope, slotIndex: null };
+      // scope='item': preserve existing slot if present, else default to 0
+      const nextSlot = slotIndex ?? (f.slotIndex ?? 0);
+      return { ...f, scope, slotIndex: nextSlot };
+    });
+    set({ fields, isDirty: true });
+    get().history.push(fields);
+  },
+
+  setFieldSlot: (fieldIds, slotIndex) => {
+    const idSet = new Set(fieldIds);
+    const fields = get().fields.map((f) => {
+      if (!idSet.has(f.id)) return f;
+      // Forcing a non-null slot implies scope='item'; null implies global.
+      if (slotIndex === null) return { ...f, scope: 'global' as FieldScope, slotIndex: null };
+      return { ...f, scope: 'item' as FieldScope, slotIndex };
+    });
+    set({ fields, isDirty: true });
+    get().history.push(fields);
+  },
+
+  setFieldBinding: (fieldIds, bindingKey) => {
+    const idSet = new Set(fieldIds);
+    const fields = get().fields.map((f) => (idSet.has(f.id) ? { ...f, bindingKey } : f));
     set({ fields, isDirty: true });
     get().history.push(fields);
   },
@@ -273,7 +277,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     for (let copyIdx = 1; copyIdx <= copies; copyIdx++) {
       for (const src of sourceFields) {
         const label = src.config.label ?? '';
-        // Auto-increment label: "Nome" → "Nome 2", "Nome 3", etc.
         const newLabel = `${label} ${copyIdx + 1}`;
         ghosts.push({
           id: `ghost-${src.id}-${copyIdx}`,
@@ -299,26 +302,30 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   clearReplicationPreview: () => set({ replicationPreview: null }),
 
+  /**
+   * Applies the replication preview. Each copy becomes an independent item-scope
+   * field with its own slotIndex (copyIndex), so they act as distinct SX slots
+   * sharing the same binding. Callers typically trigger this after dragging a
+   * field plus N offset copies.
+   */
   applyReplication: () => {
     const { replicationPreview, fields: currentFields } = get();
     if (!replicationPreview || replicationPreview.ghosts.length === 0) return [];
 
-    // Generate a shared group ID for this replication batch
-    const groupId = crypto.randomUUID();
-
-    // Mark source fields as base (repetitionIndex = 0)
     const sourceIdSet = new Set(replicationPreview.sourceFieldIds);
-    const updatedFields = currentFields.map((f) => {
-      if (sourceIdSet.has(f.id)) {
-        return { ...f, repetitionGroupId: groupId, repetitionIndex: 0 };
-      }
-      return f;
-    });
-
-    // Build source field lookup for inheriting autoPopulate settings
     const sourceFieldMap = new Map(
       currentFields.filter((f) => sourceIdSet.has(f.id)).map((f) => [f.id, f]),
     );
+
+    // Promote sources to item-scope with slotIndex=0 (if not already set).
+    const updatedFields = currentFields.map((f) => {
+      if (!sourceIdSet.has(f.id)) return f;
+      return {
+        ...f,
+        scope: 'item' as FieldScope,
+        slotIndex: f.slotIndex ?? 0,
+      };
+    });
 
     const newFields: EditorField[] = replicationPreview.ghosts.map((ghost) => {
       const source = sourceFieldMap.get(ghost.sourceId);
@@ -326,14 +333,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         id: crypto.randomUUID(),
         type: ghost.type,
         pageIndex: ghost.pageIndex,
-        // Deep clone position and config to isolate from ghost objects
         position: structuredClone(ghost.position),
         config: structuredClone(ghost.config),
-        repetitionGroupId: groupId,
-        repetitionIndex: ghost.copyIndex,
-        // Inherit auto-populate settings from source
-        autoPopulate: source?.autoPopulate,
-        autoPopulateKey: source?.autoPopulateKey,
+        scope: 'item' as FieldScope,
+        slotIndex: ghost.copyIndex,
+        bindingKey: source?.bindingKey ?? null,
       };
     });
 

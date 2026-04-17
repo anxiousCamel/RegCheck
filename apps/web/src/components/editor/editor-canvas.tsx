@@ -651,14 +651,39 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
                   verticalAlign="middle"
                   listening={false}
                 />
-                {field.equipmentGroup != null && (
+                {field.scope === 'global' && (
+                  <>
+                    <Rect
+                      x={width - 22 / zoom}
+                      y={0}
+                      width={22 / zoom}
+                      height={12 / zoom}
+                      fill="#6366f1"
+                      cornerRadius={2}
+                      listening={false}
+                    />
+                    <Text
+                      x={width - 22 / zoom}
+                      y={0}
+                      width={22 / zoom}
+                      height={12 / zoom}
+                      text="GLB"
+                      fontSize={8 / zoom}
+                      fill="white"
+                      align="center"
+                      verticalAlign="middle"
+                      listening={false}
+                    />
+                  </>
+                )}
+                {field.scope === 'item' && field.slotIndex != null && (
                   <>
                     <Rect
                       x={width - 18 / zoom}
                       y={0}
                       width={18 / zoom}
                       height={12 / zoom}
-                      fill={getSlotColor(field.equipmentGroup)}
+                      fill={getSlotColor(field.slotIndex)}
                       cornerRadius={2}
                       listening={false}
                     />
@@ -667,7 +692,7 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
                       y={0}
                       width={18 / zoom}
                       height={12 / zoom}
-                      text={`S${field.equipmentGroup}`}
+                      text={`S${field.slotIndex}`}
                       fontSize={8 / zoom}
                       fill="white"
                       align="center"

@@ -7,7 +7,7 @@ import { Button, Spinner, Badge } from '@regcheck/ui';
 import { api } from '@/lib/api';
 import { SignatureCanvas } from '@/components/document/signature-canvas';
 import { useDocumentDraft } from '@/hooks/use-document-draft';
-import type { FieldType, FieldPosition, FieldConfig, RepetitionConfig } from '@regcheck/shared';
+import type { FieldType, FieldPosition, FieldConfig } from '@regcheck/shared';
 import type { LojaDTO, TipoEquipamentoDTO } from '@regcheck/shared';
 
 interface TemplateField {
@@ -16,11 +16,9 @@ interface TemplateField {
   pageIndex: number;
   position: FieldPosition;
   config: FieldConfig;
-  repetitionGroupId?: string;
-  repetitionIndex?: number;
-  autoPopulate?: boolean;
-  autoPopulateKey?: string;
-  equipmentGroup?: number | null;
+  scope: string;
+  slotIndex: number | null;
+  bindingKey: string | null;
 }
 
 interface ItemAssignment {
@@ -37,6 +35,9 @@ const FIELD_TYPE_ORDER: Record<string, number> = {
   checkbox: 2,
   signature: 3,
 };
+
+const sortFields = (a: { type: FieldType }, b: { type: FieldType }) =>
+  (FIELD_TYPE_ORDER[a.type] ?? 99) - (FIELD_TYPE_ORDER[b.type] ?? 99);
 
 export default function FillDocumentPage() {
   const params = useParams<{ id: string }>();
@@ -58,10 +59,9 @@ export default function FillDocumentPage() {
     name: string;
     totalItems: number;
     status: string;
-    metadata?: { assignments?: ItemAssignment[]; groupCount?: number } | null;
+    metadata?: { assignments?: ItemAssignment[]; itemsPerPage?: number; totalPages?: number } | null;
     template: {
       fields: TemplateField[];
-      repetitionConfig?: RepetitionConfig;
       pdfFile: { pageCount: number };
     };
     filledFields: Array<{ fieldId: string; itemIndex: number; value: string; fileKey?: string }>;
@@ -81,6 +81,36 @@ export default function FillDocumentPage() {
     hasPendingChanges,
   } = useDocumentDraft(documentId, docData?.filledFields);
 
+  // ── Fields split by scope ──────────────────────────────────────────────────
+  const { globalFields, itemFields, slotMap } = useMemo(() => {
+    if (!docData) {
+      return {
+        globalFields: [] as (TemplateField & { type: FieldType })[],
+        itemFields: [] as (TemplateField & { type: FieldType })[],
+        slotMap: new Map<number, (TemplateField & { type: FieldType })[]>(),
+      };
+    }
+
+    const typed = docData.template.fields.map((f) => ({
+      ...f,
+      type: f.type.toLowerCase() as FieldType,
+    }));
+
+    const gFields = typed.filter((f) => f.scope === 'global').sort(sortFields);
+    const iFields = typed.filter((f) => f.scope === 'item');
+
+    // Group item fields by slotIndex for easy lookup.
+    const sMap = new Map<number, typeof iFields>();
+    for (const f of iFields) {
+      if (f.slotIndex === null) continue;
+      if (!sMap.has(f.slotIndex)) sMap.set(f.slotIndex, []);
+      sMap.get(f.slotIndex)!.push(f);
+    }
+    for (const [, arr] of sMap) arr.sort(sortFields);
+
+    return { globalFields: gFields, itemFields: iFields, slotMap: sMap };
+  }, [docData]);
+
   // ── Assignments ────────────────────────────────────────────────────────────
   const allAssignments: ItemAssignment[] = useMemo(
     () => docData?.metadata?.assignments ?? [],
@@ -99,10 +129,7 @@ export default function FillDocumentPage() {
   }, [allAssignments]);
 
   const filteredAssignments = useMemo(
-    () =>
-      selectedSetorId
-        ? allAssignments.filter((a) => a.setorId === selectedSetorId)
-        : allAssignments,
+    () => selectedSetorId ? allAssignments.filter((a) => a.setorId === selectedSetorId) : allAssignments,
     [allAssignments, selectedSetorId],
   );
 
@@ -111,82 +138,19 @@ export default function FillDocumentPage() {
   const currentAssignment = filteredAssignments[currentAssignmentIdx] ?? null;
   const currentItemIndex = currentAssignment?.itemIndex ?? 0;
 
-  // ── Fields grouped by equipment slot ─────────────────────────────────────────
-  const { groupedFields, ungroupedFields, groupCount } = useMemo(() => {
-    if (!docData) return { groupedFields: new Map<number, (TemplateField & { type: FieldType })[]>(), ungroupedFields: [] as (TemplateField & { type: FieldType })[], groupCount: 0 };
-
-    const allFields = docData.template.fields.map((f) => ({
-      ...f,
-      type: f.type.toLowerCase() as FieldType,
-    }));
-
-    console.log('[FillDocument] All fields:', allFields.map(f => ({ 
-      id: f.id, 
-      label: f.config.label, 
-      equipmentGroup: f.equipmentGroup 
-    })));
-
-    const grouped = new Map<number, typeof allFields>();
-    const ungrouped: typeof allFields = [];
-
-    for (const f of allFields) {
-      if (f.equipmentGroup != null) {
-        if (!grouped.has(f.equipmentGroup)) grouped.set(f.equipmentGroup, []);
-        grouped.get(f.equipmentGroup)!.push(f);
-      } else {
-        ungrouped.push(f);
-      }
-    }
-
-    // Sort within each group
-    const sortFn = (a: { type: FieldType }, b: { type: FieldType }) =>
-      (FIELD_TYPE_ORDER[a.type] ?? 99) - (FIELD_TYPE_ORDER[b.type] ?? 99);
-
-    for (const [, gFields] of grouped) gFields.sort(sortFn);
-    ungrouped.sort(sortFn);
-
-    console.log('[FillDocument] Grouped fields:', {
-      groupCount: grouped.size,
-      groups: Array.from(grouped.keys()),
-      ungroupedCount: ungrouped.length,
-    });
-
-    return { groupedFields: grouped, ungroupedFields: ungrouped, groupCount: grouped.size };
-  }, [docData]);
-
-  // Fallback: if no equipmentGroup is set, show all fields (legacy behavior)
-  const sortedFields = useMemo(() => {
-    if (groupCount > 0) return []; // using slot-based rendering
-    if (!docData) return [];
-    const hasRepetition = !!docData.template.repetitionConfig;
-    return [...docData.template.fields]
-      .filter((f) => !hasRepetition || (f.repetitionIndex ?? 0) === 0)
-      .map((f) => ({ ...f, type: f.type.toLowerCase() as FieldType }))
-      .sort((a, b) => (FIELD_TYPE_ORDER[a.type] ?? 99) - (FIELD_TYPE_ORDER[b.type] ?? 99));
-  }, [docData, groupCount]);
-
-  // Current slot for equipment based on itemIndex
-  const currentSlot = groupCount > 0 ? currentItemIndex % groupCount : 0;
-  const currentSlotFields = groupCount > 0 ? (groupedFields.get(currentSlot) ?? []) : sortedFields;
-
-  console.log('[FillDocument] Debug:', {
-    currentItemIndex,
-    groupCount,
-    currentSlot,
-    currentAssignment,
-    fieldsInSlot: currentSlotFields.length,
-    allGroupedFields: Array.from(groupedFields.keys()),
-  });
+  // Derive how many SX slots per page from the slotMap.
+  const itemsPerPage = slotMap.size;
+  // Current slot = which SX position this item occupies on its page.
+  const currentSlot = itemsPerPage > 0 ? currentItemIndex % itemsPerPage : 0;
+  const currentSlotFields = slotMap.get(currentSlot) ?? [];
 
   // ── PDF generation ─────────────────────────────────────────────────────────
   const [generationState, setGenerationState] = useState<
     'idle' | 'queuing' | 'generating' | 'done' | 'error'
   >('idle');
-  // Polling safety: max 100 polls × 3s = 5 min before giving up
   const [pollCount, setPollCount] = useState(0);
   const MAX_POLL_COUNT = 100;
 
-  // Sync generation state with document status on load
   useEffect(() => {
     if (!docData) return;
     const status = docData.status?.toLowerCase();
@@ -195,13 +159,9 @@ export default function FillDocumentPage() {
     else if (status === 'error') setGenerationState('error');
   }, [docData?.status]);
 
-  // Poll status while generating — with safety limit to prevent infinite polling
   const { data: statusData } = useQuery({
     queryKey: ['document-status', documentId],
-    queryFn: () => {
-      setPollCount((c) => c + 1);
-      return api.getDocumentStatus(documentId);
-    },
+    queryFn: () => { setPollCount((c) => c + 1); return api.getDocumentStatus(documentId); },
     enabled: generationState === 'generating' && pollCount < MAX_POLL_COUNT,
     refetchInterval: 3000,
   });
@@ -219,7 +179,6 @@ export default function FillDocumentPage() {
     }
   }, [statusData, documentId, queryClient]);
 
-  // Timeout: if polling exhausted, assume failure
   useEffect(() => {
     if (pollCount >= MAX_POLL_COUNT && generationState === 'generating') {
       setGenerationState('error');
@@ -228,14 +187,8 @@ export default function FillDocumentPage() {
   }, [pollCount, generationState]);
 
   const generateMutation = useMutation({
-    mutationFn: async () => {
-      await syncToServer();
-      return api.generatePdf(documentId);
-    },
-    onMutate: () => {
-      setGenerationState('queuing');
-      setPollCount(0);
-    },
+    mutationFn: async () => { await syncToServer(); return api.generatePdf(documentId); },
+    onMutate: () => { setGenerationState('queuing'); setPollCount(0); },
     onSuccess: () => setGenerationState('generating'),
     onError: () => setGenerationState('error'),
   });
@@ -247,10 +200,14 @@ export default function FillDocumentPage() {
     [filteredAssignments.length],
   );
 
-  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0]?.clientX ?? null;
+  };
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    const endX = e.changedTouches[0]?.clientX;
+    if (endX === undefined) return;
+    const diff = touchStartX.current - endX;
     if (Math.abs(diff) > 50) diff > 0 ? goNext() : goPrev();
     touchStartX.current = null;
   };
@@ -258,11 +215,7 @@ export default function FillDocumentPage() {
   const hasAssignments = allAssignments.length > 0;
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <Spinner />
-      </div>
-    );
+    return <div className="flex items-center justify-center py-24"><Spinner /></div>;
   }
 
   return (
@@ -295,7 +248,6 @@ export default function FillDocumentPage() {
         </Button>
       </div>
 
-      {/* Status bar */}
       <StatusBar
         isOnline={isOnline}
         syncStatus={syncStatus}
@@ -307,9 +259,7 @@ export default function FillDocumentPage() {
       {generationState === 'generating' && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm flex items-center gap-2">
           <Spinner className="h-4 w-4 flex-shrink-0" />
-          <span>
-            PDF sendo gerado em segundo plano. Você pode fechar esta página e voltar depois — o PDF ficará disponível na lista de documentos.
-          </span>
+          <span>PDF sendo gerado em segundo plano. Você pode fechar esta página e voltar depois.</span>
         </div>
       )}
 
@@ -329,7 +279,6 @@ export default function FillDocumentPage() {
         </div>
       )}
 
-      {/* Populate panel */}
       {!hasAssignments && (
         <PopulatePanel
           documentId={documentId}
@@ -337,9 +286,33 @@ export default function FillDocumentPage() {
         />
       )}
 
-      {/* Fill UI */}
       {hasAssignments && (
         <>
+          {/* ── Global fields — filled once, apply to every page ────────────── */}
+          {globalFields.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-sm">Dados Globais</h2>
+                <span className="text-xs text-muted-foreground bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                  aparece em todas as páginas
+                </span>
+              </div>
+              {globalFields.map((field) => (
+                <FieldInput
+                  key={field.id}
+                  field={field}
+                  value={getValue(field.id, 0)}
+                  fileKey={getFileKey(field.id, 0)}
+                  pendingBlob={getPendingBlobForField(field.id, 0)}
+                  onChange={(v) => updateField(field.id, 0, v)}
+                  onImageChange={(f) => updateImageField(field.id, 0, f)}
+                />
+              ))}
+              <hr />
+            </section>
+          )}
+
+          {/* ── Item fields — one per equipment (SX slot) ───────────────────── */}
           {setores.length > 1 && (
             <div className="flex gap-2 flex-wrap">
               <Button
@@ -364,9 +337,18 @@ export default function FillDocumentPage() {
 
           {filteredAssignments.length === 0 ? (
             <p className="text-muted-foreground text-sm">Nenhum equipamento neste setor.</p>
+          ) : itemFields.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Este template não possui campos de item (SX). Apenas dados globais.
+            </p>
           ) : (
-            <div key={`equipment-${currentItemIndex}`} className="space-y-4" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-              {/* Equipment info + top navigation */}
+            <div
+              key={`item-${currentItemIndex}`}
+              className="space-y-4"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
+              {/* Equipment info + navigation */}
               <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg border">
                 <div>
                   <p className="font-medium text-sm">
@@ -391,37 +373,24 @@ export default function FillDocumentPage() {
                 </div>
               </div>
 
-              {/* Fields — ungrouped (shared) shown first */}
+              {/* Fields for the current item (current SX slot) */}
               <div className="space-y-3">
-                {groupCount > 0 && ungroupedFields.length > 0 && (
-                  <>
-                    {ungroupedFields.map((field) => (
-                      <FieldInput
-                        key={`${field.id}_${currentItemIndex}`}
-                        field={field}
-                        value={getValue(field.id, currentItemIndex)}
-                        fileKey={getFileKey(field.id, currentItemIndex)}
-                        pendingBlob={getPendingBlobForField(field.id, currentItemIndex)}
-                        onChange={(value) => updateField(field.id, currentItemIndex, value)}
-                        onImageChange={(file) => updateImageField(field.id, currentItemIndex, file)}
-                      />
-                    ))}
-                    <div className="border-t" />
-                  </>
-                )}
-                {currentSlotFields.map((field) => (
-                  <FieldInput
-                    key={`${field.id}_${currentItemIndex}`}
-                    field={field}
-                    value={getValue(field.id, currentItemIndex)}
-                    fileKey={getFileKey(field.id, currentItemIndex)}
-                    pendingBlob={getPendingBlobForField(field.id, currentItemIndex)}
-                    onChange={(value) => updateField(field.id, currentItemIndex, value)}
-                    onImageChange={(file) => updateImageField(field.id, currentItemIndex, file)}
-                  />
-                ))}
-                {currentSlotFields.length === 0 && ungroupedFields.length === 0 && (
-                  <p className="text-sm text-muted-foreground">Nenhum campo neste template.</p>
+                {currentSlotFields.length > 0 ? (
+                  currentSlotFields.map((field) => (
+                    <FieldInput
+                      key={`${field.id}_${currentItemIndex}`}
+                      field={field}
+                      value={getValue(field.id, currentItemIndex)}
+                      fileKey={getFileKey(field.id, currentItemIndex)}
+                      pendingBlob={getPendingBlobForField(field.id, currentItemIndex)}
+                      onChange={(v) => updateField(field.id, currentItemIndex, v)}
+                      onImageChange={(f) => updateImageField(field.id, currentItemIndex, f)}
+                    />
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum campo definido para o slot S{currentSlot}.
+                  </p>
                 )}
               </div>
 
@@ -459,20 +428,22 @@ export default function FillDocumentPage() {
 function DownloadButton({ documentId }: { documentId: string }) {
   const [loading, setLoading] = useState(false);
 
-  const handleDownload = async () => {
-    setLoading(true);
-    try {
-      const { downloadUrl } = await api.getDownloadUrl(documentId);
-      window.open(downloadUrl, '_blank');
-    } catch (err) {
-      console.error('Download failed:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <Button size="sm" onClick={handleDownload} disabled={loading}>
+    <Button
+      size="sm"
+      disabled={loading}
+      onClick={async () => {
+        setLoading(true);
+        try {
+          const { downloadUrl } = await api.getDownloadUrl(documentId);
+          window.open(downloadUrl, '_blank');
+        } catch (err) {
+          console.error('Download failed:', err);
+        } finally {
+          setLoading(false);
+        }
+      }}
+    >
       {loading ? <Spinner className="mr-2 h-4 w-4" /> : null}
       Download PDF
     </Button>
@@ -482,11 +453,7 @@ function DownloadButton({ documentId }: { documentId: string }) {
 // ─── StatusBar ────────────────────────────────────────────────────────────────
 
 function StatusBar({
-  isOnline,
-  syncStatus,
-  pendingUploads,
-  hasPendingChanges,
-  onSyncNow,
+  isOnline, syncStatus, pendingUploads, hasPendingChanges, onSyncNow,
 }: {
   isOnline: boolean;
   syncStatus: 'idle' | 'syncing' | 'error';
@@ -497,42 +464,20 @@ function StatusBar({
   if (isOnline && syncStatus === 'idle' && !hasPendingChanges && pendingUploads === 0) return null;
 
   return (
-    <div
-      className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm ${
-        !isOnline
-          ? 'border-amber-300 bg-amber-50 text-amber-800'
-          : syncStatus === 'error'
-            ? 'border-red-300 bg-red-50 text-red-800'
-            : 'border-blue-200 bg-blue-50 text-blue-800'
-      }`}
-    >
+    <div className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm ${
+      !isOnline ? 'border-amber-300 bg-amber-50 text-amber-800'
+        : syncStatus === 'error' ? 'border-red-300 bg-red-50 text-red-800'
+        : 'border-blue-200 bg-blue-50 text-blue-800'
+    }`}>
       <div className="flex items-center gap-2">
-        {!isOnline && (
-          <>
-            <span className="h-2 w-2 rounded-full bg-amber-500 inline-block" />
-            <span>Offline — alterações salvas localmente</span>
-          </>
-        )}
-        {isOnline && syncStatus === 'syncing' && (
-          <>
-            <Spinner className="h-3 w-3" />
-            <span>Sincronizando...</span>
-          </>
-        )}
+        {!isOnline && <><span className="h-2 w-2 rounded-full bg-amber-500 inline-block" /><span>Offline — alterações salvas localmente</span></>}
+        {isOnline && syncStatus === 'syncing' && <><Spinner className="h-3 w-3" /><span>Sincronizando...</span></>}
         {isOnline && syncStatus === 'error' && <span>Erro ao sincronizar</span>}
-        {isOnline && syncStatus === 'idle' && hasPendingChanges && (
-          <span>Alterações não salvas</span>
-        )}
-        {pendingUploads > 0 && (
-          <span className="ml-1">
-            · {pendingUploads} foto{pendingUploads !== 1 ? 's' : ''} aguardando upload
-          </span>
-        )}
+        {isOnline && syncStatus === 'idle' && hasPendingChanges && <span>Alterações não salvas</span>}
+        {pendingUploads > 0 && <span className="ml-1">· {pendingUploads} foto{pendingUploads !== 1 ? 's' : ''} aguardando upload</span>}
       </div>
       {isOnline && (hasPendingChanges || pendingUploads > 0) && syncStatus !== 'syncing' && (
-        <button onClick={onSyncNow} className="underline font-medium text-xs">
-          Sincronizar agora
-        </button>
+        <button onClick={onSyncNow} className="underline font-medium text-xs">Sincronizar agora</button>
       )}
     </div>
   );
@@ -550,9 +495,9 @@ interface FieldInputProps {
 }
 
 function FieldInput({ field, value, fileKey, pendingBlob, onChange, onImageChange }: FieldInputProps) {
-  // Create a local object URL for pending blobs so we can show a preview
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const isReadonly = field.autoPopulate === true;
+  // Fields with a bindingKey are auto-populated and rendered read-only.
+  const isReadonly = !!field.bindingKey;
 
   useEffect(() => {
     if (!pendingBlob) { setPreviewUrl(null); return; }
@@ -566,14 +511,10 @@ function FieldInput({ field, value, fileKey, pendingBlob, onChange, onImageChang
       <div className="flex items-center gap-2">
         <label className="font-medium text-sm">{field.config.label}</label>
         {field.config.required && (
-          <Badge variant="destructive" className="text-xs px-1.5 py-0">
-            Obrigatório
-          </Badge>
+          <Badge variant="destructive" className="text-xs px-1.5 py-0">Obrigatório</Badge>
         )}
         {isReadonly && (
-          <Badge className="text-xs px-1.5 py-0 bg-slate-200 text-slate-600">
-            Auto
-          </Badge>
+          <Badge className="text-xs px-1.5 py-0 bg-slate-200 text-slate-600">Auto</Badge>
         )}
       </div>
 
@@ -584,7 +525,9 @@ function FieldInput({ field, value, fileKey, pendingBlob, onChange, onImageChang
           onChange={(e) => !isReadonly && onChange(e.target.value)}
           readOnly={isReadonly}
           placeholder={field.config.placeholder ?? ''}
-          className={`w-full h-10 rounded-md border border-input px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring ${isReadonly ? 'bg-muted cursor-not-allowed text-muted-foreground' : 'bg-background'}`}
+          className={`w-full h-10 rounded-md border border-input px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring ${
+            isReadonly ? 'bg-muted cursor-not-allowed text-muted-foreground' : 'bg-background'
+          }`}
           maxLength={field.config.maxLength}
         />
       )}
@@ -610,29 +553,19 @@ function FieldInput({ field, value, fileKey, pendingBlob, onChange, onImageChang
             type="file"
             accept="image/*"
             capture="environment"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) onImageChange(file);
-            }}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) onImageChange(f); }}
             className="text-sm w-full"
           />
           {previewUrl && (
             <img src={previewUrl} alt="preview" className="max-h-40 rounded border object-contain" />
           )}
-          {fileKey && !previewUrl && (
-            <p className="text-xs text-green-600">✓ Foto enviada ao servidor</p>
-          )}
-          {pendingBlob && !fileKey && (
-            <p className="text-xs text-amber-600">⏳ Foto salva localmente, aguardando upload</p>
-          )}
+          {fileKey && !previewUrl && <p className="text-xs text-green-600">✓ Foto enviada ao servidor</p>}
+          {pendingBlob && !fileKey && <p className="text-xs text-amber-600">⏳ Foto salva localmente, aguardando upload</p>}
         </div>
       )}
 
       {field.type === 'signature' && (
-        <SignatureCanvas
-          value={String(value || '')}
-          onChange={(dataUrl) => onChange(dataUrl)}
-        />
+        <SignatureCanvas value={String(value || '')} onChange={(dataUrl) => onChange(dataUrl)} />
       )}
     </div>
   );
@@ -640,13 +573,7 @@ function FieldInput({ field, value, fileKey, pendingBlob, onChange, onImageChang
 
 // ─── PopulatePanel ────────────────────────────────────────────────────────────
 
-function PopulatePanel({
-  documentId,
-  onPopulated,
-}: {
-  documentId: string;
-  onPopulated: () => void;
-}) {
+function PopulatePanel({ documentId, onPopulated }: { documentId: string; onPopulated: () => void }) {
   const [tipoId, setTipoId] = useState('');
   const [lojaId, setLojaId] = useState('');
   const [previewCount, setPreviewCount] = useState<number | null>(null);
@@ -732,11 +659,7 @@ function PopulatePanel({
         onClick={() => populateMutation.mutate()}
         disabled={!tipoId || !lojaId || previewCount === 0 || populateMutation.isPending}
       >
-        {populateMutation.isPending ? (
-          <><Spinner className="mr-2 h-4 w-4" />Carregando...</>
-        ) : (
-          'Carregar Equipamentos'
-        )}
+        {populateMutation.isPending ? <><Spinner className="mr-2 h-4 w-4" />Carregando...</> : 'Carregar Equipamentos'}
       </Button>
     </div>
   );
@@ -750,10 +673,7 @@ function RePopulatePanel({ documentId, onPopulated }: { documentId: string; onPo
   if (!open) {
     return (
       <div className="pt-2">
-        <button
-          onClick={() => setOpen(true)}
-          className="text-xs text-muted-foreground underline"
-        >
+        <button onClick={() => setOpen(true)} className="text-xs text-muted-foreground underline">
           Recarregar equipamentos
         </button>
       </div>
@@ -762,16 +682,9 @@ function RePopulatePanel({ documentId, onPopulated }: { documentId: string; onPo
 
   return (
     <div className="border-t pt-4 space-y-3">
-      <p className="text-sm text-amber-700">
-        ⚠️ Recarregar substituirá os dados pré-preenchidos atuais.
-      </p>
-      <PopulatePanel
-        documentId={documentId}
-        onPopulated={() => { setOpen(false); onPopulated(); }}
-      />
-      <button onClick={() => setOpen(false)} className="text-xs text-muted-foreground underline">
-        Cancelar
-      </button>
+      <p className="text-sm text-amber-700">⚠️ Recarregar substituirá os dados pré-preenchidos atuais.</p>
+      <PopulatePanel documentId={documentId} onPopulated={() => { setOpen(false); onPopulated(); }} />
+      <button onClick={() => setOpen(false)} className="text-xs text-muted-foreground underline">Cancelar</button>
     </div>
   );
 }

@@ -10,9 +10,8 @@ import { EditorCanvas } from '@/components/editor/editor-canvas';
 import { EditorToolbar } from '@/components/editor/editor-toolbar';
 import { FieldProperties } from '@/components/editor/field-properties';
 import { PageNavigator } from '@/components/editor/page-navigator';
-import { RepetitionConfig } from '@/components/editor/repetition-config';
 import { useAutosave } from '@/hooks/use-autosave';
-import type { FieldType, FieldPosition, FieldConfig } from '@regcheck/shared';
+import type { FieldType, FieldPosition, FieldConfig, FieldScope } from '@regcheck/shared';
 
 export default function EditorPage() {
   const params = useParams<{ templateId: string }>();
@@ -38,10 +37,9 @@ export default function EditorPage() {
         pageIndex: number;
         position: FieldPosition;
         config: FieldConfig;
-        repetitionGroupId?: string;
-        repetitionIndex?: number;
-        autoPopulate?: boolean;
-        autoPopulateKey?: string;
+        scope: string;
+        slotIndex: number | null;
+        bindingKey: string | null;
       }>;
       pdfFile: { pageCount: number };
     };
@@ -57,11 +55,9 @@ export default function EditorPage() {
       pageIndex: f.pageIndex,
       position: f.position,
       config: f.config,
-      repetitionGroupId: f.repetitionGroupId,
-      repetitionIndex: f.repetitionIndex ?? undefined,
-      autoPopulate: f.autoPopulate,
-      autoPopulateKey: f.autoPopulateKey,
-      equipmentGroup: f.equipmentGroup,
+      scope: (f.scope as FieldScope) ?? 'item',
+      slotIndex: f.slotIndex ?? null,
+      bindingKey: f.bindingKey ?? null,
     }));
 
     console.debug('[EditorPage] Initializing', editorFields.length, 'fields from template');
@@ -79,13 +75,11 @@ export default function EditorPage() {
       const currentFields = useEditorStore.getState().fields;
       const updates = currentFields.map((f) => ({
         id: f.id,
-        position: f.position,
-        config: f.config as Record<string, unknown>,
-        repetitionGroupId: f.repetitionGroupId,
-        repetitionIndex: f.repetitionIndex,
-        autoPopulate: f.autoPopulate,
-        autoPopulateKey: f.autoPopulateKey,
-        equipmentGroup: f.equipmentGroup,
+        position: f.position as unknown as Record<string, number>,
+        config: f.config as unknown as Record<string, unknown>,
+        scope: f.scope,
+        slotIndex: f.slotIndex,
+        bindingKey: f.bindingKey,
       }));
       // Mark clean before async work — changes during save will re-dirty
       markClean();
@@ -162,7 +156,6 @@ export default function EditorPage() {
         {/* Properties panel */}
         <div className="w-72 border-l overflow-y-auto">
           <FieldProperties templateId={templateId} />
-          <RepetitionConfig templateId={templateId} />
         </div>
       </div>
     </div>

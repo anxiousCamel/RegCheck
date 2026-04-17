@@ -3,12 +3,27 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Input, Label } from '@regcheck/ui';
-import { useEditorStore } from '@/stores/editor-store';
+import { useEditorStore, type EditorField } from '@/stores/editor-store';
 import { api } from '@/lib/api';
+import type { FieldScope } from '@regcheck/shared';
 
+/**
+ * Right-hand properties inspector for the template editor.
+ *
+ * Single-select: full editor with Scope (Global vs Item SX) + Slot + Binding.
+ * Multi-select: batched label/required/font/scope controls.
+ */
 export function FieldProperties({ templateId }: { templateId: string }) {
   const queryClient = useQueryClient();
-  const { fields, selectedFieldIds, updateField, updateFields, removeFields, setEquipmentGroup } = useEditorStore();
+  const {
+    fields,
+    selectedFieldIds,
+    updateField,
+    removeFields,
+    setFieldScope,
+    setFieldSlot,
+    setFieldBinding,
+  } = useEditorStore();
 
   const selectedFields = useMemo(
     () => fields.filter((f) => selectedFieldIds.includes(f.id)),
@@ -19,18 +34,12 @@ export function FieldProperties({ templateId }: { templateId: string }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (fieldIds: string[]) => {
-      // Optimistically remove from state before API call
       removeFields(fieldIds);
-      // Delete from backend
       const results = await Promise.allSettled(fieldIds.map((id) => api.deleteField(templateId, id)));
       const failures = results.filter((r) => r.status === 'rejected');
-      if (failures.length > 0) {
-        console.error('[deleteFields] Some deletions failed:', failures);
-      }
+      if (failures.length > 0) console.error('[deleteFields] Some deletions failed:', failures);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['template', templateId] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['template', templateId] }),
   });
 
   if (selectedFields.length === 0) {
@@ -41,23 +50,14 @@ export function FieldProperties({ templateId }: { templateId: string }) {
     );
   }
 
-  // Multi-select: batch property editing
+  // ─── Multi-select ────────────────────────────────────────────────────────
   if (selectedFields.length > 1) {
     const allText = selectedFields.every((f) => f.type === 'text');
-    const allSameType = selectedFields.every((f) => f.type === selectedFields[0].type);
+    const allSameType = selectedFields.every((f) => f.type === selectedFields[0]!.type);
 
-    // Compute shared values (null if mixed)
-    const sharedRequired = selectedFields.every((f) => f.config.required === selectedFields[0].config.required)
-      ? selectedFields[0].config.required
-      : null;
-    const sharedFontSize =
-      allText && selectedFields.every((f) => f.config.fontSize === selectedFields[0].config.fontSize)
-        ? selectedFields[0].config.fontSize
-        : null;
-    const sharedFontColor =
-      allText && selectedFields.every((f) => f.config.fontColor === selectedFields[0].config.fontColor)
-        ? (selectedFields[0].config.fontColor ?? '#000000')
-        : null;
+    const sharedRequired = allSame(selectedFields, (f) => f.config.required);
+    const sharedFontSize = allText ? allSame(selectedFields, (f) => f.config.fontSize) : null;
+    const sharedFontColor = allText ? allSame(selectedFields, (f) => f.config.fontColor ?? '#000000') : null;
 
     const handleBatchConfigUpdate = (configUpdates: Record<string, unknown>) => {
       for (const f of selectedFields) {
@@ -69,11 +69,10 @@ export function FieldProperties({ templateId }: { templateId: string }) {
       <div className="p-4 space-y-4">
         <h3 className="font-medium text-sm">{selectedFields.length} campos selecionados</h3>
         {allSameType && (
-          <p className="text-xs text-muted-foreground capitalize">Tipo: {selectedFields[0].type}</p>
+          <p className="text-xs text-muted-foreground capitalize">Tipo: {selectedFields[0]!.type}</p>
         )}
 
         <div className="space-y-3">
-          {/* Required toggle */}
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -86,12 +85,9 @@ export function FieldProperties({ templateId }: { templateId: string }) {
               className="rounded"
             />
             <Label htmlFor="batch-required">Obrigatorio</Label>
-            {sharedRequired === null && (
-              <span className="text-xs text-muted-foreground">(misto)</span>
-            )}
+            {sharedRequired === null && <span className="text-xs text-muted-foreground">(misto)</span>}
           </div>
 
-          {/* Text-specific batch properties */}
           {allText && (
             <>
               <div>
@@ -106,7 +102,6 @@ export function FieldProperties({ templateId }: { templateId: string }) {
                   onChange={(e) => handleBatchConfigUpdate({ fontSize: Number(e.target.value) })}
                 />
               </div>
-
               <div>
                 <Label htmlFor="batch-fontcolor">Cor do texto</Label>
                 <input
@@ -116,19 +111,17 @@ export function FieldProperties({ templateId }: { templateId: string }) {
                   onChange={(e) => handleBatchConfigUpdate({ fontColor: e.target.value })}
                   className="h-10 w-full rounded-md border cursor-pointer"
                 />
-                {sharedFontColor === null && (
-                  <span className="text-xs text-muted-foreground">(misto)</span>
-                )}
+                {sharedFontColor === null && <span className="text-xs text-muted-foreground">(misto)</span>}
               </div>
             </>
           )}
         </div>
 
-        {/* Equipment slot assignment */}
-        <EquipmentGroupSection
+        <ScopeSection selectedFields={selectedFields} setFieldScope={setFieldScope} setFieldSlot={setFieldSlot} />
+
+        <BindingSection
           selectedFields={selectedFields}
-          selectedFieldIds={selectedFieldIds}
-          setEquipmentGroup={setEquipmentGroup}
+          setFieldBinding={setFieldBinding}
         />
 
         <p className="text-xs text-muted-foreground">
@@ -147,7 +140,7 @@ export function FieldProperties({ templateId }: { templateId: string }) {
     );
   }
 
-  // Single selection: full property editor
+  // ─── Single-select ───────────────────────────────────────────────────────
   if (!selectedField) return null;
 
   return (
@@ -166,9 +159,7 @@ export function FieldProperties({ templateId }: { templateId: string }) {
             id="field-label"
             value={selectedField.config.label}
             onChange={(e) =>
-              updateField(selectedField.id, {
-                config: { ...selectedField.config, label: e.target.value },
-              })
+              updateField(selectedField.id, { config: { ...selectedField.config, label: e.target.value } })
             }
           />
         </div>
@@ -179,51 +170,12 @@ export function FieldProperties({ templateId }: { templateId: string }) {
             id="field-required"
             checked={selectedField.config.required}
             onChange={(e) =>
-              updateField(selectedField.id, {
-                config: { ...selectedField.config, required: e.target.checked },
-              })
+              updateField(selectedField.id, { config: { ...selectedField.config, required: e.target.checked } })
             }
             className="rounded"
           />
           <Label htmlFor="field-required">Obrigatorio</Label>
         </div>
-
-        {/* Auto-populate toggle — marks field as readonly in documents */}
-        {selectedField.type === 'text' && (
-          <div className="space-y-2 border rounded-md p-2 bg-muted/20">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="field-autopopulate"
-                checked={selectedField.autoPopulate ?? false}
-                onChange={(e) =>
-                  updateField(selectedField.id, { autoPopulate: e.target.checked })
-                }
-                className="rounded"
-              />
-              <Label htmlFor="field-autopopulate">Pre-preenchido (readonly)</Label>
-            </div>
-            {selectedField.autoPopulate && (
-              <div>
-                <Label htmlFor="field-autopopulate-key">Chave de mapeamento</Label>
-                <select
-                  id="field-autopopulate-key"
-                  value={selectedField.autoPopulateKey ?? ''}
-                  onChange={(e) =>
-                    updateField(selectedField.id, { autoPopulateKey: e.target.value || undefined })
-                  }
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  <option value="">Selecione...</option>
-                  <option value="numero">Numero do equipamento</option>
-                  <option value="serie">Serie / Serial</option>
-                  <option value="patrimonio">Patrimonio</option>
-                  <option value="setor">Setor</option>
-                </select>
-              </div>
-            )}
-          </div>
-        )}
 
         {selectedField.type === 'text' && (
           <>
@@ -233,13 +185,10 @@ export function FieldProperties({ templateId }: { templateId: string }) {
                 id="field-placeholder"
                 value={selectedField.config.placeholder ?? ''}
                 onChange={(e) =>
-                  updateField(selectedField.id, {
-                    config: { ...selectedField.config, placeholder: e.target.value },
-                  })
+                  updateField(selectedField.id, { config: { ...selectedField.config, placeholder: e.target.value } })
                 }
               />
             </div>
-
             <div>
               <Label htmlFor="field-fontsize">Tamanho da fonte</Label>
               <Input
@@ -249,13 +198,10 @@ export function FieldProperties({ templateId }: { templateId: string }) {
                 max={72}
                 value={selectedField.config.fontSize ?? 12}
                 onChange={(e) =>
-                  updateField(selectedField.id, {
-                    config: { ...selectedField.config, fontSize: Number(e.target.value) },
-                  })
+                  updateField(selectedField.id, { config: { ...selectedField.config, fontSize: Number(e.target.value) } })
                 }
               />
             </div>
-
             <div>
               <Label htmlFor="field-fontcolor">Cor do texto</Label>
               <input
@@ -263,9 +209,7 @@ export function FieldProperties({ templateId }: { templateId: string }) {
                 type="color"
                 value={selectedField.config.fontColor ?? '#000000'}
                 onChange={(e) =>
-                  updateField(selectedField.id, {
-                    config: { ...selectedField.config, fontColor: e.target.value },
-                  })
+                  updateField(selectedField.id, { config: { ...selectedField.config, fontColor: e.target.value } })
                 }
                 className="h-10 w-full rounded-md border cursor-pointer"
               />
@@ -273,12 +217,8 @@ export function FieldProperties({ templateId }: { templateId: string }) {
           </>
         )}
 
-        {/* Equipment slot assignment */}
-        <EquipmentGroupSection
-          selectedFields={[selectedField]}
-          selectedFieldIds={[selectedField.id]}
-          setEquipmentGroup={setEquipmentGroup}
-        />
+        <ScopeSection selectedFields={[selectedField]} setFieldScope={setFieldScope} setFieldSlot={setFieldSlot} />
+        <BindingSection selectedFields={[selectedField]} setFieldBinding={setFieldBinding} />
 
         {/* Position (read-only display) */}
         <div className="border-t pt-3 space-y-2">
@@ -305,71 +245,174 @@ export function FieldProperties({ templateId }: { templateId: string }) {
   );
 }
 
-// ─── Equipment Group (Slot) Section ──────────────────────────────────────────
+// ─── Scope + Slot section ────────────────────────────────────────────────────
 
-interface EquipmentGroupSectionProps {
-  selectedFields: Array<{ id: string; equipmentGroup?: number | null }>;
-  selectedFieldIds: string[];
-  setEquipmentGroup: (fieldIds: string[], group: number | null) => void;
+interface ScopeSectionProps {
+  selectedFields: EditorField[];
+  setFieldScope: (ids: string[], scope: FieldScope, slotIndex?: number) => void;
+  setFieldSlot: (ids: string[], slotIndex: number | null) => void;
 }
 
-function EquipmentGroupSection({ selectedFields, selectedFieldIds, setEquipmentGroup }: EquipmentGroupSectionProps) {
+function ScopeSection({ selectedFields, setFieldScope, setFieldSlot }: ScopeSectionProps) {
+  const ids = selectedFields.map((f) => f.id);
+  const sharedScope = allSame(selectedFields, (f) => f.scope);
+  const sharedSlot = allSame(selectedFields, (f) => f.slotIndex);
   const [slotInput, setSlotInput] = useState('');
-
-  const currentGroups = selectedFields.map((f) => f.equipmentGroup);
-  const allSameGroup = currentGroups.every((g) => g === currentGroups[0]);
-  const currentGroup = allSameGroup ? currentGroups[0] : undefined;
-  const hasGroup = currentGroups.some((g) => g != null);
 
   return (
     <div className="border-t pt-3 space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Slot de Equipamento</p>
-      {currentGroup != null && (
-        <p className="text-sm font-medium">Slot {currentGroup}</p>
-      )}
-      {currentGroup === undefined && hasGroup && (
-        <p className="text-xs text-muted-foreground">(slots mistos)</p>
-      )}
-      {currentGroup === null && !hasGroup && (
-        <p className="text-xs text-muted-foreground">Nenhum slot atribuido</p>
-      )}
-      <div className="flex gap-2">
-        <Input
-          type="number"
-          min={0}
-          placeholder="Slot (0, 1, 2...)"
-          value={slotInput}
-          onChange={(e) => setSlotInput(e.target.value)}
-          className="flex-1 h-8 text-sm"
-        />
+      <p className="text-xs font-medium text-muted-foreground">Escopo do campo</p>
+
+      <div className="grid grid-cols-2 gap-2">
         <Button
-          variant="outline"
+          variant={sharedScope === 'global' ? 'default' : 'outline'}
           size="sm"
-          disabled={slotInput === ''}
-          onClick={() => {
-            const n = parseInt(slotInput, 10);
-            if (!isNaN(n) && n >= 0) {
-              setEquipmentGroup(selectedFieldIds, n);
-              setSlotInput('');
-            }
-          }}
+          onClick={() => setFieldScope(ids, 'global')}
         >
-          Atribuir
+          Global
+        </Button>
+        <Button
+          variant={sharedScope === 'item' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFieldScope(ids, 'item')}
+        >
+          Item (SX)
         </Button>
       </div>
-      {hasGroup && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full text-xs"
-          onClick={() => {
-            setEquipmentGroup(selectedFieldIds, null);
-            setSlotInput('');
-          }}
-        >
-          Remover do slot
-        </Button>
+      {sharedScope === null && <p className="text-xs text-muted-foreground">(escopo misto)</p>}
+
+      {sharedScope !== 'global' && (
+        <div className="space-y-1">
+          <Label>Slot SX</Label>
+          {sharedSlot !== null && sharedSlot !== undefined && (
+            <p className="text-sm font-medium">S{sharedSlot}</p>
+          )}
+          {sharedSlot === null && <p className="text-xs text-muted-foreground">(slots mistos)</p>}
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              min={0}
+              placeholder="Slot (0, 1, 2...)"
+              value={slotInput}
+              onChange={(e) => setSlotInput(e.target.value)}
+              className="flex-1 h-8 text-sm"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={slotInput === ''}
+              onClick={() => {
+                const n = parseInt(slotInput, 10);
+                if (!isNaN(n) && n >= 0) {
+                  setFieldSlot(ids, n);
+                  setSlotInput('');
+                }
+              }}
+            >
+              Atribuir
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
+}
+
+// ─── Binding key section ─────────────────────────────────────────────────────
+
+interface BindingSectionProps {
+  selectedFields: EditorField[];
+  setFieldBinding: (ids: string[], bindingKey: string | null) => void;
+}
+
+/**
+ * Suggestions are just hints. The bindingKey field is free-form so new data
+ * sources can be added on the producer side without UI changes.
+ */
+const BINDING_SUGGESTIONS: Record<FieldScope, string[]> = {
+  item: ['eq.numero', 'eq.serie', 'eq.patrimonio', 'eq.modelo', 'eq.ip', 'eq.setor'],
+  global: ['global.data', 'global.tecnico', 'global.assinatura', 'global.observacoes'],
+};
+
+const BINDING_KEY_RE = /^(global|eq)\.[a-z][a-z0-9_]*$/;
+
+function BindingSection({ selectedFields, setFieldBinding }: BindingSectionProps) {
+  const ids = selectedFields.map((f) => f.id);
+  const sharedBinding = allSame(selectedFields, (f) => f.bindingKey ?? '');
+  const sharedScope = allSame(selectedFields, (f) => f.scope);
+  const [value, setValue] = useState<string | null>(null); // null = follow shared
+  const current = value ?? (sharedBinding ?? '');
+
+  const isValid = current === '' || BINDING_KEY_RE.test(current);
+  const suggestions = sharedScope ? BINDING_SUGGESTIONS[sharedScope] : [];
+
+  return (
+    <div className="border-t pt-3 space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">Binding (auto-preenchimento)</p>
+      <p className="text-[11px] text-muted-foreground">
+        Exemplo: <code>eq.serie</code>, <code>global.data</code>. Deixe vazio para preenchimento manual.
+      </p>
+
+      <Input
+        placeholder="ex.: eq.numero"
+        value={current}
+        onChange={(e) => setValue(e.target.value)}
+      />
+      {!isValid && (
+        <p className="text-xs text-red-600">Formato invalido. Use &lt;global|eq&gt;.&lt;chave&gt; (snake_case).</p>
+      )}
+      {sharedBinding === null && <p className="text-xs text-muted-foreground">(bindings mistos)</p>}
+
+      {suggestions.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {suggestions.map((s) => (
+            <Button
+              key={s}
+              variant="outline"
+              size="sm"
+              className="h-6 text-[11px]"
+              onClick={() => setValue(s)}
+            >
+              {s}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1"
+          disabled={!isValid || current === (sharedBinding ?? '')}
+          onClick={() => setFieldBinding(ids, current === '' ? null : current)}
+        >
+          Aplicar
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={!sharedBinding}
+          onClick={() => {
+            setFieldBinding(ids, null);
+            setValue('');
+          }}
+        >
+          Limpar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── helpers ────────────────────────────────────────────────────────────────
+
+/** Returns the shared value if every element maps to the same thing; `null` if mixed. */
+function allSame<T, V>(items: T[], pick: (t: T) => V): V | null {
+  if (items.length === 0) return null;
+  const first = pick(items[0]!);
+  for (let i = 1; i < items.length; i++) {
+    if (pick(items[i]!) !== first) return null;
+  }
+  return first;
 }

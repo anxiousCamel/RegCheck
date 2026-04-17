@@ -1,12 +1,12 @@
 import { prisma } from '@regcheck/database';
-import { PdfProcessor, PdfGenerator } from '@regcheck/pdf-engine';
-import { FieldCloner, RepetitionEngine } from '@regcheck/editor-engine';
-import type { TemplateField, RepetitionConfig, FieldPosition, FieldType } from '@regcheck/shared';
-import type { FieldOverlay } from '@regcheck/pdf-engine';
+import { PdfProcessor, PdfGenerator, type FieldOverlay } from '@regcheck/pdf-engine';
+import { TemplatePaginator } from '@regcheck/editor-engine';
+import type { FieldPosition, FieldType, TemplateField, FieldScope } from '@regcheck/shared';
 import type { PdfGenerationJobData } from '../lib/queue';
 import { downloadFile, uploadFile } from '../lib/s3';
 import crypto from 'node:crypto';
 
+/** Prisma stores field type as UPPERCASE enum; the shared type is lowercase. */
 const FIELD_TYPE_REVERSE: Record<string, FieldType> = {
   TEXT: 'text',
   IMAGE: 'image',
@@ -14,19 +14,98 @@ const FIELD_TYPE_REVERSE: Record<string, FieldType> = {
   CHECKBOX: 'checkbox',
 };
 
+type DbField = {
+  id: string;
+  type: string;
+  pageIndex: number;
+  position: unknown;
+  config: unknown;
+  scope: string;
+  slotIndex: number | null;
+  bindingKey: string | null;
+};
+
+type DbFilled = {
+  fieldId: string;
+  itemIndex: number;
+  value: string;
+  fileKey: string | null;
+};
+
 /** Structured log helper */
 function log(step: string, documentId: string, extra?: Record<string, unknown>) {
   console.log(JSON.stringify({ ts: new Date().toISOString(), step, documentId, ...extra }));
 }
 
+function toSharedField(f: DbField): TemplateField {
+  return {
+    id: f.id,
+    type: FIELD_TYPE_REVERSE[f.type]!,
+    pageIndex: f.pageIndex,
+    position: f.position as FieldPosition,
+    config: f.config as TemplateField['config'],
+    scope: f.scope as FieldScope,
+    slotIndex: f.slotIndex,
+    bindingKey: f.bindingKey,
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+/**
+ * Downloads every image/signature referenced by a filled field in parallel.
+ * Keyed by `${fieldId}:${itemIndex}` so overlay building can fetch by (field, item).
+ */
+async function downloadFilledImages(filled: DbFilled[]): Promise<Map<string, Buffer>> {
+  const tasks = filled
+    .filter((f) => !!f.fileKey)
+    .map((f) => ({ key: `${f.fieldId}:${f.itemIndex}`, fileKey: f.fileKey! }));
+
+  if (tasks.length === 0) return new Map();
+
+  const results = await Promise.all(
+    tasks.map(async (t) => ({ key: t.key, bytes: await downloadFile(t.fileKey) })),
+  );
+  return new Map(results.map((r) => [r.key, r.bytes]));
+}
+
+/** Resolve the expanded-PDF page index for a given template page + page ordinal. */
+function expandedPageIndex(templatePageIndex: number, pageOrdinal: number, originalPageCount: number): number {
+  return pageOrdinal * originalPageCount + templatePageIndex;
+}
+
+function makeOverlay(
+  field: TemplateField,
+  filled: DbFilled,
+  expandedPage: number,
+  imageMap: Map<string, Buffer>,
+): FieldOverlay {
+  const config = field.config as { fontSize?: number; fontColor?: string };
+  const overlay: FieldOverlay = {
+    pageIndex: expandedPage,
+    type: field.type,
+    position: field.position,
+    value: filled.value,
+    checked: filled.value === 'true',
+    fontSize: config.fontSize,
+    fontColor: config.fontColor,
+  };
+  if (field.type === 'image' || field.type === 'signature') {
+    overlay.imageBytes = imageMap.get(`${field.id}:${filled.itemIndex}`);
+  }
+  return overlay;
+}
+
 /**
  * Process a PDF generation job.
- * 1. Load document + template + filled data
- * 2. Compute repetition layout
- * 3. Clone fields for all items
- * 4. Download original PDF
- * 5. Overlay filled data on pages (image downloads parallelized)
- * 6. Upload generated PDF
+ *
+ * Pipeline (single path for every template):
+ *   1. Load document + template + filled data
+ *   2. Compute pagination layout (TemplatePaginator)
+ *   3. Download original PDF, duplicate pages to fit all items
+ *   4. Parallel-download every image/signature referenced by filled fields
+ *   5. Build overlays (global → every page; item → page matching slot)
+ *   6. Render, upload, persist status
  */
 export async function processPdfGeneration(data: PdfGenerationJobData): Promise<void> {
   const { documentId } = data;
@@ -35,291 +114,95 @@ export async function processPdfGeneration(data: PdfGenerationJobData): Promise<
   log('start', documentId);
 
   try {
-    // ── 1. Load data ──────────────────────────────────────────────────────────
     const doc = await prisma.document.findUnique({
       where: { id: documentId },
       include: {
-        template: {
-          include: {
-            pdfFile: true,
-            fields: true,
-          },
-        },
+        template: { include: { pdfFile: true, fields: true } },
         filledFields: true,
       },
     });
-
     if (!doc) throw new Error(`Document ${documentId} not found`);
 
-    const { template } = doc;
-    const repetitionConfig = template.repetitionConfig as RepetitionConfig | null;
+    const templateFields = doc.template.fields as DbField[];
+    const filledFields = doc.filledFields as DbFilled[];
+    const sharedFields = templateFields.map(toSharedField);
+
+    const layout = TemplatePaginator.compute(sharedFields, doc.totalItems);
 
     log('data_loaded', documentId, {
       totalItems: doc.totalItems,
-      fieldCount: template.fields.length,
-      filledCount: doc.filledFields.length,
-      hasRepetition: !!repetitionConfig,
+      fieldCount: templateFields.length,
+      filledCount: filledFields.length,
+      itemsPerPage: layout.itemsPerPage,
+      totalPages: layout.totalPages,
     });
 
-    // ── 2. Download original PDF ──────────────────────────────────────────────
     log('download_pdf_start', documentId);
-    const pdfBytes = await downloadFile(template.pdfFile.fileKey);
+    const pdfBytes = await downloadFile(doc.template.pdfFile.fileKey);
     log('download_pdf_done', documentId, { bytes: pdfBytes.length });
 
-    // ── 3. Build overlays ─────────────────────────────────────────────────────
-    log('build_overlays_start', documentId);
-
-    let finalPdf: Buffer;
-
-    // Determine if template uses equipmentGroup slots
-    const distinctGroups = new Set(
-      template.fields.map((f) => f.equipmentGroup).filter((g): g is number => g != null),
+    log('pages_duplicate_start', documentId, { totalPages: layout.totalPages });
+    const expandedPdf = await PdfProcessor.duplicatePages(
+      pdfBytes,
+      layout.totalPages,
+      doc.template.pdfFile.pageCount,
     );
-    const groupCount = distinctGroups.size;
+    const expandedPages = await PdfProcessor.getPageInfo(expandedPdf);
+    log('pages_duplicate_done', documentId, { pages: expandedPages.length });
 
-    if (groupCount > 0) {
-      // ── Slot-based rendering (equipmentGroup) ───────────────────────────────
-      const totalPages = Math.ceil(doc.totalItems / groupCount);
+    log('image_downloads_start', documentId);
+    const imageMap = await downloadFilledImages(filledFields);
+    log('image_downloads_done', documentId, { count: imageMap.size });
 
-      log('pages_duplicate_start', documentId, { totalPages, groupCount });
-      const expandedPdf = await PdfProcessor.duplicatePages(
-        pdfBytes,
-        totalPages,
-        template.pdfFile.pageCount,
-      );
-      const expandedPages = await PdfProcessor.getPageInfo(expandedPdf);
-      log('pages_duplicate_done', documentId, { pages: expandedPages.length });
+    // Build overlays — single unified loop.
+    const filledLookup = new Map<string, DbFilled>();
+    for (const f of filledFields) filledLookup.set(`${f.fieldId}:${f.itemIndex}`, f);
 
-      // Collect image/signature downloads
-      const imageDownloadTasks: Array<{
-        key: string; // fieldId:itemIndex
-        fileKey: string;
-      }> = [];
-
-      for (const field of template.fields) {
-        if (field.equipmentGroup == null) continue;
-        if (field.type !== 'IMAGE' && field.type !== 'SIGNATURE') continue;
-
-        for (let page = 0; page < totalPages; page++) {
-          const itemIndex = page * groupCount + field.equipmentGroup;
-          if (itemIndex >= doc.totalItems) continue;
-
-          const filled = doc.filledFields.find(
-            (f) => f.fieldId === field.id && f.itemIndex === itemIndex,
+    const overlays: FieldOverlay[] = [];
+    for (const field of sharedFields) {
+      if (field.scope === 'global') {
+        // Global: render on every expanded page, same value (itemIndex=0).
+        const filled = filledLookup.get(`${field.id}:0`);
+        if (!filled) continue;
+        for (let p = 0; p < layout.totalPages; p++) {
+          overlays.push(
+            makeOverlay(
+              field,
+              filled,
+              expandedPageIndex(field.pageIndex, p, doc.template.pdfFile.pageCount),
+              imageMap,
+            ),
           );
-          if (filled?.fileKey) {
-            imageDownloadTasks.push({ key: `${field.id}:${itemIndex}`, fileKey: filled.fileKey });
-          }
         }
-      }
-
-      log('image_downloads_start', documentId, { count: imageDownloadTasks.length });
-      const imageMap = new Map<string, Buffer>();
-      if (imageDownloadTasks.length > 0) {
-        const results = await Promise.all(
-          imageDownloadTasks.map(async (task) => ({
-            key: task.key,
-            bytes: await downloadFile(task.fileKey),
-          })),
-        );
-        for (const r of results) imageMap.set(r.key, r.bytes);
-      }
-      log('image_downloads_done', documentId, { count: imageMap.size });
-
-      // Build overlays by iterating fields × pages
-      const overlays: FieldOverlay[] = [];
-      for (const field of template.fields) {
-        if (field.equipmentGroup == null) continue;
-
-        const fieldType = FIELD_TYPE_REVERSE[field.type] as FieldType;
-        const fieldConfig = field.config as { fontSize?: number; fontColor?: string };
-
-        for (let page = 0; page < totalPages; page++) {
-          const itemIndex = page * groupCount + field.equipmentGroup;
-          if (itemIndex >= doc.totalItems) continue;
-
-          const filled = doc.filledFields.find(
-            (f) => f.fieldId === field.id && f.itemIndex === itemIndex,
-          );
+      } else {
+        // Item: render only on the page where its slot is assigned.
+        if (field.slotIndex === null) continue;
+        for (const a of layout.assignments) {
+          if (a.slotIndex !== field.slotIndex) continue;
+          const filled = filledLookup.get(`${field.id}:${a.itemIndex}`);
           if (!filled) continue;
-
-          const overlay: FieldOverlay = {
-            pageIndex: page * template.pdfFile.pageCount + field.pageIndex,
-            type: fieldType,
-            position: field.position as unknown as FieldPosition,
-            value: filled.value,
-            checked: filled.value === 'true',
-            fontSize: fieldConfig.fontSize,
-            fontColor: fieldConfig.fontColor,
-          };
-
-          if (fieldType === 'image' || fieldType === 'signature') {
-            overlay.imageBytes = imageMap.get(`${field.id}:${itemIndex}`);
-          }
-
-          overlays.push(overlay);
+          overlays.push(
+            makeOverlay(
+              field,
+              filled,
+              expandedPageIndex(field.pageIndex, a.pageOrdinal, doc.template.pdfFile.pageCount),
+              imageMap,
+            ),
+          );
         }
       }
-
-      log('build_overlays_done', documentId, { overlayCount: overlays.length });
-
-      log('generate_start', documentId);
-      finalPdf = await PdfGenerator.generate({
-        originalPdf: expandedPdf,
-        pages: expandedPages,
-        fieldOverlays: overlays,
-      });
-    } else if (repetitionConfig) {
-      // ── Legacy FieldCloner path (fallback for templates without equipmentGroup) ──
-      const baseFields: TemplateField[] = template.fields
-        .filter((f) => f.repetitionIndex == null || f.repetitionIndex === 0)
-        .map((f) => ({
-        id: f.id,
-        type: FIELD_TYPE_REVERSE[f.type] as FieldType,
-        pageIndex: f.pageIndex,
-        position: f.position as unknown as FieldPosition,
-        config: f.config as unknown as TemplateField['config'],
-        repetitionGroupId: f.repetitionGroupId ?? undefined,
-        repetitionIndex: f.repetitionIndex ?? undefined,
-        createdAt: f.createdAt.toISOString(),
-        updatedAt: f.updatedAt.toISOString(),
-      }));
-
-      const clonedFields = FieldCloner.cloneForItems(baseFields, doc.totalItems, repetitionConfig);
-      const layout = RepetitionEngine.computeLayout(doc.totalItems, repetitionConfig);
-
-      log('pages_duplicate_start', documentId, { totalPages: layout.totalPages });
-      const expandedPdf = await PdfProcessor.duplicatePages(
-        pdfBytes,
-        layout.totalPages,
-        template.pdfFile.pageCount,
-      );
-      const expandedPages = await PdfProcessor.getPageInfo(expandedPdf);
-      log('pages_duplicate_done', documentId, { pages: expandedPages.length });
-
-      // Collect all image/signature fields that need downloading
-      const imageDownloadTasks: Array<{
-        clonedFieldId: string;
-        fileKey: string;
-      }> = [];
-
-      for (const clonedField of clonedFields) {
-        if (clonedField.type !== 'image' && clonedField.type !== 'signature') continue;
-        const filled = doc.filledFields.find(
-          (f) => f.fieldId === clonedField.id.split('_item')[0] && f.itemIndex === clonedField.computedItemIndex,
-        );
-        if (filled?.fileKey) {
-          imageDownloadTasks.push({ clonedFieldId: clonedField.id, fileKey: filled.fileKey });
-        }
-      }
-
-      // Download all images in parallel
-      log('image_downloads_start', documentId, { count: imageDownloadTasks.length });
-      const imageMap = new Map<string, Buffer>();
-      if (imageDownloadTasks.length > 0) {
-        const results = await Promise.all(
-          imageDownloadTasks.map(async (task) => ({
-            id: task.clonedFieldId,
-            bytes: await downloadFile(task.fileKey),
-          })),
-        );
-        for (const r of results) imageMap.set(r.id, r.bytes);
-      }
-      log('image_downloads_done', documentId, { count: imageMap.size });
-
-      // Build overlays
-      const overlays: FieldOverlay[] = [];
-      for (const clonedField of clonedFields) {
-        const filled = doc.filledFields.find(
-          (f) => f.fieldId === clonedField.id.split('_item')[0] && f.itemIndex === clonedField.computedItemIndex,
-        );
-        if (!filled) continue;
-
-        const overlay: FieldOverlay = {
-          pageIndex: clonedField.computedPageIndex,
-          type: clonedField.type,
-          position: clonedField.position,
-          value: filled.value,
-          checked: filled.value === 'true',
-          fontSize: clonedField.config.fontSize,
-          fontColor: clonedField.config.fontColor,
-        };
-
-        if (clonedField.type === 'image' || clonedField.type === 'signature') {
-          overlay.imageBytes = imageMap.get(clonedField.id);
-        }
-
-        overlays.push(overlay);
-      }
-
-      log('build_overlays_done', documentId, { overlayCount: overlays.length });
-
-      log('generate_start', documentId);
-      finalPdf = await PdfGenerator.generate({
-        originalPdf: expandedPdf,
-        pages: expandedPages,
-        fieldOverlays: overlays,
-      });
-    } else {
-      // No repetition: simple overlay on original pages
-      const pageInfos = await PdfProcessor.getPageInfo(pdfBytes);
-
-      // Collect image downloads
-      const imageDownloadTasks = template.fields
-        .filter((f) => (f.type === 'IMAGE' || f.type === 'SIGNATURE'))
-        .map((f) => {
-          const filled = doc.filledFields.find((ff) => ff.fieldId === f.id && ff.itemIndex === 0);
-          return filled?.fileKey ? { fieldId: f.id, fileKey: filled.fileKey } : null;
-        })
-        .filter(Boolean) as Array<{ fieldId: string; fileKey: string }>;
-
-      log('image_downloads_start', documentId, { count: imageDownloadTasks.length });
-      const imageMap = new Map<string, Buffer>();
-      if (imageDownloadTasks.length > 0) {
-        const results = await Promise.all(
-          imageDownloadTasks.map(async (task) => ({
-            id: task.fieldId,
-            bytes: await downloadFile(task.fileKey),
-          })),
-        );
-        for (const r of results) imageMap.set(r.id, r.bytes);
-      }
-      log('image_downloads_done', documentId, { count: imageMap.size });
-
-      const overlays: FieldOverlay[] = [];
-      for (const field of template.fields) {
-        const filled = doc.filledFields.find((f) => f.fieldId === field.id && f.itemIndex === 0);
-        if (!filled) continue;
-
-        const fieldType = FIELD_TYPE_REVERSE[field.type] as FieldType;
-        const overlay: FieldOverlay = {
-          pageIndex: field.pageIndex,
-          type: fieldType,
-          position: field.position as unknown as FieldPosition,
-          value: filled.value,
-          checked: filled.value === 'true',
-        };
-
-        if (fieldType === 'image' || fieldType === 'signature') {
-          overlay.imageBytes = imageMap.get(field.id);
-        }
-
-        overlays.push(overlay);
-      }
-
-      log('build_overlays_done', documentId, { overlayCount: overlays.length });
-
-      log('generate_start', documentId);
-      finalPdf = await PdfGenerator.generate({
-        originalPdf: pdfBytes,
-        pages: pageInfos,
-        fieldOverlays: overlays,
-      });
     }
 
+    log('build_overlays_done', documentId, { overlayCount: overlays.length });
+
+    log('generate_start', documentId);
+    const finalPdf = await PdfGenerator.generate({
+      originalPdf: expandedPdf,
+      pages: expandedPages,
+      fieldOverlays: overlays,
+    });
     log('generate_done', documentId, { bytes: finalPdf.length });
 
-    // ── 4. Upload result ──────────────────────────────────────────────────────
     log('upload_start', documentId);
     const outputKey = `generated/${crypto.randomUUID()}.pdf`;
     await uploadFile(outputKey, finalPdf, 'application/pdf');
@@ -338,7 +221,7 @@ export async function processPdfGeneration(data: PdfGenerationJobData): Promise<
       message: error instanceof Error ? error.message : String(error),
     });
 
-    // Robust status recovery: retry the status update to prevent stuck GENERATING state
+    // Robust status recovery: retry the status update to prevent stuck GENERATING state.
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         await prisma.document.update({
@@ -361,3 +244,4 @@ export async function processPdfGeneration(data: PdfGenerationJobData): Promise<
     throw error;
   }
 }
+

@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 export const fieldTypeSchema = z.enum(['text', 'image', 'signature', 'checkbox']);
 
+export const fieldScopeSchema = z.enum(['global', 'item']);
+
 export const fieldPositionSchema = z.object({
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
@@ -24,25 +26,49 @@ export const fieldConfigSchema = z.object({
   maxLength: z.number().int().min(1).max(10000).optional(),
 });
 
-export const autoPopulateKeySchema = z.enum(['numero', 'serie', 'patrimonio', 'setor']);
+/**
+ * Free-form binding key: `<namespace>.<key>`.
+ *   - `global.<key>`: document-level value
+ *   - `eq.<key>`:     per-item value (e.g. `eq.serie`, `eq.patrimonio`)
+ * New namespaces/keys don't require schema changes — just producer side.
+ */
+export const bindingKeySchema = z
+  .string()
+  .regex(/^(global|eq)\.[a-z][a-z0-9_]*$/, {
+    message: "bindingKey must match '<global|eq>.<snake_case_key>'",
+  });
 
-export const createFieldSchema = z.object({
-  type: fieldTypeSchema,
-  pageIndex: z.number().int().min(0),
-  position: fieldPositionSchema,
-  config: fieldConfigSchema,
-  repetitionGroupId: z.string().uuid().optional(),
-  /** 0 = base field, 1+ = replicated copy index */
-  repetitionIndex: z.number().int().min(0).optional(),
-  /** Whether this field is auto-populated from equipment data (readonly in documents) */
-  autoPopulate: z.boolean().optional(),
-  /** Mapping key for auto-population */
-  autoPopulateKey: autoPopulateKeySchema.optional().nullable(),
-  /** Equipment slot index within the page (0, 1, 2, ...) */
-  equipmentGroup: z.number().int().min(0).optional().nullable(),
-});
+export const createFieldSchema = z
+  .object({
+    type: fieldTypeSchema,
+    pageIndex: z.number().int().min(0),
+    position: fieldPositionSchema,
+    config: fieldConfigSchema,
+    scope: fieldScopeSchema.default('item'),
+    /** SX slot on the page (0..N-1). null for scope='global'. */
+    slotIndex: z.number().int().min(0).nullable(),
+    /** Optional auto-populate binding. null = manual fill. */
+    bindingKey: bindingKeySchema.nullable(),
+  })
+  .refine(
+    (v) => (v.scope === 'global' ? v.slotIndex === null : v.slotIndex !== null),
+    {
+      message:
+        "slotIndex must be null when scope='global' and non-null when scope='item'",
+      path: ['slotIndex'],
+    },
+  );
 
-export const updateFieldSchema = createFieldSchema.partial();
+export const updateFieldSchema = z
+  .object({
+    type: fieldTypeSchema.optional(),
+    pageIndex: z.number().int().min(0).optional(),
+    position: fieldPositionSchema.optional(),
+    config: fieldConfigSchema.optional(),
+    scope: fieldScopeSchema.optional(),
+    slotIndex: z.number().int().min(0).nullable().optional(),
+    bindingKey: bindingKeySchema.nullable().optional(),
+  });
 
 export const filledFieldDataSchema = z.object({
   fieldId: z.string().uuid(),

@@ -42,7 +42,7 @@ fieldRouter.delete('/:id/fields/:fieldId', async (req, res, next) => {
   }
 });
 
-/** POST /api/templates/:id/fields/batch-positions - Batch update fields (positions + config + autoPopulate) */
+/** POST /api/templates/:id/fields/batch-positions - Batch update fields (position + optional scope/slot/binding/config) */
 fieldRouter.post('/:id/fields/batch-positions', async (req, res, next) => {
   try {
     const batchSchema = z.object({
@@ -51,11 +51,13 @@ fieldRouter.post('/:id/fields/batch-positions', async (req, res, next) => {
           id: z.string().uuid(),
           position: fieldPositionSchema,
           config: fieldConfigSchema.optional(),
-          repetitionGroupId: z.string().uuid().optional().nullable(),
-          repetitionIndex: z.number().int().min(0).optional().nullable(),
-          autoPopulate: z.boolean().optional(),
-          autoPopulateKey: z.string().optional().nullable(),
-          equipmentGroup: z.number().int().min(0).optional().nullable(),
+          scope: z.enum(['global', 'item']).optional(),
+          slotIndex: z.number().int().min(0).nullable().optional(),
+          bindingKey: z
+            .string()
+            .regex(/^(global|eq)\.[a-z][a-z0-9_]*$/)
+            .nullable()
+            .optional(),
         }),
       ),
     });
