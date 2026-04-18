@@ -2,23 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+@import './tokens.css';
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --background: var(--rc-bg);
+    --foreground: var(--rc-fg);
+    --muted: var(--rc-bg-muted);
+    --muted-foreground: var(--rc-fg-muted);
+    --accent: var(--rc-bg-muted);
+    --accent-foreground: var(--rc-fg);
+    --border: var(--rc-border);
+    --input: var(--rc-input-bg);
+    --ring: var(--rc-primary);
+    --primary: var(--rc-primary);
+    --primary-foreground: var(--rc-primary-fg);
+    --secondary: var(--rc-bg-muted);
+    --secondary-foreground: var(--rc-fg);
+    --destructive: var(--rc-danger);
+    --destructive-foreground: #fff;
     --radius: 0.5rem;
   }
 }
@@ -29,5 +31,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--rc-font);
   }
 }

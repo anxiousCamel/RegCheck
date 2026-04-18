@@ -8,7 +8,9 @@ import { api } from '@/lib/api';
 import { SignatureCanvas } from '@/components/document/signature-canvas';
 import { useDocumentDraft } from '@/hooks/use-document-draft';
 import type { FieldType, FieldPosition, FieldConfig } from '@regcheck/shared';
-import type { LojaDTO, TipoEquipamentoDTO } from '@regcheck/shared';
+import type { LojaDTO, TipoEquipamentoDTO, ItemAssignment } from '@regcheck/shared';
+import { Wizard, GlobalForm, EquipmentStep } from '@/components/document/fill-wizard';
+import { IconCheck, IconX } from '@/components/ui/icons';
 
 interface TemplateField {
   id: string;
@@ -44,9 +46,8 @@ export default function FillDocumentPage() {
   const documentId = params.id;
   const queryClient = useQueryClient();
 
-  const [currentAssignmentIdx, setCurrentAssignmentIdx] = useState(0);
+  const [step, setStep] = useState(0); // 0 = Global, 1..N = Equipment
   const [selectedSetorId, setSelectedSetorId] = useState<string | null>(null);
-  const [globalExpanded, setGlobalExpanded] = useState(true);
 
   const touchStartX = useRef<number | null>(null);
 
@@ -134,9 +135,9 @@ export default function FillDocumentPage() {
     [allAssignments, selectedSetorId],
   );
 
-  useEffect(() => { setCurrentAssignmentIdx(0); }, [selectedSetorId]);
+  useEffect(() => { setStep(0); }, [selectedSetorId]);
 
-  const currentAssignment = filteredAssignments[currentAssignmentIdx] ?? null;
+  const currentAssignment = filteredAssignments[step - 1] ?? null;
   const currentItemIndex = currentAssignment?.itemIndex ?? 0;
 
   // Derive how many SX slots per page from the slotMap.
@@ -195,9 +196,9 @@ export default function FillDocumentPage() {
   });
 
   // ── Navigation ─────────────────────────────────────────────────────────────
-  const goPrev = useCallback(() => setCurrentAssignmentIdx((i) => Math.max(0, i - 1)), []);
+  const goPrev = useCallback(() => setStep((s) => Math.max(0, s - 1)), []);
   const goNext = useCallback(
-    () => setCurrentAssignmentIdx((i) => Math.min(filteredAssignments.length - 1, i + 1)),
+    () => setStep((s) => Math.min(filteredAssignments.length, s + 1)),
     [filteredAssignments.length],
   );
 
@@ -220,218 +221,124 @@ export default function FillDocumentPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 space-y-4 max-w-2xl mx-auto">
+    <div className="p-4 md:p-8 space-y-6 max-w-2xl mx-auto pb-24">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold">{docData?.name ?? 'Preencher Documento'}</h1>
-          {hasAssignments && (
-            <p className="text-sm text-muted-foreground">
-              {allAssignments.length} equipamento{allAssignments.length !== 1 ? 's' : ''}
-            </p>
-          )}
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-xl font-extrabold tracking-tight">
+          {docData?.name ?? 'Preencher Documento'}
+        </h1>
+        <div className="flex items-center gap-2">
+          <StatusBar
+            isOnline={isOnline}
+            syncStatus={syncStatus}
+            pendingUploads={pendingUploads}
+            hasPendingChanges={hasPendingChanges}
+            onSyncNow={syncToServer}
+            compact
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => generateMutation.mutate()}
+            disabled={generationState === 'queuing' || generationState === 'generating'}
+            className="font-bold border-2"
+          >
+            {(generationState === 'queuing' || generationState === 'generating') ? (
+              <Spinner className="mr-2 h-4 w-4" />
+            ) : null}
+            Finalizar e Gerar
+          </Button>
         </div>
-        <Button
-          size="sm"
-          onClick={() => generateMutation.mutate()}
-          disabled={generationState === 'queuing' || generationState === 'generating'}
-        >
-          {(generationState === 'queuing' || generationState === 'generating') ? (
-            <Spinner className="mr-2 h-4 w-4" />
-          ) : null}
-          {generationState === 'queuing'
-            ? 'Enfileirando…'
-            : generationState === 'generating'
-              ? 'Gerando PDF…'
-              : generationState === 'done'
-                ? 'Gerar novamente'
-                : 'Gerar PDF'}
-        </Button>
       </div>
 
-      <StatusBar
-        isOnline={isOnline}
-        syncStatus={syncStatus}
-        pendingUploads={pendingUploads}
-        hasPendingChanges={hasPendingChanges}
-        onSyncNow={syncToServer}
-      />
-
       {generationState === 'generating' && (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm flex items-center gap-2">
-          <Spinner className="h-4 w-4 flex-shrink-0" />
-          <span>PDF sendo gerado em segundo plano. Você pode fechar esta página e voltar depois.</span>
+        <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl text-primary text-sm font-medium animate-pulse">
+          Gerando PDF... Você pode continuar trabalhando.
         </div>
       )}
 
       {generationState === 'done' && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm flex items-center justify-between gap-2">
-          <span>PDF gerado com sucesso.</span>
+        <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm flex items-center justify-between gap-2 shadow-sm">
+          <span className="font-bold flex items-center gap-2"><IconCheck className="h-4 w-4" /> PDF Pronto</span>
           <DownloadButton documentId={documentId} />
         </div>
       )}
 
       {generationState === 'error' && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center justify-between gap-2">
-          <span>Falha na geração do PDF. Tente novamente.</span>
-          <Button size="sm" variant="outline" onClick={() => generateMutation.mutate()}>
-            Tentar novamente
-          </Button>
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center justify-between gap-2 shadow-sm">
+          <span className="font-bold">Erro na geração</span>
+          <Button size="sm" variant="outline" onClick={() => generateMutation.mutate()}>Tentar novamente</Button>
         </div>
       )}
 
-      {!hasAssignments && (
+      {!hasAssignments ? (
         <PopulatePanel
           documentId={documentId}
           onPopulated={() => queryClient.invalidateQueries({ queryKey: ['document', documentId] })}
         />
-      )}
-
-      {hasAssignments && (
-        <>
-          {/* ── Global fields — filled once, apply to every page ────────────── */}
-          {globalFields.length > 0 && (
-            <section className="space-y-3 bg-indigo-50/30 p-3 rounded-lg border border-indigo-100">
-              <button
-                type="button"
-                onClick={() => setGlobalExpanded(!globalExpanded)}
-                className="flex items-center justify-between w-full group"
-              >
-                <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-sm">Dados Globais</h2>
-                  <span className="text-[10px] uppercase tracking-wider text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full font-bold">
-                    Toda página
-                  </span>
-                </div>
-                <span className="text-xs text-indigo-400 group-hover:text-indigo-600 transition-colors">
-                  {globalExpanded ? 'Recolher ↑' : 'Expandir ↓'}
-                </span>
-              </button>
-
-              {globalExpanded && (
-                <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                  {globalFields.map((field) => (
-                    <FieldInput
-                      key={field.id}
-                      field={field}
-                      value={getValue(field.id, 0)}
-                      fileKey={getFileKey(field.id, 0)}
-                      pendingBlob={getPendingBlobForField(field.id, 0)}
-                      onChange={(v) => updateField(field.id, 0, v)}
-                      onImageChange={(f) => updateImageField(field.id, 0, f)}
-                    />
+      ) : (
+        <Wizard 
+          step={step} 
+          totalSteps={1 + filteredAssignments.length} 
+          onNext={goNext} 
+          onPrev={goPrev} 
+          onFinish={() => generateMutation.mutate()}
+        >
+          {step === 0 ? (
+            <div className="space-y-6">
+              {setores.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  <Button
+                    variant={selectedSetorId === null ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedSetorId(null)}
+                    className="rounded-full px-4"
+                  >
+                    Todos
+                  </Button>
+                  {setores.map((s) => (
+                    <Button
+                      key={s.id}
+                      variant={selectedSetorId === s.id ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedSetorId(s.id)}
+                      className="rounded-full px-4 whitespace-nowrap"
+                    >
+                      {s.nome}
+                    </Button>
                   ))}
                 </div>
               )}
-            </section>
-          )}
-
-          {/* ── Item fields — one per equipment (SX slot) ───────────────────── */}
-          {setores.length > 1 && (
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant={selectedSetorId === null ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedSetorId(null)}
-              >
-                Todos
-              </Button>
-              {setores.map((s) => (
-                <Button
-                  key={s.id}
-                  variant={selectedSetorId === s.id ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedSetorId(s.id)}
-                >
-                  {s.nome}
-                </Button>
-              ))}
+              
+              <GlobalForm 
+                fields={globalFields}
+                getValue={getValue}
+                updateField={updateField}
+                onNext={goNext}
+              />
+              
+              <div className="pt-4 opacity-50">
+                <RePopulatePanel
+                  documentId={documentId}
+                  onPopulated={() => queryClient.invalidateQueries({ queryKey: ['document', documentId] })}
+                />
+              </div>
             </div>
-          )}
-
-          {filteredAssignments.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Nenhum equipamento neste setor.</p>
-          ) : itemFields.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Este template não possui campos de item (SX). Apenas dados globais.
-            </p>
           ) : (
-            <div
-              key={`item-${currentItemIndex}`}
-              className="space-y-4"
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-            >
-              {/* Equipment info + navigation */}
-              <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg border">
-                <div>
-                  <p className="font-medium text-sm">
-                    {currentAssignment?.setorNome} — {currentAssignment?.numeroEquipamento}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {currentAssignmentIdx + 1} de {filteredAssignments.length}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={goPrev} disabled={currentAssignmentIdx === 0}>
-                    ← Anterior
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={goNext}
-                    disabled={currentAssignmentIdx === filteredAssignments.length - 1}
-                  >
-                    Próximo →
-                  </Button>
-                </div>
-              </div>
-
-              {/* Fields for the current item (current SX slot) */}
-              <div className="space-y-3">
-                {currentSlotFields.length > 0 ? (
-                  currentSlotFields.map((field) => (
-                    <FieldInput
-                      key={`${field.id}_${currentItemIndex}`}
-                      field={field}
-                      value={getValue(field.id, currentItemIndex)}
-                      fileKey={getFileKey(field.id, currentItemIndex)}
-                      pendingBlob={getPendingBlobForField(field.id, currentItemIndex)}
-                      onChange={(v) => updateField(field.id, currentItemIndex, v)}
-                      onImageChange={(f) => updateImageField(field.id, currentItemIndex, f)}
-                    />
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Nenhum campo definido para o slot S{currentSlot}.
-                  </p>
-                )}
-              </div>
-
-              {/* Bottom navigation */}
-              <div className="flex justify-between pt-2 border-t">
-                <Button variant="outline" onClick={goPrev} disabled={currentAssignmentIdx === 0}>
-                  ← Anterior
-                </Button>
-                <span className="self-center text-sm text-muted-foreground">
-                  {currentAssignmentIdx + 1} / {filteredAssignments.length}
-                </span>
-                <Button
-                  variant={currentAssignmentIdx === filteredAssignments.length - 1 ? 'default' : 'outline'}
-                  onClick={goNext}
-                  disabled={currentAssignmentIdx === filteredAssignments.length - 1}
-                >
-                  Próximo →
-                </Button>
-              </div>
-            </div>
+            <EquipmentStep 
+              assignment={filteredAssignments[step - 1]}
+              index={step - 1}
+              total={filteredAssignments.length}
+              fields={currentSlotFields}
+              getValue={getValue}
+              updateField={updateField}
+              onImageChange={updateImageField}
+              onNext={step === filteredAssignments.length ? () => generateMutation.mutate() : goNext}
+              onPrev={goPrev}
+              isLast={step === filteredAssignments.length}
+            />
           )}
-
-          <RePopulatePanel
-            documentId={documentId}
-            onPopulated={() => queryClient.invalidateQueries({ queryKey: ['document', documentId] })}
-          />
-        </>
+        </Wizard>
       )}
     </div>
   );
@@ -467,15 +374,29 @@ function DownloadButton({ documentId }: { documentId: string }) {
 // ─── StatusBar ────────────────────────────────────────────────────────────────
 
 function StatusBar({
-  isOnline, syncStatus, pendingUploads, hasPendingChanges, onSyncNow,
+  isOnline, syncStatus, pendingUploads, hasPendingChanges, onSyncNow, compact = false,
 }: {
   isOnline: boolean;
   syncStatus: 'idle' | 'syncing' | 'error';
   pendingUploads: number;
   hasPendingChanges: boolean;
   onSyncNow: () => void;
+  compact?: boolean;
 }) {
   if (isOnline && syncStatus === 'idle' && !hasPendingChanges && pendingUploads === 0) return null;
+
+  if (compact) {
+    return (
+      <div className={`flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${
+        !isOnline ? 'bg-amber-100 text-amber-700'
+          : syncStatus === 'error' ? 'bg-red-100 text-red-700'
+          : 'bg-blue-100 text-blue-700'
+      }`}>
+        {!isOnline ? 'Offline' : syncStatus === 'syncing' ? 'Sincronizando' : hasPendingChanges ? 'Pendente' : 'Salvo'}
+        {pendingUploads > 0 && <span> · {pendingUploads} fotos</span>}
+      </div>
+    );
+  }
 
   return (
     <div className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm ${
@@ -492,94 +413,6 @@ function StatusBar({
       </div>
       {isOnline && (hasPendingChanges || pendingUploads > 0) && syncStatus !== 'syncing' && (
         <button onClick={onSyncNow} className="underline font-medium text-xs">Sincronizar agora</button>
-      )}
-    </div>
-  );
-}
-
-// ─── FieldInput ───────────────────────────────────────────────────────────────
-
-interface FieldInputProps {
-  field: TemplateField & { type: FieldType };
-  value: string | boolean;
-  fileKey?: string;
-  pendingBlob?: Blob;
-  onChange: (value: string | boolean) => void;
-  onImageChange: (file: File) => void;
-}
-
-function FieldInput({ field, value, fileKey, pendingBlob, onChange, onImageChange }: FieldInputProps) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  // Fields with a bindingKey are auto-populated and rendered read-only.
-  const isReadonly = !!field.bindingKey;
-
-  useEffect(() => {
-    if (!pendingBlob) { setPreviewUrl(null); return; }
-    const url = URL.createObjectURL(pendingBlob);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [pendingBlob]);
-
-  return (
-    <div className={`space-y-1.5 border rounded-lg p-3 ${isReadonly ? 'bg-muted/40' : 'bg-card'}`}>
-      <div className="flex items-center gap-2">
-        <label className="font-medium text-sm">{field.config.label}</label>
-        {field.config.required && (
-          <Badge variant="destructive" className="text-xs px-1.5 py-0">Obrigatório</Badge>
-        )}
-        {isReadonly && (
-          <Badge className="text-xs px-1.5 py-0 bg-slate-200 text-slate-600">Auto</Badge>
-        )}
-      </div>
-
-      {field.type === 'text' && (
-        <input
-          type="text"
-          value={String(value || '')}
-          onChange={(e) => !isReadonly && onChange(e.target.value)}
-          readOnly={isReadonly}
-          placeholder={field.config.placeholder ?? ''}
-          className={`w-full h-10 rounded-md border border-input px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring ${
-            isReadonly ? 'bg-muted cursor-not-allowed text-muted-foreground' : 'bg-background'
-          }`}
-          maxLength={field.config.maxLength}
-        />
-      )}
-
-      {field.type === 'checkbox' && (
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id={`field-${field.id}`}
-            checked={value === true || value === 'true'}
-            onChange={(e) => onChange(String(e.target.checked))}
-            className="h-5 w-5 rounded"
-          />
-          <label htmlFor={`field-${field.id}`} className="text-sm">
-            {field.config.placeholder ?? 'Marcar'}
-          </label>
-        </div>
-      )}
-
-      {field.type === 'image' && (
-        <div className="space-y-2">
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) onImageChange(f); }}
-            className="text-sm w-full"
-          />
-          {previewUrl && (
-            <img src={previewUrl} alt="preview" className="max-h-40 rounded border object-contain" />
-          )}
-          {fileKey && !previewUrl && <p className="text-xs text-green-600">✓ Foto enviada ao servidor</p>}
-          {pendingBlob && !fileKey && <p className="text-xs text-amber-600">⏳ Foto salva localmente, aguardando upload</p>}
-        </div>
-      )}
-
-      {field.type === 'signature' && (
-        <SignatureCanvas value={String(value || '')} onChange={(dataUrl) => onChange(dataUrl)} />
       )}
     </div>
   );

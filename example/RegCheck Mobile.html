@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>RegCheck — Preventiva Mobile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/tokens.css"/>
+  <style>
+    html, body { margin: 0; padding: 0; background: #E9ECEF; font-family: 'Inter', system-ui, sans-serif; }
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 20% 0%, #F1F5F9 0%, #E2E8F0 40%, #CBD5E1 100%);
+    }
+    .stage {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px 20px; gap: 40px;
+    }
+    .device-wrap { position: relative; }
+    .screen-host {
+      position: absolute; inset: 0;
+      border-radius: 48px; overflow: hidden;
+      pointer-events: auto;
+    }
+    /* Tweaks panel */
+    .tweaks {
+      position: fixed; right: 20px; bottom: 20px;
+      width: 280px;
+      background: #fff; border-radius: 14px;
+      box-shadow: 0 20px 60px rgba(15,23,42,0.18);
+      border: 1px solid #E2E8F0;
+      padding: 14px;
+      z-index: 1000;
+      display: none;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+    .tweaks[data-open="true"] { display: block; }
+    .tweaks h3 {
+      margin: 0 0 10px;
+      font-size: 13px; font-weight: 800;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      color: #0F172A;
+    }
+    .tweaks label {
+      display: block; font-size: 11px; font-weight: 600;
+      color: #475569; margin-bottom: 5px;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .tweaks .row { margin-bottom: 10px; }
+    .tweaks .opts { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tweaks .opt {
+      flex: 1; min-width: 0;
+      padding: 8px 6px; border-radius: 8px;
+      border: 1px solid #CBD5E1; background: #fff;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; text-align: center;
+      color: #475569;
+    }
+    .tweaks .opt[data-active="true"] {
+      border-color: var(--rc-primary); background: var(--rc-primary-50);
+      color: var(--rc-primary-700);
+    }
+    .tweaks .swatch-row { display: flex; gap: 8px; }
+    .tweaks .sw {
+      width: 32px; height: 32px; border-radius: 10px;
+      cursor: pointer; border: 2px solid transparent;
+    }
+    .tweaks .sw[data-active="true"] { border-color: #0F172A; }
+
+    /* Screen-dot navigation */
+    .nav-dots {
+      display: flex; gap: 10px; flex-direction: column;
+      align-items: flex-start;
+    }
+    .nav-dot {
+      display: flex; align-items: center; gap: 8px;
+      background: transparent; border: none; cursor: pointer;
+      font-family: 'Inter', system-ui; font-size: 13px; font-weight: 600;
+      color: #64748B; padding: 6px 10px; border-radius: 8px;
+      transition: all 0.15s;
+    }
+    .nav-dot[data-active="true"] {
+      color: #0F172A; background: #fff;
+      box-shadow: 0 1px 3px rgba(15,23,42,0.06);
+    }
+    .nav-dot .num {
+      width: 22px; height: 22px; border-radius: 999px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800;
+      background: #E2E8F0; color: #475569;
+    }
+    .nav-dot[data-active="true"] .num {
+      background: var(--rc-primary); color: #fff;
+    }
+
+    /* Label for the whole design */
+    .header {
+      position: fixed; top: 20px; left: 20px;
+      font-family: 'Inter', system-ui;
+    }
+    .header h1 { margin: 0; font-size: 14px; font-weight: 800; letter-spacing: -0.01em; color: #0F172A; }
+    .header p { margin: 2px 0 0; font-size: 12px; color: #64748B; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>RegCheck · Preventiva Mobile</h1>
+    <p>Fluxo completo — Lista → Preenchimento → Foto → Assinatura → Revisão → PDF</p>
+  </div>
+
+  <div class="stage">
+    <div id="nav" class="nav-dots"></div>
+    <div class="device-wrap" id="device-wrap"></div>
+  </div>
+
+  <div class="tweaks" id="tweaks">
+    <h3>Tweaks</h3>
+    <div class="row">
+      <label>Densidade</label>
+      <div class="opts" data-key="density">
+        <button class="opt" data-val="compact">Compacta</button>
+        <button class="opt" data-val="comfortable">Confortável</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>Estilo SIM/NÃO</label>
+      <div class="opts" data-key="toggleStyle">
+        <button class="opt" data-val="segmented">Pill</button>
+        <button class="opt" data-val="stacked">Box</button>
+        <button class="opt" data-val="toggle">Switch</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>Cor primária</label>
+      <div class="swatch-row" data-key="primary">
+        <div class="sw" data-val="blue"   style="background: oklch(0.52 0.17 256)"></div>
+        <div class="sw" data-val="indigo" style="background: oklch(0.48 0.20 278)"></div>
+        <div class="sw" data-val="teal"   style="background: oklch(0.55 0.14 200)"></div>
+        <div class="sw" data-val="green"  style="background: oklch(0.53 0.15 155)"></div>
+        <div class="sw" data-val="slate"  style="background: oklch(0.32 0.04 250)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- iOS frame + icons + components -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="frames/ios-frame.jsx"></script>
+  <script type="text/babel" src="src/icons.jsx"></script>
+  <script type="text/babel" src="src/data.jsx"></script>
+  <script type="text/babel" src="src/ui.jsx"></script>
+  <script type="text/babel" src="src/screen-list.jsx"></script>
+  <script type="text/babel" src="src/screen-fill.jsx"></script>
+  <script type="text/babel" src="src/screens-rest.jsx"></script>
+
+  <script type="text/babel">
+  const { useState, useEffect } = React;
+
+  // ─────────────────────────────────────────────────────────────
+  // Tweaks state (persistible JSON block)
+  // ─────────────────────────────────────────────────────────────
+  const TWEAKS = /*EDITMODE-BEGIN*/{
+    "density": "comfortable",
+    "toggleStyle": "stacked",
+    "primary": "blue"
+  }/*EDITMODE-END*/;
+
+  const PRIMARY_COLORS = {
+    blue:   { p: 'oklch(0.52 0.17 256)', p6:'oklch(0.47 0.18 256)', p7:'oklch(0.41 0.18 256)', p50:'oklch(0.97 0.02 256)', p100:'oklch(0.94 0.04 256)' },
+    indigo: { p: 'oklch(0.48 0.20 278)', p6:'oklch(0.43 0.21 278)', p7:'oklch(0.37 0.21 278)', p50:'oklch(0.97 0.02 278)', p100:'oklch(0.93 0.05 278)' },
+    teal:   { p: 'oklch(0.55 0.14 200)', p6:'oklch(0.50 0.14 200)', p7:'oklch(0.43 0.13 200)', p50:'oklch(0.97 0.02 200)', p100:'oklch(0.93 0.05 200)' },
+    green:  { p: 'oklch(0.53 0.15 155)', p6:'oklch(0.48 0.15 155)', p7:'oklch(0.40 0.13 155)', p50:'oklch(0.97 0.03 155)', p100:'oklch(0.93 0.06 155)' },
+    slate:  { p: 'oklch(0.32 0.04 250)', p6:'oklch(0.27 0.04 250)', p7:'oklch(0.22 0.04 250)', p50:'oklch(0.96 0.01 250)', p100:'oklch(0.91 0.02 250)' },
+  };
+
+  function applyTweaks(t) {
+    const c = PRIMARY_COLORS[t.primary] || PRIMARY_COLORS.blue;
+    document.documentElement.style.setProperty('--rc-primary',      c.p);
+    document.documentElement.style.setProperty('--rc-primary-600',  c.p6);
+    document.documentElement.style.setProperty('--rc-primary-700',  c.p7);
+    document.documentElement.style.setProperty('--rc-primary-50',   c.p50);
+    document.documentElement.style.setProperty('--rc-primary-100',  c.p100);
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Screen router
+  // ─────────────────────────────────────────────────────────────
+  const SCREENS = [
+    { id: 'list',     name: 'Lista',        label: '01' },
+    { id: 'fill',     name: 'Preenchimento',label: '02' },
+    { id: 'camera',   name: 'Câmera',       label: '03' },
+    { id: 'signature',name: 'Assinatura',   label: '04' },
+    { id: 'review',   name: 'Revisão',      label: '05' },
+    { id: 'success',  name: 'PDF gerado',   label: '06' },
+  ];
+
+  function App() {
+    const [screen, setScreenState] = useState(() => {
+      try { return localStorage.getItem('rc_screen') || 'list'; } catch { return 'list'; }
+    });
+    const setScreen = (s) => {
+      setScreenState(s);
+      try { localStorage.setItem('rc_screen', s); } catch {}
+      window.dispatchEvent(new CustomEvent('rc-screen-change', { detail: s }));
+    };
+    // Expose for external nav
+    window.__rcSetScreen = setScreen;
+    // Listen for external nav
+    useEffect(()=>{
+      const fn = (e) => setScreenState(e.detail);
+      window.addEventListener('rc-nav-to', fn);
+      return ()=>window.removeEventListener('rc-nav-to', fn);
+    }, []);
+    const [tweaks, setTweaks] = useState(TWEAKS);
+
+    useEffect(()=>{ applyTweaks(tweaks); }, [tweaks]);
+    useEffect(()=>{ try { localStorage.setItem('rc_screen', screen); } catch {} }, [screen]);
+
+    // Tweaks host hookup
+    useEffect(()=>{
+      const handler = (e) => {
+        if (e.data?.type === '__activate_edit_mode') {
+          document.getElementById('tweaks').setAttribute('data-open','true');
+        } else if (e.data?.type === '__deactivate_edit_mode') {
+          document.getElementById('tweaks').setAttribute('data-open','false');
+        }
+      };
+      window.addEventListener('message', handler);
+      try { window.parent.postMessage({type: '__edit_mode_available'}, '*'); } catch {}
+      return () => window.removeEventListener('message', handler);
+    }, []);
+
+    // Wire up tweaks UI
+    useEffect(()=>{
+      const panel = document.getElementById('tweaks');
+      // mark active
+      panel.querySelectorAll('[data-key]').forEach(group => {
+        const key = group.getAttribute('data-key');
+        group.querySelectorAll('[data-val]').forEach(btn => {
+          btn.setAttribute('data-active', btn.getAttribute('data-val') === tweaks[key]);
+          btn.onclick = () => {
+            const next = { ...tweaks, [key]: btn.getAttribute('data-val') };
+            setTweaks(next);
+            try {
+              window.parent.postMessage({type:'__edit_mode_set_keys', edits: { [key]: btn.getAttribute('data-val') }}, '*');
+            } catch {}
+          };
+        });
+      });
+    }, [tweaks]);
+
+    const nav = {
+      openEquip: () => setScreen('fill'),
+      back: () => setScreen('list'),
+      next: () => setScreen('fill'), // stays on fill for demo
+      openCamera: () => setScreen('camera'),
+      openSig: () => setScreen('signature'),
+      cameraCancel: () => setScreen('fill'),
+      cameraCapture: () => setScreen('fill'),
+      sigCancel: () => setScreen('fill'),
+      sigDone: () => setScreen('fill'),
+      goReview: () => setScreen('review'),
+      generate: () => setScreen('success'),
+      restart: () => setScreen('list'),
+    };
+
+    // Render screen content (non-camera screens get nav bar hidden iOS style)
+    const renderScreen = () => {
+      switch (screen) {
+        case 'list':
+          return <ScreenList onOpen={(idx) => idx === 'review' ? nav.goReview() : nav.openEquip()}/>;
+        case 'fill':
+          return <ScreenFill tweaks={tweaks} onBack={nav.back}
+                             onNext={nav.goReview}
+                             onOpenCamera={nav.openCamera}
+                             onOpenSignature={nav.openSig}/>;
+        case 'camera':
+          return <ScreenCamera mode="before" onCancel={nav.cameraCancel} onCapture={nav.cameraCapture}/>;
+        case 'signature':
+          return <ScreenSignature onCancel={nav.sigCancel} onDone={nav.sigDone}/>;
+        case 'review':
+          return <ScreenReview onBack={()=>setScreen('list')} onGenerate={nav.generate}/>;
+        case 'success':
+          return <ScreenSuccess onStart={nav.restart} onDownload={nav.restart}/>;
+      }
+    };
+
+    return (
+      <>
+        <IOSDevice width={402} height={874} dark={screen === 'camera'}>
+          <div className="rc-phone" data-density={tweaks.density}
+               style={{height:'100%', overflow:'auto', position:'relative',
+                       paddingTop: screen === 'camera' ? 0 : 60}}>
+            {renderScreen()}
+          </div>
+        </IOSDevice>
+      </>
+    );
+  }
+
+  function NavRail({ screen, onGo }) {
+    return (
+      <>
+        {SCREENS.map(s => (
+          <button key={s.id} className="nav-dot" data-active={screen === s.id}
+                  onClick={()=>onGo(s.id)}>
+            <span className="num">{s.label}</span>
+            {s.name}
+          </button>
+        ))}
+      </>
+    );
+  }
+
+  // Mount device
+  const root = ReactDOM.createRoot(document.getElementById('device-wrap'));
+  root.render(<App/>);
+
+  // Mount nav separately (shares screen via localStorage poll)
+  const navRoot = ReactDOM.createRoot(document.getElementById('nav'));
+  function NavWrapper() {
+    const [s, setS] = useState(() => { try { return localStorage.getItem('rc_screen') || 'list'; } catch { return 'list'; } });
+    useEffect(()=>{
+      const id = setInterval(()=>{
+        try {
+          const cur = localStorage.getItem('rc_screen') || 'list';
+          setS(prev => prev === cur ? prev : cur);
+        } catch {}
+      }, 200);
+      return ()=>clearInterval(id);
+    }, []);
+    useEffect(()=>{
+      const fn = (e) => setS(e.detail);
+      window.addEventListener('rc-screen-change', fn);
+      return ()=>window.removeEventListener('rc-screen-change', fn);
+    }, []);
+    return <NavRail screen={s} onGo={(id)=>{
+      setS(id);
+      window.dispatchEvent(new CustomEvent('rc-nav-to', { detail: id }));
+      try { localStorage.setItem('rc_screen', id); } catch {}
+    }}/>;
+  }
+  navRoot.render(<NavWrapper/>);
+
+  // Bridge nav → app
+  window.__rcSetScreen = null;
+  </script>
+</body>
+</html>
