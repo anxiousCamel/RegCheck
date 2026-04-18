@@ -46,6 +46,7 @@ export default function FillDocumentPage() {
 
   const [currentAssignmentIdx, setCurrentAssignmentIdx] = useState(0);
   const [selectedSetorId, setSelectedSetorId] = useState<string | null>(null);
+  const [globalExpanded, setGlobalExpanded] = useState(true);
 
   const touchStartX = useRef<number | null>(null);
 
@@ -290,25 +291,38 @@ export default function FillDocumentPage() {
         <>
           {/* ── Global fields — filled once, apply to every page ────────────── */}
           {globalFields.length > 0 && (
-            <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-sm">Dados Globais</h2>
-                <span className="text-xs text-muted-foreground bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
-                  aparece em todas as páginas
+            <section className="space-y-3 bg-indigo-50/30 p-3 rounded-lg border border-indigo-100">
+              <button
+                type="button"
+                onClick={() => setGlobalExpanded(!globalExpanded)}
+                className="flex items-center justify-between w-full group"
+              >
+                <div className="flex items-center gap-2">
+                  <h2 className="font-semibold text-sm">Dados Globais</h2>
+                  <span className="text-[10px] uppercase tracking-wider text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full font-bold">
+                    Toda página
+                  </span>
+                </div>
+                <span className="text-xs text-indigo-400 group-hover:text-indigo-600 transition-colors">
+                  {globalExpanded ? 'Recolher ↑' : 'Expandir ↓'}
                 </span>
-              </div>
-              {globalFields.map((field) => (
-                <FieldInput
-                  key={field.id}
-                  field={field}
-                  value={getValue(field.id, 0)}
-                  fileKey={getFileKey(field.id, 0)}
-                  pendingBlob={getPendingBlobForField(field.id, 0)}
-                  onChange={(v) => updateField(field.id, 0, v)}
-                  onImageChange={(f) => updateImageField(field.id, 0, f)}
-                />
-              ))}
-              <hr />
+              </button>
+
+              {globalExpanded && (
+                <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                  {globalFields.map((field) => (
+                    <FieldInput
+                      key={field.id}
+                      field={field}
+                      value={getValue(field.id, 0)}
+                      fileKey={getFileKey(field.id, 0)}
+                      pendingBlob={getPendingBlobForField(field.id, 0)}
+                      onChange={(v) => updateField(field.id, 0, v)}
+                      onImageChange={(f) => updateImageField(field.id, 0, f)}
+                    />
+                  ))}
+                </div>
+              )}
             </section>
           )}
 

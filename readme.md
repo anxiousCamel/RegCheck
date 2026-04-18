@@ -99,37 +99,9 @@ graph LR
 
 - Node.js >= 20
 - pnpm 9.x (`npm install -g pnpm@9`)
-- Docker Desktop (Windows/Mac) ou Docker + Docker Compose (Linux)
+- Docker e Docker Compose
 
-### Instalação Rápida
-
-```bash
-# 1. Clone o repositório
-git clone <url-do-repo>
-cd regcheck
-
-# 2. Instale as dependências
-pnpm install
-
-# 3. Inicie tudo automaticamente (infra + migração + apps)
-pnpm start:all
-```
-
-Pronto! A aplicação estará rodando em:
-- Frontend: http://localhost:3000
-- API: http://localhost:4000
-- Prisma Studio: http://localhost:5555
-
-### Instalação com Backup
-
-Se você tem um backup para restaurar:
-
-```bash
-# Inicia tudo e restaura o backup automaticamente
-pnpm start:restore
-```
-
-### Instalação Manual (passo a passo)
+### Instalação
 
 ```bash
 # 1. Clone o repositório
@@ -157,113 +129,25 @@ pnpm dev
 
 ## Comandos Essenciais
 
-### Desenvolvimento
-
 | Comando              | Descrição                                                        |
 |----------------------|------------------------------------------------------------------|
-| `pnpm start:all`     | 🚀 Comando completo: para containers, sobe infra, migra DB, inicia API + Web + Prisma Studio |
-| `pnpm start:restore` | 🔄 Igual ao `start:all` + restaura backup automático (banco + PDFs) |
 | `pnpm dev`           | Inicia todos os apps em modo desenvolvimento (Turborepo)         |
 | `pnpm dev:api`       | Inicia apenas a API (`apps/api`) com logs completos              |
 | `pnpm dev:web`       | Inicia apenas o frontend (`apps/web`) com logs completos         |
 | `pnpm dev:all`       | Inicia API + Web com logs em stream                              |
-| `pnpm up`            | Atalho: `infra:up` + `wait:infra` + `dev:all`                    |
-| `pnpm up:studio`     | Igual ao `up` + Prisma Studio                                    |
-
-### Build e Qualidade
-
-| Comando              | Descrição                                                        |
-|----------------------|------------------------------------------------------------------|
 | `pnpm build`         | Build de produção de todos os pacotes e apps                     |
 | `pnpm lint`          | Executa lint em todos os pacotes e apps                          |
 | `pnpm type-check`    | Verifica tipos TypeScript em todos os pacotes e apps             |
 | `pnpm format`        | Formata todos os arquivos com Prettier                           |
-| `pnpm clean`         | Remove artefatos de build de todos os pacotes                    |
-
-### Infraestrutura Docker
-
-| Comando              | Descrição                                                        |
-|----------------------|------------------------------------------------------------------|
 | `pnpm infra:up`      | Sobe os containers Docker (PostgreSQL, Redis, MinIO) em background |
 | `pnpm infra:down`    | Para e remove os containers Docker                               |
 | `pnpm infra:logs`    | Sobe os containers com logs no terminal                          |
-
-### Banco de Dados
-
-| Comando              | Descrição                                                        |
-|----------------------|------------------------------------------------------------------|
 | `pnpm db:push`       | Aplica o schema Prisma no banco sem criar migration              |
 | `pnpm db:migrate`    | Cria e aplica uma migration Prisma                               |
 | `pnpm db:generate`   | Gera o Prisma Client                                             |
 | `pnpm db:studio`     | Abre o Prisma Studio na porta 5555                               |
-| `pnpm db:export`     | Exporta banco + arquivos MinIO para backup.zip                   |
-| `pnpm db:import`     | Importa backup.zip completo (banco + PDFs)                       |
-| `pnpm db:restore`    | Restaura o backup mais recente (banco + PDFs)                    |
-| `pnpm db:restore-pdfs` | Restaura apenas PDFs do backup (sem afetar banco)              |
-
-### Dados de Teste
-
-| Comando              | Descrição                                                        |
-|----------------------|------------------------------------------------------------------|
-| `pnpm seed:balanças` | Popula o banco com dados de exemplo de balanças                  |
-
----
-
-## Backup e Restore
-
-### Criar Backup
-
-Para exportar o banco de dados e arquivos do MinIO:
-
-```bash
-pnpm db:export
-```
-
-Isso cria um arquivo `backups/backup-<timestamp>.zip` contendo:
-- Dump completo do PostgreSQL
-- Todos os PDFs do MinIO
-
-### Restaurar Backup
-
-**Opção 1 - Automático (recomendado para setup inicial):**
-
-```bash
-# Inicia tudo e restaura o backup automaticamente
-pnpm start:restore
-```
-
-**Opção 2 - Manual (quando a aplicação já está rodando):**
-
-```bash
-# 1. Suba a infraestrutura e aplicação
-pnpm start:all
-
-# 2. Em outro terminal, restaure apenas os PDFs (sem derrubar o banco)
-pnpm db:restore-pdfs
-```
-
-**Opção 3 - Restauração completa (banco + PDFs):**
-
-```bash
-# Restaura banco e PDFs (requer API rodando)
-pnpm db:restore
-# ou especifique um arquivo:
-pnpm db:import backups/backup-2026-03-28T14-12-28.zip
-```
-
-**Importante:** 
-- A restauração completa (`db:restore`) derruba e recria o schema do banco, o que pode desconectar a API temporariamente
-- Para restaurar apenas PDFs sem afetar o banco, use `db:restore-pdfs`
-- A restauração de PDFs requer que a API esteja rodando, pois os arquivos são enviados via upload para garantir indexação correta no MinIO
-
-### Quando usar cada comando
-
-| Comando | Quando usar |
-|---------|-------------|
-| `pnpm start:restore` | Setup inicial do projeto com backup |
-| `pnpm db:restore-pdfs` | Restaurar apenas arquivos PDF (aplicação rodando) |
-| `pnpm db:restore` | Restauração completa (banco + PDFs) |
-| `pnpm db:export` | Criar novo backup |
+| `pnpm up`            | Atalho: `infra:up` + `wait:infra` + `dev:all`                    |
+| `pnpm clean`         | Remove artefatos de build de todos os pacotes                    |
 
 ---
 
@@ -280,8 +164,6 @@ pnpm db:import backups/backup-2026-03-28T14-12-28.zip
 ---
 
 ## Troubleshooting
-
-> Rodando em Windows e Linux? Veja [docs/contributing.md — Desenvolvimento Cross-platform](docs/contributing.md#desenvolvimento-cross-platform).
 
 ### Porta já em uso
 
