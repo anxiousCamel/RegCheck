@@ -1,16 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button, Spinner, Badge } from '@regcheck/ui';
+import { Button, Spinner } from '@regcheck/ui';
 import { api } from '@/lib/api';
-import { SignatureCanvas } from '@/components/document/signature-canvas';
 import { useDocumentDraft } from '@/hooks/use-document-draft';
-import type { FieldType, FieldPosition, FieldConfig } from '@regcheck/shared';
-import type { LojaDTO, TipoEquipamentoDTO, ItemAssignment } from '@regcheck/shared';
-import { Wizard, GlobalForm, EquipmentStep } from '@/components/document/fill-wizard';
-import { IconCheck, IconX } from '@/components/ui/icons';
+import type { FieldType, FieldPosition, FieldConfig, LojaDTO, TipoEquipamentoDTO } from '@regcheck/shared';
+import { Wizard, FillListScreen, EquipmentStep } from '@/components/document/fill-wizard';
 
 interface TemplateField {
   id: string;
@@ -49,8 +46,6 @@ export default function FillDocumentPage() {
   const [step, setStep] = useState(0); // 0 = Global, 1..N = Equipment
   const [selectedSetorId, setSelectedSetorId] = useState<string | null>(null);
 
-  const touchStartX = useRef<number | null>(null);
-
   const { data: doc, isLoading } = useQuery({
     queryKey: ['document', documentId],
     queryFn: () => api.getDocument(documentId),
@@ -72,23 +67,19 @@ export default function FillDocumentPage() {
   // ── Offline-first draft ────────────────────────────────────────────────────
   const {
     getValue,
-    getFileKey,
-    getPendingBlobForField,
     updateField,
     updateImageField,
     syncToServer,
     isOnline,
-    syncStatus,
     pendingUploads,
     hasPendingChanges,
   } = useDocumentDraft(documentId, docData?.filledFields);
 
   // ── Fields split by scope ──────────────────────────────────────────────────
-  const { globalFields, itemFields, slotMap } = useMemo(() => {
+  const { globalFields, slotMap } = useMemo(() => {
     if (!docData) {
       return {
         globalFields: [] as (TemplateField & { type: FieldType })[],
-        itemFields: [] as (TemplateField & { type: FieldType })[],
         slotMap: new Map<number, (TemplateField & { type: FieldType })[]>(),
       };
     }
@@ -110,7 +101,7 @@ export default function FillDocumentPage() {
     }
     for (const [, arr] of sMap) arr.sort(sortFields);
 
-    return { globalFields: gFields, itemFields: iFields, slotMap: sMap };
+    return { globalFields: gFields, slotMap: sMap };
   }, [docData]);
 
   // ── Assignments ────────────────────────────────────────────────────────────
@@ -202,217 +193,79 @@ export default function FillDocumentPage() {
     [filteredAssignments.length],
   );
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0]?.clientX ?? null;
-  };
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const endX = e.changedTouches[0]?.clientX;
-    if (endX === undefined) return;
-    const diff = touchStartX.current - endX;
-    if (Math.abs(diff) > 50) diff > 0 ? goNext() : goPrev();
-    touchStartX.current = null;
-  };
 
   const hasAssignments = allAssignments.length > 0;
 
   if (isLoading) {
-    return <div className="flex items-center justify-center py-24"><Spinner /></div>;
+    return (
+      <div className="flex items-center justify-center py-24" style={{ background: 'var(--rc-bg)', minHeight: '100vh' }}>
+        <Spinner />
+      </div>
+    );
   }
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-2xl mx-auto pb-24">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-extrabold tracking-tight">
-          {docData?.name ?? 'Preencher Documento'}
-        </h1>
-        <div className="flex items-center gap-2">
-          <StatusBar
-            isOnline={isOnline}
-            syncStatus={syncStatus}
-            pendingUploads={pendingUploads}
-            hasPendingChanges={hasPendingChanges}
-            onSyncNow={syncToServer}
-            compact
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => generateMutation.mutate()}
-            disabled={generationState === 'queuing' || generationState === 'generating'}
-            className="font-bold border-2"
-          >
-            {(generationState === 'queuing' || generationState === 'generating') ? (
-              <Spinner className="mr-2 h-4 w-4" />
-            ) : null}
-            Finalizar e Gerar
-          </Button>
-        </div>
-      </div>
-
-      {generationState === 'generating' && (
-        <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl text-primary text-sm font-medium animate-pulse">
-          Gerando PDF... Você pode continuar trabalhando.
-        </div>
-      )}
-
-      {generationState === 'done' && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm flex items-center justify-between gap-2 shadow-sm">
-          <span className="font-bold flex items-center gap-2"><IconCheck className="h-4 w-4" /> PDF Pronto</span>
-          <DownloadButton documentId={documentId} />
-        </div>
-      )}
-
-      {generationState === 'error' && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center justify-between gap-2 shadow-sm">
-          <span className="font-bold">Erro na geração</span>
-          <Button size="sm" variant="outline" onClick={() => generateMutation.mutate()}>Tentar novamente</Button>
-        </div>
-      )}
-
+    <div style={{ minHeight: '100vh', background: 'var(--rc-bg)' }}>
       {!hasAssignments ? (
-        <PopulatePanel
-          documentId={documentId}
-          onPopulated={() => queryClient.invalidateQueries({ queryKey: ['document', documentId] })}
-        />
+        <div className="p-4 max-w-lg mx-auto pt-8">
+          <h1 className="text-xl font-extrabold mb-4">{docData?.name ?? 'Preencher Documento'}</h1>
+          <PopulatePanel
+            documentId={documentId}
+            onPopulated={() => queryClient.invalidateQueries({ queryKey: ['document', documentId] })}
+          />
+        </div>
       ) : (
-        <Wizard 
-          step={step} 
-          totalSteps={1 + filteredAssignments.length} 
-          onNext={goNext} 
-          onPrev={goPrev} 
+        <Wizard
+          step={step}
+          totalSteps={1 + filteredAssignments.length}
+          onNext={goNext}
+          onPrev={goPrev}
           onFinish={() => generateMutation.mutate()}
         >
           {step === 0 ? (
-            <div className="space-y-6">
-              {setores.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                  <Button
-                    variant={selectedSetorId === null ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedSetorId(null)}
-                    className="rounded-full px-4"
-                  >
-                    Todos
-                  </Button>
-                  {setores.map((s) => (
-                    <Button
-                      key={s.id}
-                      variant={selectedSetorId === s.id ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setSelectedSetorId(s.id)}
-                      className="rounded-full px-4 whitespace-nowrap"
-                    >
-                      {s.nome}
-                    </Button>
-                  ))}
-                </div>
-              )}
-              
-              <GlobalForm 
-                fields={globalFields}
-                getValue={getValue}
-                updateField={updateField}
-                onNext={goNext}
-              />
-              
-              <div className="pt-4 opacity-50">
+            <FillListScreen
+              docName={docData?.name ?? 'Preencher Documento'}
+              allAssignments={allAssignments}
+              filteredAssignments={filteredAssignments}
+              setores={setores}
+              selectedSetorId={selectedSetorId}
+              onSetSetor={setSelectedSetorId}
+              onStartFilling={goNext}
+              onGenerate={() => generateMutation.mutate()}
+              generationState={generationState}
+              globalFields={globalFields as unknown as import('@regcheck/shared').TemplateField[]}
+              getValue={getValue}
+              updateField={updateField}
+              isOnline={isOnline}
+              pendingUploads={pendingUploads}
+              hasPendingChanges={hasPendingChanges}
+              onSyncNow={syncToServer}
+              documentId={documentId}
+              onPopulated={() => queryClient.invalidateQueries({ queryKey: ['document', documentId] })}
+              repopulateSlot={
                 <RePopulatePanel
                   documentId={documentId}
                   onPopulated={() => queryClient.invalidateQueries({ queryKey: ['document', documentId] })}
                 />
-              </div>
-            </div>
+              }
+            />
           ) : (
-            <EquipmentStep 
-              assignment={filteredAssignments[step - 1]}
+            <EquipmentStep
+              assignment={filteredAssignments[step - 1]!}
               index={step - 1}
               total={filteredAssignments.length}
-              fields={currentSlotFields}
+              fields={currentSlotFields as unknown as import('@regcheck/shared').TemplateField[]}
               getValue={getValue}
               updateField={updateField}
               onImageChange={updateImageField}
               onNext={step === filteredAssignments.length ? () => generateMutation.mutate() : goNext}
               onPrev={goPrev}
               isLast={step === filteredAssignments.length}
+              isOnline={isOnline}
+              pendingUploads={pendingUploads}
             />
           )}
         </Wizard>
-      )}
-    </div>
-  );
-}
-
-// ─── DownloadButton ───────────────────────────────────────────────────────────
-
-function DownloadButton({ documentId }: { documentId: string }) {
-  const [loading, setLoading] = useState(false);
-
-  return (
-    <Button
-      size="sm"
-      disabled={loading}
-      onClick={async () => {
-        setLoading(true);
-        try {
-          const { downloadUrl } = await api.getDownloadUrl(documentId);
-          window.open(downloadUrl, '_blank');
-        } catch (err) {
-          console.error('Download failed:', err);
-        } finally {
-          setLoading(false);
-        }
-      }}
-    >
-      {loading ? <Spinner className="mr-2 h-4 w-4" /> : null}
-      Download PDF
-    </Button>
-  );
-}
-
-// ─── StatusBar ────────────────────────────────────────────────────────────────
-
-function StatusBar({
-  isOnline, syncStatus, pendingUploads, hasPendingChanges, onSyncNow, compact = false,
-}: {
-  isOnline: boolean;
-  syncStatus: 'idle' | 'syncing' | 'error';
-  pendingUploads: number;
-  hasPendingChanges: boolean;
-  onSyncNow: () => void;
-  compact?: boolean;
-}) {
-  if (isOnline && syncStatus === 'idle' && !hasPendingChanges && pendingUploads === 0) return null;
-
-  if (compact) {
-    return (
-      <div className={`flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${
-        !isOnline ? 'bg-amber-100 text-amber-700'
-          : syncStatus === 'error' ? 'bg-red-100 text-red-700'
-          : 'bg-blue-100 text-blue-700'
-      }`}>
-        {!isOnline ? 'Offline' : syncStatus === 'syncing' ? 'Sincronizando' : hasPendingChanges ? 'Pendente' : 'Salvo'}
-        {pendingUploads > 0 && <span> · {pendingUploads} fotos</span>}
-      </div>
-    );
-  }
-
-  return (
-    <div className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm ${
-      !isOnline ? 'border-amber-300 bg-amber-50 text-amber-800'
-        : syncStatus === 'error' ? 'border-red-300 bg-red-50 text-red-800'
-        : 'border-blue-200 bg-blue-50 text-blue-800'
-    }`}>
-      <div className="flex items-center gap-2">
-        {!isOnline && <><span className="h-2 w-2 rounded-full bg-amber-500 inline-block" /><span>Offline — alterações salvas localmente</span></>}
-        {isOnline && syncStatus === 'syncing' && <><Spinner className="h-3 w-3" /><span>Sincronizando...</span></>}
-        {isOnline && syncStatus === 'error' && <span>Erro ao sincronizar</span>}
-        {isOnline && syncStatus === 'idle' && hasPendingChanges && <span>Alterações não salvas</span>}
-        {pendingUploads > 0 && <span className="ml-1">· {pendingUploads} foto{pendingUploads !== 1 ? 's' : ''} aguardando upload</span>}
-      </div>
-      {isOnline && (hasPendingChanges || pendingUploads > 0) && syncStatus !== 'syncing' && (
-        <button onClick={onSyncNow} className="underline font-medium text-xs">Sincronizar agora</button>
       )}
     </div>
   );
