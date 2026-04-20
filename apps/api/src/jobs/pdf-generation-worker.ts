@@ -91,9 +91,27 @@ function makeOverlay(
     fontColor: config.fontColor,
   };
   if (field.type === 'image' || field.type === 'signature') {
-    overlay.imageBytes = imageMap.get(`${field.id}:${filled.itemIndex}`);
+    // Prefer bytes downloaded from S3 (uploaded images).
+    // Signatures are captured as a canvas data URL and stored directly in
+    // `filled.value` — no fileKey, so decode the base64 payload here.
+    overlay.imageBytes = imageMap.get(`${field.id}:${filled.itemIndex}`) ?? decodeDataUrl(filled.value);
   }
   return overlay;
+}
+
+/** Decode a `data:image/...;base64,xxxx` string into a Buffer. */
+function decodeDataUrl(value: string): Buffer | undefined {
+  if (!value || !value.startsWith('data:image/')) return undefined;
+  const commaIdx = value.indexOf(',');
+  if (commaIdx === -1) return undefined;
+  const header = value.slice(0, commaIdx);
+  const payload = value.slice(commaIdx + 1);
+  if (!header.includes(';base64')) return undefined;
+  try {
+    return Buffer.from(payload, 'base64');
+  } catch {
+    return undefined;
+  }
 }
 
 /**
