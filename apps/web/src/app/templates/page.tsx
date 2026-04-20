@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import { Plus, Edit, Trash2, FilePlus } from 'lucide-react';
 import { Button, Badge, Spinner } from '@regcheck/ui';
 import { api } from '@/lib/api';
 
@@ -27,7 +28,10 @@ export default function TemplatesPage() {
           <h1 className="text-2xl font-bold">Templates</h1>
           <p className="text-muted-foreground">Gerencie seus templates de documentos</p>
         </div>
-        <Button onClick={() => setShowUpload(true)}>Novo Template</Button>
+        <Button onClick={() => setShowUpload(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Novo Template
+        </Button>
       </div>
 
       {showUpload && <UploadSection onDone={() => setShowUpload(false)} />}
@@ -60,7 +64,8 @@ export default function TemplatesPage() {
                 </div>
                 <div className="flex gap-2">
                   <Link href={`/editor/${template.id}`}>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="gap-1.5">
+                      <Edit className="h-3.5 w-3.5" />
                       Editar
                     </Button>
                   </Link>
@@ -69,7 +74,9 @@ export default function TemplatesPage() {
                     size="sm"
                     onClick={() => deleteMutation.mutate(template.id)}
                     disabled={deleteMutation.isPending}
+                    className="gap-1.5"
                   >
+                    <Trash2 className="h-3.5 w-3.5" />
                     Excluir
                   </Button>
                 </div>
@@ -132,8 +139,8 @@ function UploadSection({ onDone }: { onDone: () => void }) {
         />
       </div>
       <div className="flex gap-2">
-        <Button onClick={handleCreate} disabled={!file || !name || uploading}>
-          {uploading ? <Spinner className="mr-2 h-4 w-4" /> : null}
+        <Button onClick={handleCreate} disabled={!file || !name || uploading} className="gap-2">
+          {uploading ? <Spinner className="h-4 w-4" /> : <FilePlus className="h-4 w-4" />}
           Criar Template
         </Button>
         <Button variant="outline" onClick={onDone}>

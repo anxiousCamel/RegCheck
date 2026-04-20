@@ -84,14 +84,14 @@ export function FieldProperties({ templateId }: { templateId: string }) {
               onChange={(e) => handleBatchConfigUpdate({ required: e.target.checked })}
               className="rounded"
             />
-            <Label htmlFor="batch-required">Obrigatorio</Label>
+            <Label htmlFor="batch-required">Preenchimento Obrigatório</Label>
             {sharedRequired === null && <span className="text-xs text-muted-foreground">(misto)</span>}
           </div>
 
           {allText && (
             <>
               <div>
-                <Label htmlFor="batch-fontsize">Tamanho da fonte</Label>
+                <Label htmlFor="batch-fontsize">Tamanho da Letra</Label>
                 <Input
                   id="batch-fontsize"
                   type="number"
@@ -103,7 +103,7 @@ export function FieldProperties({ templateId }: { templateId: string }) {
                 />
               </div>
               <div>
-                <Label htmlFor="batch-fontcolor">Cor do texto</Label>
+                <Label htmlFor="batch-fontcolor">Cor do Texto</Label>
                 <input
                   id="batch-fontcolor"
                   type="color"
@@ -154,7 +154,7 @@ export function FieldProperties({ templateId }: { templateId: string }) {
         </div>
 
         <div>
-          <Label htmlFor="field-label">Label</Label>
+          <Label htmlFor="field-label">Nome do Campo (Visível ao Usuário)</Label>
           <Input
             id="field-label"
             value={selectedField.config.label}
@@ -174,13 +174,13 @@ export function FieldProperties({ templateId }: { templateId: string }) {
             }
             className="rounded"
           />
-          <Label htmlFor="field-required">Obrigatorio</Label>
+          <Label htmlFor="field-required">Preenchimento Obrigatório</Label>
         </div>
 
         {selectedField.type === 'text' && (
           <>
             <div>
-              <Label htmlFor="field-placeholder">Placeholder</Label>
+              <Label htmlFor="field-placeholder">Dica de Preenchimento (Exemplo)</Label>
               <Input
                 id="field-placeholder"
                 value={selectedField.config.placeholder ?? ''}
@@ -190,7 +190,7 @@ export function FieldProperties({ templateId }: { templateId: string }) {
               />
             </div>
             <div>
-              <Label htmlFor="field-fontsize">Tamanho da fonte</Label>
+              <Label htmlFor="field-fontsize">Tamanho da Letra</Label>
               <Input
                 id="field-fontsize"
                 type="number"
@@ -203,7 +203,7 @@ export function FieldProperties({ templateId }: { templateId: string }) {
               />
             </div>
             <div>
-              <Label htmlFor="field-fontcolor">Cor do texto</Label>
+              <Label htmlFor="field-fontcolor">Cor do Texto</Label>
               <input
                 id="field-fontcolor"
                 type="color"
@@ -238,7 +238,7 @@ export function FieldProperties({ templateId }: { templateId: string }) {
           onClick={() => deleteMutation.mutate([selectedField.id])}
           disabled={deleteMutation.isPending}
         >
-          Excluir Campo
+          Remover Campo
         </Button>
       </div>
     </div>
@@ -261,38 +261,40 @@ function ScopeSection({ selectedFields, setFieldScope, setFieldSlot }: ScopeSect
 
   return (
     <div className="border-t pt-3 space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Escopo do campo</p>
+      <p className="text-xs font-medium text-muted-foreground">Onde este campo se repete?</p>
 
       <div className="grid grid-cols-2 gap-2">
         <Button
           variant={sharedScope === 'global' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setFieldScope(ids, 'global')}
+          title="O campo aparece uma única vez no formulário (ex: Nome do Técnico)"
         >
-          Global
+          Geral
         </Button>
         <Button
           variant={sharedScope === 'item' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setFieldScope(ids, 'item')}
+          title="O campo se repete para cada equipamento na lista"
         >
-          Item (SX)
+          Por Item
         </Button>
       </div>
-      {sharedScope === null && <p className="text-xs text-muted-foreground">(escopo misto)</p>}
+      {sharedScope === null && <p className="text-xs text-muted-foreground">(regra mista)</p>}
 
       {sharedScope !== 'global' && (
         <div className="space-y-1">
-          <Label>Slot SX</Label>
+          <Label>Posição na Lista de Equipamentos</Label>
           {sharedSlot !== null && sharedSlot !== undefined && (
-            <p className="text-sm font-medium">S{sharedSlot}</p>
+            <p className="text-sm font-medium">Slot S{sharedSlot}</p>
           )}
-          {sharedSlot === null && <p className="text-xs text-muted-foreground">(slots mistos)</p>}
+          {sharedSlot === null && <p className="text-xs text-muted-foreground">(posições mistas)</p>}
           <div className="flex gap-2">
             <Input
               type="number"
               min={0}
-              placeholder="Slot (0, 1, 2...)"
+              placeholder="Posição (0, 1, 2...)"
               value={slotInput}
               onChange={(e) => setSlotInput(e.target.value)}
               className="flex-1 h-8 text-sm"
@@ -309,7 +311,7 @@ function ScopeSection({ selectedFields, setFieldScope, setFieldSlot }: ScopeSect
                 }
               }}
             >
-              Atribuir
+              Definir
             </Button>
           </div>
         </div>
@@ -348,9 +350,9 @@ function BindingSection({ selectedFields, setFieldBinding }: BindingSectionProps
 
   return (
     <div className="border-t pt-3 space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Binding (auto-preenchimento)</p>
+      <p className="text-xs font-medium text-muted-foreground">Preenchimento Automático (Dados do Sistema)</p>
       <p className="text-[11px] text-muted-foreground">
-        Exemplo: <code>eq.serie</code>, <code>global.data</code>. Deixe vazio para preenchimento manual.
+        O sistema pode preencher este campo sozinho usando dados salvos.
       </p>
 
       <Input
@@ -359,9 +361,9 @@ function BindingSection({ selectedFields, setFieldBinding }: BindingSectionProps
         onChange={(e) => setValue(e.target.value)}
       />
       {!isValid && (
-        <p className="text-xs text-red-600">Formato invalido. Use &lt;global|eq&gt;.&lt;chave&gt; (snake_case).</p>
+        <p className="text-xs text-red-600">Formato inválido. Use o padrão sugerido abaixo.</p>
       )}
-      {sharedBinding === null && <p className="text-xs text-muted-foreground">(bindings mistos)</p>}
+      {sharedBinding === null && <p className="text-xs text-muted-foreground">(vários tipos selecionados)</p>}
 
       {suggestions.length > 0 && (
         <div className="flex flex-wrap gap-1">

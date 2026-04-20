@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button, Spinner } from '@regcheck/ui';
+import { Save, Rocket, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useEditorStore } from '@/stores/editor-store';
 import { EditorCanvas } from '@/components/editor/editor-canvas';
@@ -115,7 +116,12 @@ export default function EditorPage() {
       <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/20">
         <div className="flex items-center gap-4">
           <h1 className="font-semibold">{templateData?.name}</h1>
-          {isDirty && <span className="text-xs text-amber-600">Alteracoes nao salvas</span>}
+          {isDirty && (
+            <div className="flex items-center gap-1 text-xs text-amber-600 font-medium animate-pulse">
+              <AlertCircle className="h-3 w-3" />
+              <span>Alterações não salvas</span>
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
           <Button
@@ -123,14 +129,18 @@ export default function EditorPage() {
             size="sm"
             onClick={() => saveMutation.mutate()}
             disabled={!isDirty || saveMutation.isPending}
+            className="gap-2"
           >
+            {saveMutation.isPending ? <Spinner className="h-3 w-3" /> : <Save className="h-4 w-4" />}
             Salvar
           </Button>
           <Button
             size="sm"
             onClick={() => publishMutation.mutate()}
             disabled={templateData?.status === 'PUBLISHED' || publishMutation.isPending}
+            className="gap-2 bg-gradient-to-r from-primary to-primary/80"
           >
+            {publishMutation.isPending ? <Spinner className="h-3 w-3" /> : <Rocket className="h-4 w-4" />}
             Publicar
           </Button>
         </div>

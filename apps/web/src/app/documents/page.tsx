@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import { Plus, ClipboardEdit, FileText, Download, Trash2, FilePlus } from 'lucide-react';
 import { Button, Badge, Spinner } from '@regcheck/ui';
 import { api } from '@/lib/api';
 
@@ -58,7 +59,10 @@ export default function DocumentsPage() {
           <h1 className="text-2xl font-bold">Documentos</h1>
           <p className="text-muted-foreground">Documentos preenchidos a partir de templates</p>
         </div>
-        <Button onClick={() => setShowCreate(true)}>Novo Documento</Button>
+        <Button onClick={() => setShowCreate(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Novo Documento
+        </Button>
       </div>
 
       {showCreate && <CreateDocumentSection onDone={() => setShowCreate(false)} />}
@@ -86,7 +90,8 @@ export default function DocumentsPage() {
 
               <div className="flex gap-2 flex-shrink-0">
                 <Link href={`/documents/${doc.id}/fill`}>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <ClipboardEdit className="h-3.5 w-3.5" />
                     Preencher
                   </Button>
                 </Link>
@@ -139,8 +144,9 @@ function GenerateButton({ documentId, onSuccess }: { documentId: string; onSucce
       size="sm"
       onClick={() => mutation.mutate()}
       disabled={mutation.isPending}
+      className="gap-1.5"
     >
-      {mutation.isPending ? <Spinner className="mr-2 h-4 w-4" /> : null}
+      {mutation.isPending ? <Spinner className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
       Gerar PDF
     </Button>
   );
@@ -162,8 +168,8 @@ function DownloadButton({ documentId }: { documentId: string }) {
   };
 
   return (
-    <Button size="sm" onClick={handleDownload} disabled={loading}>
-      {loading ? <Spinner className="mr-2 h-4 w-4" /> : null}
+    <Button size="sm" onClick={handleDownload} disabled={loading} className="gap-1.5">
+      {loading ? <Spinner className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
       Download PDF
     </Button>
   );
@@ -195,8 +201,9 @@ function DeleteButton({ documentId, onSuccess }: { documentId: string; onSuccess
       variant="destructive"
       onClick={handleDelete}
       disabled={mutation.isPending}
+      className="gap-1.5"
     >
-      {mutation.isPending ? <Spinner className="mr-2 h-4 w-4" /> : null}
+      {mutation.isPending ? <Spinner className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
       Excluir
     </Button>
   );
@@ -257,7 +264,9 @@ function CreateDocumentSection({ onDone }: { onDone: () => void }) {
         <Button
           onClick={() => createMutation.mutate()}
           disabled={!templateId || !name || createMutation.isPending}
+          className="gap-2"
         >
+          {createMutation.isPending ? <Spinner className="h-4 w-4" /> : <FilePlus className="h-4 w-4" />}
           Criar Documento
         </Button>
         <Button variant="outline" onClick={onDone}>

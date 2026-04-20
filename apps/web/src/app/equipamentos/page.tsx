@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import { Plus, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button, Spinner } from '@regcheck/ui';
 import { api } from '@/lib/api';
 import { EquipmentFilters } from '@/components/equipment/equipment-filters';
@@ -58,7 +59,10 @@ export default function EquipamentosPage() {
           </p>
         </div>
         <Link href="/equipamentos/novo">
-          <Button>Novo Equipamento</Button>
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Novo Equipamento
+          </Button>
         </Link>
       </div>
 
@@ -104,14 +108,19 @@ export default function EquipamentosPage() {
                     <td className="px-4 py-3 text-right">
                       <div className="flex gap-2 justify-end">
                         <Link href={`/equipamentos/${eq.id}/editar`}>
-                          <Button variant="outline" size="sm">Editar</Button>
+                          <Button variant="outline" size="sm" className="gap-1.5">
+                            <Edit className="h-3.5 w-3.5" />
+                            Editar
+                          </Button>
                         </Link>
                         <Button
                           variant="destructive"
                           size="sm"
                           onClick={() => deleteMutation.mutate(eq.id)}
                           disabled={deleteMutation.isPending}
+                          className="gap-1.5"
                         >
+                          <Trash2 className="h-3.5 w-3.5" />
                           Excluir
                         </Button>
                       </div>
@@ -180,7 +189,9 @@ export default function EquipamentosPage() {
                   size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
+                  className="gap-1"
                 >
+                  <ChevronLeft className="h-4 w-4" />
                   Anterior
                 </Button>
                 <Button
@@ -188,8 +199,10 @@ export default function EquipamentosPage() {
                   size="sm"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}
+                  className="gap-1"
                 >
                   Próximo
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
