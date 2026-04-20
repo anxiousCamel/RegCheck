@@ -3,14 +3,14 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button, Spinner, Badge } from '@regcheck/ui';
+import { Button, Spinner, Badge, cn } from '@regcheck/ui';
 import { api } from '@/lib/api';
 import { SignatureCanvas } from '@/components/document/signature-canvas';
 import { useDocumentDraft } from '@/hooks/use-document-draft';
 import type { FieldType, FieldPosition, FieldConfig } from '@regcheck/shared';
 import type { LojaDTO, TipoEquipamentoDTO, ItemAssignment } from '@regcheck/shared';
 import { Wizard, GlobalForm, EquipmentStep } from '@/components/document/fill-wizard';
-import { IconCheck, IconX, IconList } from '@/components/ui/icons'; 
+import { IconCheck, IconX, IconList } from '@/components/ui/icons';
 
 interface TemplateField {
   id: string;
