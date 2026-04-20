@@ -10,7 +10,7 @@ import { useDocumentDraft } from '@/hooks/use-document-draft';
 import type { FieldType, FieldPosition, FieldConfig } from '@regcheck/shared';
 import type { LojaDTO, TipoEquipamentoDTO, ItemAssignment } from '@regcheck/shared';
 import { Wizard, GlobalForm, EquipmentStep } from '@/components/document/fill-wizard';
-import { IconCheck, IconX } from '@/components/ui/icons';
+import { IconCheck, IconX, IconList } from '@/components/ui/icons'; 
 
 interface TemplateField {
   id: string;
@@ -81,6 +81,7 @@ export default function FillDocumentPage() {
     syncStatus,
     pendingUploads,
     hasPendingChanges,
+    fields,
   } = useDocumentDraft(documentId, docData?.filledFields);
 
   // ── Fields split by scope ──────────────────────────────────────────────────
@@ -131,14 +132,37 @@ export default function FillDocumentPage() {
   }, [allAssignments]);
 
   const filteredAssignments = useMemo(
-    () => selectedSetorId ? allAssignments.filter((a) => a.setorId === selectedSetorId) : allAssignments,
+    () => (selectedSetorId ? allAssignments.filter((a) => a.setorId === selectedSetorId) : allAssignments),
     [allAssignments, selectedSetorId],
   );
 
-  useEffect(() => { setStep(0); }, [selectedSetorId]);
-
   const currentAssignment = filteredAssignments[step - 1] ?? null;
   const currentItemIndex = currentAssignment?.itemIndex ?? 0;
+
+  // Calculate actual progress based on filled fields
+  const completionPercentage = useMemo(() => {
+    // fields per item (all slots) + global fields
+    const fieldsPerItem = itemFields.length;
+    const totalFieldsInDoc = (allAssignments.length * fieldsPerItem) + globalFields.length;
+    
+    if (totalFieldsInDoc === 0) return 0;
+    
+    // Count non-empty values in the current draft Map
+    let filledCount = 0;
+    fields.forEach(f => {
+      if (f.value !== '' && f.value !== null && f.value !== false) {
+        filledCount++;
+      }
+    });
+    
+    return Math.min(100, Math.round((filledCount / totalFieldsInDoc) * 100));
+  }, [fields, allAssignments.length, itemFields.length, globalFields.length]);
+
+  useEffect(() => { 
+    // If we are already in the equipment steps, jump to the first one of the new filter
+    // If we are in global info (0), stay there.
+    if (step > 0) setStep(1); 
+  }, [selectedSetorId]);
 
   // Derive how many SX slots per page from the slotMap.
   const itemsPerPage = slotMap.size;
@@ -202,26 +226,18 @@ export default function FillDocumentPage() {
     [filteredAssignments.length],
   );
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0]?.clientX ?? null;
-  };
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const endX = e.changedTouches[0]?.clientX;
-    if (endX === undefined) return;
-    const diff = touchStartX.current - endX;
-    if (Math.abs(diff) > 50) diff > 0 ? goNext() : goPrev();
-    touchStartX.current = null;
-  };
-
   const hasAssignments = allAssignments.length > 0;
+  const isGlobalStep = step === 0;
+
+  // Equipment selection list for the "Jump to" feature
+  const [showIndex, setShowIndex] = useState(false);
 
   if (isLoading) {
     return <div className="flex items-center justify-center py-24"><Spinner /></div>;
   }
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-2xl mx-auto pb-24">
+    <div className="p-4 md:p-8 space-y-6 max-w-2xl mx-auto pb-32">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-xl font-extrabold tracking-tight">
@@ -250,6 +266,33 @@ export default function FillDocumentPage() {
           </Button>
         </div>
       </div>
+
+      {/* Sector Filter - Always available if we have assignments */}
+      {hasAssignments && (
+        <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+          <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
+            <Button
+              variant={selectedSetorId === null ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedSetorId(null)}
+              className="rounded-full px-4 h-8 text-xs shrink-0"
+            >
+              Todos Setores
+            </Button>
+            {setores.map((s) => (
+              <Button
+                key={s.id}
+                variant={selectedSetorId === s.id ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedSetorId(s.id)}
+                className="rounded-full px-4 h-8 text-xs whitespace-nowrap shrink-0"
+              >
+                {s.nome}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {generationState === 'generating' && (
         <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl text-primary text-sm font-medium animate-pulse">
@@ -280,36 +323,13 @@ export default function FillDocumentPage() {
         <Wizard 
           step={step} 
           totalSteps={1 + filteredAssignments.length} 
+          progress={completionPercentage} // Pass the real progress here
           onNext={goNext} 
           onPrev={goPrev} 
           onFinish={() => generateMutation.mutate()}
         >
-          {step === 0 ? (
+          {isGlobalStep ? (
             <div className="space-y-6">
-              {setores.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                  <Button
-                    variant={selectedSetorId === null ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedSetorId(null)}
-                    className="rounded-full px-4"
-                  >
-                    Todos
-                  </Button>
-                  {setores.map((s) => (
-                    <Button
-                      key={s.id}
-                      variant={selectedSetorId === s.id ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setSelectedSetorId(s.id)}
-                      className="rounded-full px-4 whitespace-nowrap"
-                    >
-                      {s.nome}
-                    </Button>
-                  ))}
-                </div>
-              )}
-              
               <GlobalForm 
                 fields={globalFields}
                 getValue={getValue}
@@ -325,18 +345,77 @@ export default function FillDocumentPage() {
               </div>
             </div>
           ) : (
-            <EquipmentStep 
-              assignment={filteredAssignments[step - 1]}
-              index={step - 1}
-              total={filteredAssignments.length}
-              fields={currentSlotFields}
-              getValue={getValue}
-              updateField={updateField}
-              onImageChange={updateImageField}
-              onNext={step === filteredAssignments.length ? () => generateMutation.mutate() : goNext}
-              onPrev={goPrev}
-              isLast={step === filteredAssignments.length}
-            />
+            <div className="space-y-4">
+              {/* Quick Jump Index */}
+              <div className="flex justify-center -mt-2">
+                <button 
+                  onClick={() => setShowIndex(!showIndex)}
+                  className="text-xs font-bold text-primary bg-primary/5 px-4 py-1.5 rounded-full hover:bg-primary/10 transition-colors flex items-center gap-2"
+                >
+                  <IconList className="h-3.5 w-3.5" />
+                  {showIndex ? 'Ocultar Lista' : 'Ver Lista de Equipamentos'}
+                </button>
+              </div>
+
+              {showIndex && (
+                <div className="bg-muted/30 border rounded-xl p-2 grid grid-cols-2 sm:grid-cols-3 gap-2 animate-in fade-in slide-in-from-top-2 duration-300 max-h-[300px] overflow-y-auto">
+                    {filteredAssignments.map((a, i) => {
+                      // Determine which slot this item occupies on the page (SX0, SX1, etc.)
+                      const itemsPerPage = slotMap.size;
+                      const currentSlot = itemsPerPage > 0 ? a.itemIndex % itemsPerPage : 0;
+                      const slotFields = slotMap.get(currentSlot) ?? [];
+
+                      // 1. Try to find an ID field within THIS specific slot with strict priority
+                      const idField = slotFields.find(f => (f.bindingKey || '').toLowerCase().includes('numero')) ||
+                                      slotFields.find(f => (f.bindingKey || '').toLowerCase().includes('tag')) ||
+                                      slotFields.find(f => (f.bindingKey || '').toLowerCase().includes('patri')) ||
+                                      slotFields.find(f => (f.bindingKey || '').toLowerCase().includes('serie'));
+                      
+                      const displayId = idField ? String(getValue(idField.id, a.itemIndex) || '') : '';
+                      
+                      // 2. Fallback to properties with same priority
+                      const finalLabel = displayId || 
+                                         (a as any).numeroEquipamento || 
+                                         (a as any).numero || 
+                                         (a as any).patrimonio || 
+                                         (a as any).serie || 
+                                         `Item ${a.itemIndex + 1}`;
+                      
+                      return (
+                        <button
+                          key={a.itemIndex}
+                          onClick={() => { setStep(i + 1); setShowIndex(false); }}
+                          className={`text-[10px] text-left p-2 rounded-lg border transition-all flex flex-col justify-between h-full ${
+                            step === i + 1 
+                              ? 'bg-primary text-white border-primary shadow-md' 
+                              : 'bg-white hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="font-extrabold text-xs mb-1">
+                            #{finalLabel}
+                          </div>
+                          <div className={`truncate text-[9px] opacity-80 ${step === i + 1 ? 'text-white/90' : 'text-muted-foreground'}`}>
+                            {a.setorNome}
+                          </div>
+                        </button>
+                      );
+                    })}
+                </div>
+              )}
+
+              <EquipmentStep 
+                assignment={filteredAssignments[step - 1]}
+                index={step - 1}
+                total={filteredAssignments.length}
+                fields={currentSlotFields}
+                getValue={getValue}
+                updateField={updateField}
+                onImageChange={updateImageField}
+                onNext={step === filteredAssignments.length ? () => generateMutation.mutate() : goNext}
+                onPrev={goPrev}
+                isLast={step === filteredAssignments.length}
+              />
+            </div>
           )}
         </Wizard>
       )}

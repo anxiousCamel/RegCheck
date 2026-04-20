@@ -12,17 +12,18 @@ interface WizardProps {
   onPrev: () => void;
   onFinish: () => void;
   children: React.ReactNode;
+  progress?: number;
 }
 
-export function Wizard({ step, totalSteps, onNext, onPrev, onFinish, children }: WizardProps) {
-  const progress = (step / (totalSteps - 1)) * 100;
+export function Wizard({ step, totalSteps, onNext, onPrev, onFinish, children, progress }: WizardProps) {
+  const displayProgress = progress !== undefined ? progress : (step / (totalSteps - 1)) * 100;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between gap-4">
-        <ProgressBar value={progress} className="flex-1" height={8} />
+        <ProgressBar value={displayProgress} className="flex-1" height={8} />
         <span className="text-sm font-bold text-primary min-w-[3rem] text-right">
-          {Math.round(progress)}%
+          {Math.round(displayProgress)}%
         </span>
       </div>
       <div className="min-h-[400px]">
@@ -190,12 +191,17 @@ export function EquipmentStep({
             Identificação
           </SectionLabel>
           <div className="bg-muted/30 p-4 rounded-xl border border-border/50 grid grid-cols-1 gap-y-3">
-            {identificationFields.map(f => (
-              <div key={f.id} className="flex justify-between items-center gap-4">
-                <span className="text-sm text-muted-foreground font-medium">{f.config.label}</span>
-                <span className="text-sm font-bold text-foreground text-right">{String(getValue(f.id, itemIndex) || '—')}</span>
-              </div>
-            ))}
+            {identificationFields
+              // Deduplicate by bindingKey to avoid "Número da Balança" and "Nº da Balança" appearing twice
+              .filter((f, i, self) => 
+                i === self.findIndex((t) => t.bindingKey === f.bindingKey)
+              )
+              .map(f => (
+                <div key={f.id} className="flex justify-between items-center gap-4">
+                  <span className="text-sm text-muted-foreground font-medium">{f.config.label}</span>
+                  <span className="text-sm font-bold text-foreground text-right">{String(getValue(f.id, itemIndex) || '—')}</span>
+                </div>
+              ))}
           </div>
         </section>
       )}
