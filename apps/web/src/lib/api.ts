@@ -278,6 +278,10 @@ class ApiClient {
     return this.request<EquipamentoDTO>(`/api/equipamentos/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
   }
 
+  getImageUrl(key: string) {
+    return `${this.baseUrl}/api/uploads/file?key=${encodeURIComponent(key)}`;
+  }
+
   deleteEquipamento(id: string) {
     return this.request<void>(`/api/equipamentos/${id}`, { method: 'DELETE' });
   }

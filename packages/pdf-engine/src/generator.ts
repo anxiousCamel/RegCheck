@@ -95,11 +95,17 @@ export class PdfGenerator {
 
     // Draw checkmark if checked
     if (overlay.checked) {
-      page.drawText('✓', {
-        x: x + 2,
-        y: y + 1,
-        size: size - 2,
-        font,
+      // Draw a vector checkmark instead of a character to avoid font encoding issues
+      page.drawLine({
+        start: { x: x + 2, y: y + size / 2 },
+        end: { x: x + size / 3 + 1, y: y + 2 },
+        thickness: 1.5,
+        color: rgb(0, 0, 0),
+      });
+      page.drawLine({
+        start: { x: x + size / 3 + 1, y: y + 2 },
+        end: { x: x + size - 2, y: y + size - 2 },
+        thickness: 1.5,
         color: rgb(0, 0, 0),
       });
     }

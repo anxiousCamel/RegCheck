@@ -4,6 +4,7 @@ import { ProgressBar, SectionLabel, YesNo } from '../ui/regcheck-ui';
 import { Button, Badge, Spinner, cn } from '@regcheck/ui';
 import { IconChevronLeft, IconChevronRight, IconCheck, IconX, IconCamera, IconRefresh } from '@/components/ui/icons'; 
 import { SignatureCanvas } from '@/components/document/signature-canvas';
+import { api } from '@/lib/api';
 
 interface WizardProps {
   step: number;
@@ -39,10 +40,21 @@ interface GlobalFormProps {
   fields: TemplateField[];
   getValue: (id: string, index: number) => string | boolean;
   updateField: (id: string, index: number, value: string | boolean) => void;
+  onImageChange: (id: string, index: number, file: File) => void;
+  getFileKey: (id: string, index: number) => string | undefined;
+  getPendingBlobForField: (id: string, index: number) => Blob | undefined;
   onNext: () => void;
 }
 
-export function GlobalForm({ fields, getValue, updateField, onNext }: GlobalFormProps) {
+export function GlobalForm({ 
+  fields, 
+  getValue, 
+  updateField, 
+  onImageChange,
+  getFileKey,
+  getPendingBlobForField,
+  onNext 
+}: GlobalFormProps) {
   // Group fields
   const { groupedFields, hiddenFieldIds } = groupDateFields(fields);
 
@@ -81,6 +93,23 @@ export function GlobalForm({ fields, getValue, updateField, onNext }: GlobalForm
                     onChange={(dataUrl) => updateField(field.id, 0, dataUrl)} 
                   />
                 </div>
+              </div>
+            );
+          }
+
+          if (field.type === 'image') {
+            return (
+              <div key={field.id} className="space-y-2">
+                <label className="text-sm font-semibold text-foreground">{field.config.label}</label>
+                <PhotoUploadField 
+                  field={field}
+                  itemIndex={0}
+                  getValue={getValue}
+                  updateField={updateField}
+                  onImageChange={onImageChange}
+                  getFileKey={getFileKey}
+                  getPendingBlobForField={getPendingBlobForField}
+                />
               </div>
             );
           }
@@ -133,6 +162,8 @@ interface EquipmentStepProps {
   getValue: (id: string, index: number) => string | boolean;
   updateField: (id: string, index: number, value: string | boolean) => void;
   onImageChange: (id: string, index: number, file: File) => void;
+  getFileKey: (id: string, index: number) => string | undefined;
+  getPendingBlobForField: (id: string, index: number) => Blob | undefined;
   onNext: () => void;
   onPrev: () => void;
   isLast: boolean;
@@ -149,6 +180,8 @@ export function EquipmentStep({
   onNext,
   onPrev,
   isLast,
+  getFileKey,
+  getPendingBlobForField,
 }: EquipmentStepProps) {
   const itemIndex = assignment.itemIndex;
 
@@ -266,15 +299,22 @@ export function EquipmentStep({
       {observationFields.length > 0 && (
         <section>
           <SectionLabel>Observações</SectionLabel>
-          {observationFields.map(f => (
-            <textarea
-              key={f.id}
-              value={String(getValue(f.id, itemIndex) || '')}
-              onChange={(e) => updateField(f.id, itemIndex, e.target.value)}
-              placeholder={f.config.placeholder || 'Descreva qualquer irregularidade...'}
-              className="w-full min-h-[100px] p-4 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-medium resize-none"
-            />
-          ))}
+          <div className="space-y-4">
+            {observationFields.map(f => (
+              <div key={f.id} className="space-y-2">
+                <label className="text-[13px] font-bold text-foreground ml-1 flex items-center gap-2">
+                  {f.config.label}
+                  {f.config.required && <span className="text-red-500">*</span>}
+                </label>
+                <textarea
+                  value={String(getValue(f.id, itemIndex) || '')}
+                  onChange={(e) => updateField(f.id, itemIndex, e.target.value)}
+                  placeholder={f.config.placeholder || 'Descreva qualquer irregularidade...'}
+                  className="w-full min-h-[100px] p-4 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-medium resize-none shadow-sm"
+                />
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
@@ -292,6 +332,8 @@ export function EquipmentStep({
                   getValue={getValue}
                   updateField={updateField}
                   onImageChange={onImageChange}
+                  getFileKey={getFileKey}
+                  getPendingBlobForField={getPendingBlobForField}
                 />
               </div>
             ))}
@@ -347,40 +389,128 @@ interface PhotoUploadFieldProps {
   getValue: (id: string, index: number) => string | boolean;
   updateField: (id: string, index: number, value: string | boolean) => void;
   onImageChange: (id: string, index: number, file: File) => void;
+  getFileKey: (id: string, index: number) => string | undefined;
+  getPendingBlobForField: (id: string, index: number) => Blob | undefined;
 }
 
-function PhotoUploadField({ field, itemIndex, getValue, updateField, onImageChange }: PhotoUploadFieldProps) {
+function PhotoUploadField({ 
+  field, 
+  itemIndex, 
+  getValue, 
+  updateField, 
+  onImageChange,
+  getFileKey,
+  getPendingBlobForField
+}: PhotoUploadFieldProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const value = getValue(field.id, itemIndex);
+  const fileKey = getFileKey(field.id, itemIndex);
+  const pendingBlob = getPendingBlobForField(field.id, itemIndex);
   const hasValue = !!value;
+
+  // Refactored preview logic for maximum stability
+  const [blobPreview, setBlobPreview] = React.useState<string | null>(null);
+  const [serverPreview, setServerPreview] = React.useState<string | null>(null);
+  const [isServerLoading, setIsServerLoading] = React.useState(false);
+  
+  // 1. Handle local blob changes
+  React.useEffect(() => {
+    if (pendingBlob) {
+      const url = URL.createObjectURL(pendingBlob);
+      setBlobPreview(url);
+      // When we have a new blob, clear the old server preview to avoid confusion
+      setServerPreview(null);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setBlobPreview(null);
+    }
+  }, [pendingBlob]);
+
+  // 2. Handle server key changes
+  React.useEffect(() => {
+    if (fileKey) {
+      const url = `${api.getImageUrl(fileKey)}&t=${Date.now()}`;
+      setServerPreview(url);
+      setIsServerLoading(true);
+    } else {
+      setServerPreview(null);
+      setIsServerLoading(false);
+    }
+  }, [fileKey]);
+
+  const handleImgError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    console.error('[PhotoPreview] Error loading:', e.currentTarget.src);
+    setIsServerLoading(false);
+  };
+
+  const handleImgLoad = () => {
+    setIsServerLoading(false);
+  };
 
   return (
     <div 
       className={cn(
-        "relative h-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all",
+        "relative h-40 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden group",
         hasValue ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/50"
       )}
       onClick={() => fileInputRef.current?.click()}
     >
-      {hasValue ? (
-        <>
-          <div className="bg-primary text-white p-2 rounded-full shadow-lg animate-in zoom-in duration-300">
-            <IconCheck size={20} />
+      {/* Priority 1: Server Preview (if loaded or loading) */}
+      {serverPreview && (
+        <img 
+          src={serverPreview} 
+          alt="Server Preview" 
+          onLoad={handleImgLoad}
+          onError={handleImgError}
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-300",
+            isServerLoading ? "opacity-0" : "opacity-100"
+          )}
+        />
+      )}
+
+      {/* Priority 2: Local Blob Preview (acts as fallback and background) */}
+      {blobPreview && (
+        <img 
+          src={blobPreview} 
+          alt="Local Preview" 
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover z-0",
+            // Keep visible if server is still loading
+            "opacity-100"
+          )}
+        />
+      )}
+
+      {/* Loading Spinner */}
+      {isServerLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[1px] z-20">
+          <Spinner className="w-6 h-6 text-white" />
+        </div>
+      )}
+
+      {!blobPreview && !serverPreview && (
+        <div className="flex flex-col items-center gap-2 text-muted-foreground group-hover:text-primary transition-colors">
+          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10">
+            <IconCamera size={24} />
           </div>
-          <span className="text-[10px] font-extrabold text-primary uppercase tracking-wider">Foto Capturada</span>
+          <span className="text-xs font-bold uppercase tracking-wider">Tirar Foto</span>
+        </div>
+      )}
+
+      {(blobPreview || serverPreview) && (
+        <>
+          <div className="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors z-30" />
+          <div className="relative z-40 bg-white/90 backdrop-blur-sm text-primary px-3 py-1 rounded-full shadow-lg flex items-center gap-2 transform group-hover:scale-105 transition-transform">
+            <IconCheck size={14} className="stroke-[3]" />
+            <span className="text-[10px] font-bold uppercase tracking-wider">Alterar Foto</span>
+          </div>
           <button 
-            className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-lg hover:bg-black/70"
+            className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-lg hover:bg-red-500 transition-colors z-50"
             onClick={(e) => { e.stopPropagation(); updateField(field.id, itemIndex, ''); }}
           >
             <IconRefresh size={14} />
           </button>
-        </>
-      ) : (
-        <>
-          <div className="text-muted-foreground opacity-50">
-            <IconCamera size={28} />
-          </div>
-          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Tirar Foto</span>
         </>
       )}
       <input 

@@ -334,6 +334,9 @@ export default function FillDocumentPage() {
                 fields={globalFields}
                 getValue={getValue}
                 updateField={updateField}
+                onImageChange={updateImageField}
+                getFileKey={getFileKey}
+                getPendingBlobForField={getPendingBlobForField}
                 onNext={goNext}
               />
               
@@ -411,6 +414,8 @@ export default function FillDocumentPage() {
                 getValue={getValue}
                 updateField={updateField}
                 onImageChange={updateImageField}
+                getFileKey={getFileKey}
+                getPendingBlobForField={getPendingBlobForField}
                 onNext={step === filteredAssignments.length ? () => generateMutation.mutate() : goNext}
                 onPrev={goPrev}
                 isLast={step === filteredAssignments.length}
