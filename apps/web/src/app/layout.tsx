@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR">
       <body className={inter.className}>
         <Providers>
-          <div className="flex h-screen">
+          <div className="flex h-dvh overflow-hidden bg-background">
             <AppSidebar />
             <main className="flex-1 overflow-auto pb-16 md:pb-0">{children}</main>
             <MobileBottomNav />

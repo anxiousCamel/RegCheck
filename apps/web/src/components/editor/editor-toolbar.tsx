@@ -27,70 +27,87 @@ export function EditorToolbar({ templateId: _templateId }: { templateId: string 
     useEditorStore();
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 border-b bg-background shadow-sm">
-      {/* Field tools */}
-      <div className="flex gap-1 border-r pr-2">
+    <div className="flex items-center gap-2 p-1.5 bg-white/90 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] max-w-[90vw] sm:max-w-none overflow-x-auto scrollbar-hide">
+      {/* Field tools Group */}
+      <div className="flex items-center gap-1 bg-slate-100/50 p-1 rounded-xl">
         {TOOLS.map((tool) => {
           const Icon = tool.icon;
+          const isActive = activeTool === tool.type;
           return (
-            <Button
+            <button
               key={tool.type}
-              variant={activeTool === tool.type ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveTool(activeTool === tool.type ? null : tool.type)}
-              className="gap-2"
+              onClick={() => setActiveTool(isActive ? null : tool.type)}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 group",
+                isActive 
+                  ? "bg-primary text-white shadow-md shadow-primary/20 scale-105" 
+                  : "text-slate-500 hover:text-slate-900 hover:bg-white"
+              )}
+              title={tool.label}
             >
-              <Icon className="h-4 w-4" />
-              {tool.label}
-            </Button>
+              <Icon className={cn("h-4 w-4 transition-transform group-active:scale-90", isActive ? "stroke-[3px]" : "stroke-[2px]")} />
+              <span className="text-[11px] font-black uppercase tracking-tight hidden md:inline">{tool.label}</span>
+            </button>
           );
         })}
       </div>
 
-      {/* Zoom controls */}
-      <div className="flex items-center gap-1 border-r pr-2">
-        <Button variant="outline" size="sm" onClick={zoomOut} title="Diminuir Zoom">
+      <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block" />
+
+      {/* Grid & Snap */}
+      <button
+        onClick={() => setSnapEnabled(!snapEnabled)}
+        className={cn(
+          "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200",
+          snapEnabled ? "text-primary bg-primary/10" : "text-slate-500 hover:text-slate-900 hover:bg-white"
+        )}
+        title="Ativar Grid"
+      >
+        <Grid3X3 className="h-4 w-4" />
+        <span className="text-[11px] font-black uppercase tracking-tight hidden lg:inline text-current">Grid</span>
+      </button>
+
+      <div className="w-px h-6 bg-slate-200 mx-1" />
+
+      {/* Zoom Group */}
+      <div className="flex items-center gap-1 bg-slate-100/50 p-1 rounded-xl">
+        <button 
+          onClick={zoomOut} 
+          className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-white rounded-lg transition-colors"
+        >
           <Minus className="h-4 w-4" />
-        </Button>
-        <span className="text-sm w-14 text-center font-medium">{Math.round(zoom * 100)}%</span>
-        <Button variant="outline" size="sm" onClick={zoomIn} title="Aumentar Zoom">
+        </button>
+        <span className="text-[10px] w-12 text-center font-black text-slate-700 select-none">
+          {Math.round(zoom * 100)}%
+        </span>
+        <button 
+          onClick={zoomIn} 
+          className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-white rounded-lg transition-colors"
+        >
           <Plus className="h-4 w-4" />
-        </Button>
+        </button>
       </div>
 
-      {/* Grid snap */}
-      <Button
-        variant={snapEnabled ? 'default' : 'outline'}
-        size="sm"
-        onClick={() => setSnapEnabled(!snapEnabled)}
-        className="gap-2"
-      >
-        <Grid3X3 className={cn("h-4 w-4", snapEnabled ? "text-primary-foreground" : "text-muted-foreground")} />
-        Grid
-      </Button>
+      <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block" />
 
-      {/* Undo/Redo */}
-      <div className="flex gap-1 ml-auto">
-        <Button 
-          variant="outline" 
-          size="sm" 
+      {/* Undo/Redo Group */}
+      <div className="flex items-center gap-1 ml-auto">
+        <button 
           onClick={undo} 
           disabled={!history.canUndo()}
-          className="gap-2"
+          className="p-2 text-slate-400 hover:text-slate-900 hover:bg-white disabled:opacity-20 disabled:pointer-events-none rounded-lg transition-all active:scale-90"
+          title="Desfazer"
         >
           <Undo2 className="h-4 w-4" />
-          Desfazer
-        </Button>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        </button>
+        <button 
           onClick={redo} 
           disabled={!history.canRedo()}
-          className="gap-2"
+          className="p-2 text-slate-400 hover:text-slate-900 hover:bg-white disabled:opacity-20 disabled:pointer-events-none rounded-lg transition-all active:scale-90"
+          title="Refazer"
         >
           <Redo2 className="h-4 w-4" />
-          Refazer
-        </Button>
+        </button>
       </div>
     </div>
   );

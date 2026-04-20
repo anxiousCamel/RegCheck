@@ -239,11 +239,17 @@ export default function FillDocumentPage() {
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-2xl mx-auto pb-32">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-extrabold tracking-tight">
-          {docData?.name ?? 'Preencher Documento'}
-        </h1>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-black tracking-tight text-primary">
+            {docData?.name ?? 'Preencher Documento'}
+          </h1>
+          <p className="text-xs text-muted-foreground font-medium">
+            {isGlobalStep ? 'Informações Gerais' : `Equipamento ${step} de ${filteredAssignments.length}`}
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-2 bg-muted/30 p-1.5 rounded-2xl sm:bg-transparent sm:p-0">
           <StatusBar
             isOnline={isOnline}
             syncStatus={syncStatus}
@@ -252,32 +258,33 @@ export default function FillDocumentPage() {
             onSyncNow={syncToServer}
             compact
           />
+          <div className="w-px h-4 bg-border sm:hidden" />
           <Button
             size="sm"
             variant="outline"
             onClick={() => generateMutation.mutate()}
             disabled={generationState === 'queuing' || generationState === 'generating'}
-            className="font-bold border-2"
+            className="font-bold border-2 h-9 sm:h-8"
           >
             {(generationState === 'queuing' || generationState === 'generating') ? (
               <Spinner className="mr-2 h-4 w-4" />
             ) : null}
-            Finalizar e Gerar
+            Gerar PDF
           </Button>
         </div>
       </div>
 
       {/* Sector Filter - Always available if we have assignments */}
       {hasAssignments && (
-        <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="sticky top-0 z-10 -mx-4 px-4 py-3 bg-background/95 backdrop-blur-md border-b shadow-sm">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
             <Button
               variant={selectedSetorId === null ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSelectedSetorId(null)}
-              className="rounded-full px-4 h-8 text-xs shrink-0"
+              className="rounded-full px-5 h-10 sm:h-8 text-[11px] font-bold uppercase tracking-wider shrink-0"
             >
-              Todos Setores
+              Todos
             </Button>
             {setores.map((s) => (
               <Button
@@ -285,7 +292,7 @@ export default function FillDocumentPage() {
                 variant={selectedSetorId === s.id ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSelectedSetorId(s.id)}
-                className="rounded-full px-4 h-8 text-xs whitespace-nowrap shrink-0"
+                className="rounded-full px-5 h-10 sm:h-8 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap shrink-0"
               >
                 {s.nome}
               </Button>
@@ -361,7 +368,7 @@ export default function FillDocumentPage() {
               </div>
 
               {showIndex && (
-                <div className="bg-muted/30 border rounded-xl p-2 grid grid-cols-2 sm:grid-cols-3 gap-2 animate-in fade-in slide-in-from-top-2 duration-300 max-h-[300px] overflow-y-auto">
+                <div className="bg-muted/30 border rounded-xl p-3 grid grid-cols-2 sm:grid-cols-3 gap-3 animate-in fade-in slide-in-from-top-2 duration-300 max-h-[400px] overflow-y-auto shadow-inner">
                     {filteredAssignments.map((a, i) => {
                       // Determine which slot this item occupies on the page (SX0, SX1, etc.)
                       const itemsPerPage = slotMap.size;
@@ -388,16 +395,16 @@ export default function FillDocumentPage() {
                         <button
                           key={a.itemIndex}
                           onClick={() => { setStep(i + 1); setShowIndex(false); }}
-                          className={`text-[10px] text-left p-2 rounded-lg border transition-all flex flex-col justify-between h-full ${
+                          className={`min-h-[60px] text-left p-3 rounded-xl border-2 transition-all flex flex-col justify-between h-full ${
                             step === i + 1 
-                              ? 'bg-primary text-white border-primary shadow-md' 
-                              : 'bg-white hover:border-primary/50'
+                              ? 'bg-primary text-white border-primary shadow-lg ring-2 ring-primary/20 scale-[0.98]' 
+                              : 'bg-white hover:border-primary/50 text-foreground'
                           }`}
                         >
-                          <div className="font-extrabold text-xs mb-1">
+                          <div className={`font-black text-[11px] mb-1 uppercase tracking-tight ${step === i + 1 ? 'text-white' : 'text-primary'}`}>
                             #{finalLabel}
                           </div>
-                          <div className={`truncate text-[9px] opacity-80 ${step === i + 1 ? 'text-white/90' : 'text-muted-foreground'}`}>
+                          <div className={`truncate text-[10px] font-bold ${step === i + 1 ? 'text-white/80' : 'text-muted-foreground'}`}>
                             {a.setorNome}
                           </div>
                         </button>
@@ -469,34 +476,61 @@ function StatusBar({
 }) {
   if (isOnline && syncStatus === 'idle' && !hasPendingChanges && pendingUploads === 0) return null;
 
+  const getStatusConfig = () => {
+    if (!isOnline) return { label: 'Offline', color: 'bg-amber-100 text-amber-700 border-amber-200' };
+    if (syncStatus === 'syncing') return { label: 'Sincronizando', color: 'bg-blue-100 text-blue-700 border-blue-200' };
+    if (syncStatus === 'error') return { label: 'Erro Sinc.', color: 'bg-red-100 text-red-700 border-red-200' };
+    if (hasPendingChanges) return { label: 'Pendente', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' };
+    return { label: 'Salvo', color: 'bg-green-100 text-green-700 border-green-200' };
+  };
+
+  const config = getStatusConfig();
+
   if (compact) {
     return (
-      <div className={`flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${
-        !isOnline ? 'bg-amber-100 text-amber-700'
-          : syncStatus === 'error' ? 'bg-red-100 text-red-700'
-          : 'bg-blue-100 text-blue-700'
-      }`}>
-        {!isOnline ? 'Offline' : syncStatus === 'syncing' ? 'Sincronizando' : hasPendingChanges ? 'Pendente' : 'Salvo'}
-        {pendingUploads > 0 && <span> · {pendingUploads} fotos</span>}
+      <div className={cn(
+        "flex items-center gap-2 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-widest border shadow-sm transition-colors",
+        config.color
+      )}>
+        <span className={cn(
+          "w-1.5 h-1.5 rounded-full",
+          !isOnline ? "bg-amber-500" : syncStatus === 'syncing' ? "bg-blue-500 animate-pulse" : "bg-current"
+        )} />
+        {config.label}
+        {pendingUploads > 0 && <span className="opacity-50">· {pendingUploads}↑</span>}
       </div>
     );
   }
 
   return (
-    <div className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm ${
-      !isOnline ? 'border-amber-300 bg-amber-50 text-amber-800'
-        : syncStatus === 'error' ? 'border-red-300 bg-red-50 text-red-800'
-        : 'border-blue-200 bg-blue-50 text-blue-800'
-    }`}>
-      <div className="flex items-center gap-2">
-        {!isOnline && <><span className="h-2 w-2 rounded-full bg-amber-500 inline-block" /><span>Offline — alterações salvas localmente</span></>}
-        {isOnline && syncStatus === 'syncing' && <><Spinner className="h-3 w-3" /><span>Sincronizando...</span></>}
-        {isOnline && syncStatus === 'error' && <span>Erro ao sincronizar</span>}
-        {isOnline && syncStatus === 'idle' && hasPendingChanges && <span>Alterações não salvas</span>}
-        {pendingUploads > 0 && <span className="ml-1">· {pendingUploads} foto{pendingUploads !== 1 ? 's' : ''} aguardando upload</span>}
+    <div className={cn(
+      "flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border p-3 text-sm shadow-sm transition-colors",
+      config.color
+    )}>
+      <div className="flex items-center gap-3">
+        <div className={cn(
+          "flex items-center justify-center w-8 h-8 rounded-full bg-white/50",
+          syncStatus === 'syncing' && "animate-spin"
+        )}>
+          {!isOnline ? '📡' : syncStatus === 'syncing' ? '🔄' : '✅'}
+        </div>
+        <div className="flex flex-col">
+          <span className="font-bold leading-tight">{config.label}</span>
+          <span className="text-[11px] opacity-80">
+            {!isOnline ? 'Alterações salvas localmente' : syncStatus === 'syncing' ? 'Enviando dados...' : 'Tudo em dia'}
+            {pendingUploads > 0 && ` · ${pendingUploads} foto(s) pendente(s)`}
+          </span>
+        </div>
       </div>
       {isOnline && (hasPendingChanges || pendingUploads > 0) && syncStatus !== 'syncing' && (
-        <button onClick={onSyncNow} className="underline font-medium text-xs">Sincronizar agora</button>
+        <Button 
+          variant="secondary" 
+          size="sm" 
+          onClick={onSyncNow} 
+          className="h-8 text-xs font-bold w-full sm:w-auto"
+        >
+          Sincronizar agora
+        </Button>
       )}
     </div>
   );
