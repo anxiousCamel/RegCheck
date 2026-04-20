@@ -412,18 +412,22 @@ function PhotoUploadField({
   const [blobPreview, setBlobPreview] = React.useState<string | null>(null);
   const [serverPreview, setServerPreview] = React.useState<string | null>(null);
   const [isServerLoading, setIsServerLoading] = React.useState(false);
-  
-  // 1. Handle local blob changes
+  const blobUrlRef = React.useRef<string | null>(null);
+
+  // 1. Create a blob URL whenever we have a new pendingBlob.
+  // IMPORTANT: we do NOT revoke / clear the URL when pendingBlob becomes undefined
+  // (that happens right after upload succeeds). Doing so would briefly leave the
+  // preview empty while the server image is still loading — causing the image to
+  // "disappear" for ~1s after capture. The URL is only revoked when a new blob
+  // replaces it, when the server image finishes loading, or on unmount.
   React.useEffect(() => {
-    if (pendingBlob) {
-      const url = URL.createObjectURL(pendingBlob);
-      setBlobPreview(url);
-      // When we have a new blob, clear the old server preview to avoid confusion
-      setServerPreview(null);
-      return () => URL.revokeObjectURL(url);
-    } else {
-      setBlobPreview(null);
-    }
+    if (!pendingBlob) return;
+    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    const url = URL.createObjectURL(pendingBlob);
+    blobUrlRef.current = url;
+    setBlobPreview(url);
+    setServerPreview(null);
+    setIsServerLoading(false);
   }, [pendingBlob]);
 
   // 2. Handle server key changes
@@ -438,6 +442,16 @@ function PhotoUploadField({
     }
   }, [fileKey]);
 
+  // 3. Release the blob URL on unmount
+  React.useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+    };
+  }, []);
+
   const handleImgError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     console.error('[PhotoPreview] Error loading:', e.currentTarget.src);
     setIsServerLoading(false);
@@ -445,6 +459,12 @@ function PhotoUploadField({
 
   const handleImgLoad = () => {
     setIsServerLoading(false);
+    // Server image is now visible — safe to drop the local blob fallback.
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
+    setBlobPreview(null);
   };
 
   return (
