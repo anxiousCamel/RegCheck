@@ -333,10 +333,16 @@ interface BindingSectionProps {
  */
 const BINDING_SUGGESTIONS: Record<FieldScope, string[]> = {
   item: ['eq.numero', 'eq.serie', 'eq.patrimonio', 'eq.modelo', 'eq.ip', 'eq.setor'],
-  global: ['global.data', 'global.tecnico', 'global.assinatura', 'global.observacoes'],
+  global: [
+    'global.data.dia', 
+    'global.data.mes', 
+    'global.data.ano', 
+    'global.tecnico', 
+    'global.assinatura'
+  ],
 };
 
-const BINDING_KEY_RE = /^(global|eq)\.[a-z][a-z0-9_]*$/;
+const BINDING_KEY_RE = /^(global|eq)\.[a-z][a-z0-9_.]*$/;
 
 function BindingSection({ selectedFields, setFieldBinding }: BindingSectionProps) {
   const ids = selectedFields.map((f) => f.id);

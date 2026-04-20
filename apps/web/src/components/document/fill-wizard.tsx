@@ -411,23 +411,84 @@ function groupDateFields(fields: TemplateField[]) {
   const groupedFields: (any)[] = [];
   const hiddenFieldIds = new Set<string>();
   
-  const dayFields = fields.filter(f => f.config.label.toLowerCase().includes('dia'));
+  // 1. Group by bindingKey (e.g. global.data.dia, global.data.mes, global.data.ano)
+  const bindingGroups = new Map<string, { day: string[]; month: string[]; year: string[] }>();
+  
+  fields.forEach(f => {
+    if (!f.bindingKey) return;
+    const parts = f.bindingKey.toLowerCase().split('.');
+    if (parts.length < 2) return;
+    
+    const suffix = parts[parts.length - 1];
+    const base = parts.slice(0, -1).join('.');
+    
+    if (['dia', 'mes', 'mês', 'ano'].includes(suffix)) {
+      if (!bindingGroups.has(base)) {
+        bindingGroups.set(base, { day: [], month: [], year: [] });
+      }
+      const group = bindingGroups.get(base)!;
+      if (suffix === 'dia') group.day.push(f.id);
+      else if (suffix === 'mes' || suffix === 'mês') group.month.push(f.id);
+      else if (suffix === 'ano') group.year.push(f.id);
+    }
+  });
+
+  bindingGroups.forEach((ids, base) => {
+    if (ids.day.length > 0 && ids.month.length > 0 && ids.year.length > 0) {
+      const firstDayId = ids.day[0];
+      const dayField = fields.find(f => f.id === firstDayId)!;
+      
+      groupedFields.push({
+        id: `date-group-binding-${base}`,
+        type: 'date-group',
+        label: dayField.config.label.replace(/dia/i, 'Data').replace(/\..*$/, ''),
+        dayIds: ids.day,
+        monthIds: ids.month,
+        yearIds: ids.year,
+        bindingKey: base,
+        config: { ...dayField.config, label: dayField.config.label.replace(/dia/i, 'Data') }
+      });
+      
+      [...ids.day, ...ids.month, ...ids.year].forEach(id => hiddenFieldIds.add(id));
+    }
+  });
+
+  // 2. Fallback to label-based grouping for fields without bindingKey
+  const remainingFields = fields.filter(f => !hiddenFieldIds.has(f.id));
+  const dayFields = remainingFields.filter(f => {
+    const label = f.config.label.toLowerCase();
+    return label.includes('dia') && !label.includes('diário') && !label.includes('diagnóstico');
+  });
   
   dayFields.forEach(dayField => {
-    const baseLabel = dayField.config.label.toLowerCase().replace('dia', '').trim();
-    const monthField = fields.find(f => f.config.label.toLowerCase().includes('mês') && f.config.label.toLowerCase().includes(baseLabel));
-    const yearField = fields.find(f => f.config.label.toLowerCase().includes('ano') && f.config.label.toLowerCase().includes(baseLabel));
+    const fullLabel = dayField.config.label.toLowerCase();
+    // Remove "dia" to find the base context (e.g. "do ti" from "dia do ti")
+    const baseContext = fullLabel.replace('dia', '').trim();
+    
+    const monthField = remainingFields.find(f => {
+      if (hiddenFieldIds.has(f.id)) return false;
+      const l = f.config.label.toLowerCase();
+      const isMonth = l.includes('mês') || l.includes('mes');
+      return isMonth && (baseContext === '' || l.includes(baseContext));
+    });
+    
+    const yearField = remainingFields.find(f => {
+      if (hiddenFieldIds.has(f.id)) return false;
+      const l = f.config.label.toLowerCase();
+      const isYear = l.includes('ano');
+      return isYear && (baseContext === '' || l.includes(baseContext));
+    });
     
     if (monthField && yearField) {
       groupedFields.push({
-        id: `date-group-${dayField.id}`,
+        id: `date-group-label-${dayField.id}`,
         type: 'date-group',
         label: dayField.config.label.replace(/dia/i, 'Data'),
-        dayId: dayField.id,
-        monthId: monthField.id,
-        yearId: yearField.id,
+        dayIds: [dayField.id],
+        monthIds: [monthField.id],
+        yearIds: [yearField.id],
         config: { ...dayField.config, label: dayField.config.label.replace(/dia/i, 'Data') }
-      } as DateGroup);
+      });
       
       hiddenFieldIds.add(dayField.id);
       hiddenFieldIds.add(monthField.id);
@@ -435,6 +496,7 @@ function groupDateFields(fields: TemplateField[]) {
     }
   });
   
+  // 3. Add all other fields
   fields.forEach(f => {
     if (!hiddenFieldIds.has(f.id)) {
       groupedFields.push(f);
@@ -445,18 +507,18 @@ function groupDateFields(fields: TemplateField[]) {
 }
 
 function DateGroupField({ group, itemIndex, getValue, updateField }: { group: any, itemIndex: number, getValue: any, updateField: any }) {
-  const day = String(getValue(group.dayId, itemIndex) || '');
-  const month = String(getValue(group.monthId, itemIndex) || '');
-  const year = String(getValue(group.yearId, itemIndex) || '');
+  const day = String(getValue(group.dayIds[0], itemIndex) || '');
+  const month = String(getValue(group.monthIds[0], itemIndex) || '');
+  const year = String(getValue(group.yearIds[0], itemIndex) || '');
   
   const dateVal = year && month && day ? `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}` : new Date().toISOString().split('T')[0];
 
   const handleDateChange = (val: string) => {
     if (!val) return;
     const [y, m, d] = val.split('-');
-    updateField(group.dayId, itemIndex, d);
-    updateField(group.monthId, itemIndex, m);
-    updateField(group.yearId, itemIndex, y);
+    group.dayIds.forEach((id: string) => updateField(id, itemIndex, d));
+    group.monthIds.forEach((id: string) => updateField(id, itemIndex, m));
+    group.yearIds.forEach((id: string) => updateField(id, itemIndex, y));
   };
 
   React.useEffect(() => {
@@ -467,9 +529,16 @@ function DateGroupField({ group, itemIndex, getValue, updateField }: { group: an
 
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-        {group.label}
-      </label>
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+          {group.label}
+        </label>
+        {group.bindingKey && (
+          <span className="text-[10px] text-primary/50 font-bold uppercase tracking-widest flex items-center gap-1">
+            <IconCheck size={10} /> Sincronizado
+          </span>
+        )}
+      </div>
       <input
         type="date"
         value={dateVal}

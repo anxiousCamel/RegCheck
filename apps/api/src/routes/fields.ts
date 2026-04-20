@@ -55,7 +55,7 @@ fieldRouter.post('/:id/fields/batch-positions', async (req, res, next) => {
           slotIndex: z.number().int().min(0).nullable().optional(),
           bindingKey: z
             .string()
-            .regex(/^(global|eq)\.[a-z][a-z0-9_]*$/)
+            .regex(/^(global|eq)\.[a-z][a-z0-9_.]*$/i)
             .nullable()
             .optional(),
         }),
