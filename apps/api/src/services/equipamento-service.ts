@@ -3,12 +3,51 @@ import type { Prisma } from '@regcheck/database';
 import type { EquipamentoDTO } from '@regcheck/shared';
 import type { CreateEquipamentoInput, UpdateEquipamentoInput, EquipamentoFilterInput } from '@regcheck/validators';
 import { AppError } from '../middleware/error-handler';
+import { cacheService } from '../lib/cache';
 
-const includeRelations = {
-  loja: true,
-  setor: true,
-  tipo: true,
+// Optimized select for list queries - only necessary fields
+const listSelect = {
+  id: true,
+  lojaId: true,
+  setorId: true,
+  tipoId: true,
+  numeroEquipamento: true,
+  serie: true,
+  patrimonio: true,
+  glpiId: true,
+  createdAt: true,
+  updatedAt: true,
+  loja: {
+    select: {
+      id: true,
+      nome: true,
+      ativo: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  },
+  setor: {
+    select: {
+      id: true,
+      nome: true,
+      ativo: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  },
+  tipo: {
+    select: {
+      id: true,
+      nome: true,
+      ativo: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  },
 } as const;
+
+// For detail queries, use the same optimized select
+const detailSelect = listSelect;
 
 function toDTO(eq: {
   id: string;
@@ -63,55 +102,68 @@ function toDTO(eq: {
 export class EquipamentoService {
   /** List equipamentos with pagination and filters */
   static async list(page: number, pageSize: number, filters: EquipamentoFilterInput) {
-    const skip = (page - 1) * pageSize;
-    const where: Prisma.EquipamentoWhereInput = {};
+    // Enforce max page size of 100 items (Requirement 5.2)
+    const effectivePageSize = Math.min(pageSize, 100);
+    
+    // Create cache key including filters for proper cache segmentation
+    const filterKey = JSON.stringify(filters);
+    const cacheKey = `equipamentos:list:page:${page}:size:${effectivePageSize}:filters:${filterKey}`;
+    
+    return cacheService.wrap(cacheKey, async () => {
+      const skip = (page - 1) * effectivePageSize;
+      const where: Prisma.EquipamentoWhereInput = {};
 
-    if (filters.lojaId) where.lojaId = filters.lojaId;
-    if (filters.setorId) where.setorId = filters.setorId;
-    if (filters.tipoId) where.tipoId = filters.tipoId;
-    if (filters.numeroEquipamento) {
-      where.numeroEquipamento = { contains: filters.numeroEquipamento, mode: 'insensitive' };
-    }
-    if (filters.serie) {
-      where.serie = { contains: filters.serie, mode: 'insensitive' };
-    }
-    if (filters.search) {
-      where.OR = [
-        { numeroEquipamento: { contains: filters.search, mode: 'insensitive' } },
-        { serie: { contains: filters.search, mode: 'insensitive' } },
-        { patrimonio: { contains: filters.search, mode: 'insensitive' } },
-        { glpiId: { contains: filters.search, mode: 'insensitive' } },
-      ];
-    }
+      if (filters.lojaId) where.lojaId = filters.lojaId;
+      if (filters.setorId) where.setorId = filters.setorId;
+      if (filters.tipoId) where.tipoId = filters.tipoId;
+      if (filters.numeroEquipamento) {
+        where.numeroEquipamento = { contains: filters.numeroEquipamento, mode: 'insensitive' };
+      }
+      if (filters.serie) {
+        where.serie = { contains: filters.serie, mode: 'insensitive' };
+      }
+      if (filters.search) {
+        where.OR = [
+          { numeroEquipamento: { contains: filters.search, mode: 'insensitive' } },
+          { serie: { contains: filters.search, mode: 'insensitive' } },
+          { patrimonio: { contains: filters.search, mode: 'insensitive' } },
+          { glpiId: { contains: filters.search, mode: 'insensitive' } },
+        ];
+      }
 
-    const [items, total] = await Promise.all([
-      prisma.equipamento.findMany({
-        where,
-        skip,
-        take: pageSize,
-        orderBy: { createdAt: 'desc' },
-        include: includeRelations,
-      }),
-      prisma.equipamento.count({ where }),
-    ]);
+      const [items, total] = await Promise.all([
+        prisma.equipamento.findMany({
+          where,
+          skip,
+          take: effectivePageSize,
+          orderBy: { createdAt: 'desc' },
+          select: listSelect,
+        }),
+        prisma.equipamento.count({ where }),
+      ]);
 
-    return {
-      items: items.map(toDTO),
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
-    };
+      return {
+        items: items.map(toDTO),
+        total,
+        page,
+        pageSize: effectivePageSize,
+        totalPages: Math.ceil(total / effectivePageSize),
+      };
+    }, 120); // 2 minutes TTL (more dynamic data)
   }
 
   /** Get equipamento by ID */
   static async getById(id: string): Promise<EquipamentoDTO> {
-    const eq = await prisma.equipamento.findUnique({
-      where: { id },
-      include: includeRelations,
-    });
-    if (!eq) throw new AppError(404, 'Equipamento não encontrado', 'NOT_FOUND');
-    return toDTO(eq);
+    const cacheKey = `equipamento:${id}`;
+    
+    return cacheService.wrap(cacheKey, async () => {
+      const eq = await prisma.equipamento.findUnique({
+        where: { id },
+        select: detailSelect,
+      });
+      if (!eq) throw new AppError(404, 'Equipamento não encontrado', 'NOT_FOUND');
+      return toDTO(eq);
+    }, 120); // 2 minutes TTL
   }
 
   /** Create a new equipamento */
@@ -137,8 +189,11 @@ export class EquipamentoService {
         patrimonio: input.patrimonio ?? null,
         glpiId: input.glpiId ?? null,
       },
-      include: includeRelations,
+      select: detailSelect,
     });
+
+    // Invalidate all list caches
+    await cacheService.delPattern('equipamentos:list:*');
 
     return toDTO(eq);
   }
@@ -165,8 +220,12 @@ export class EquipamentoService {
     const eq = await prisma.equipamento.update({
       where: { id },
       data: input,
-      include: includeRelations,
+      select: detailSelect,
     });
+
+    // Invalidate all list caches and the specific equipamento cache
+    await cacheService.delPattern('equipamentos:list:*');
+    await cacheService.del(`equipamento:${id}`);
 
     return toDTO(eq);
   }
@@ -177,5 +236,9 @@ export class EquipamentoService {
     if (!existing) throw new AppError(404, 'Equipamento não encontrado', 'NOT_FOUND');
 
     await prisma.equipamento.delete({ where: { id } });
+
+    // Invalidate all list caches and the specific equipamento cache
+    await cacheService.delPattern('equipamentos:list:*');
+    await cacheService.del(`equipamento:${id}`);
   }
 }

@@ -9,7 +9,7 @@ import type {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-class ApiClient {
+export class ApiClient {
   private baseUrl: string;
 
   constructor(baseUrl: string) {
@@ -24,6 +24,11 @@ class ApiClient {
         ...options?.headers,
       },
     });
+
+    // 204 No Content — no body to parse
+    if (res.status === 204) {
+      return undefined as T;
+    }
 
     const body = (await res.json()) as ApiResponse<T>;
 
@@ -145,6 +150,10 @@ class ApiClient {
       generatedPdfKey: string | null;
       job?: { state: string | null; progress: number; failedReason?: string };
     }>(`/api/documents/${documentId}/status`);
+  }
+
+  deleteDocument(id: string): Promise<void> {
+    return this.request<void>(`/api/documents/${id}`, { method: 'DELETE' });
   }
 
   // Uploads

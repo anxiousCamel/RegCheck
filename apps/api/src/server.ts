@@ -10,7 +10,11 @@ import { setorRouter } from './routes/setores';
 import { tipoEquipamentoRouter } from './routes/tipos-equipamento';
 import { equipamentoRouter } from './routes/equipamentos';
 import { errorHandler } from './middleware/error-handler';
-import { requestLogger } from './middleware/request-logger';
+import { performanceMiddleware } from './middleware/performance-middleware';
+import { initializePrismaQueryLogging } from './lib/prisma-query-logger';
+
+// Initialize Prisma query logging
+initializePrismaQueryLogging();
 
 const app = express();
 const PORT = process.env.API_PORT ?? 4000;
@@ -22,7 +26,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
-app.use(requestLogger);
+app.use(performanceMiddleware);
 
 // Health check
 app.get('/health', (_req, res) => {
@@ -42,8 +46,10 @@ app.use('/api/equipamentos', equipamentoRouter);
 // Error handling
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`[API] Server running on port ${PORT}`);
-});
+if (process.env['NODE_ENV'] !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`[API] Server running on port ${PORT}`);
+  });
+}
 
 export { app };

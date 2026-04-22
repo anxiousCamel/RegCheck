@@ -4,6 +4,7 @@ import type { CreateDocumentInput, UpdateDocumentInput, SaveFilledDataInput, Pop
 import type { RepetitionConfig } from '@regcheck/shared';
 import { AppError } from '../middleware/error-handler';
 import { pdfGenerationQueue } from '../lib/queue';
+import { cacheService } from '../lib/cache';
 
 const STATUS_MAP: Record<string, PrismaDocStatus> = {
   draft: 'DRAFT',
@@ -14,38 +15,53 @@ const STATUS_MAP: Record<string, PrismaDocStatus> = {
 export class DocumentService {
   /** List documents with pagination */
   static async list(page: number, pageSize: number) {
-    const skip = (page - 1) * pageSize;
+    const cacheKey = `documents:list:page:${page}:size:${pageSize}`;
+    
+    return cacheService.wrap(cacheKey, async () => {
+      const skip = (page - 1) * pageSize;
 
-    const [items, total] = await Promise.all([
-      prisma.document.findMany({
-        skip,
-        take: pageSize,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          template: { select: { name: true } },
-          _count: { select: { filledFields: true } },
-        },
-      }),
-      prisma.document.count(),
-    ]);
+      const [items, total] = await Promise.all([
+        prisma.document.findMany({
+          skip,
+          take: pageSize,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            totalItems: true,
+            templateId: true,
+            createdAt: true,
+            updatedAt: true,
+            template: {
+              select: { name: true },
+            },
+            _count: {
+              select: { filledFields: true },
+            },
+          },
+        }),
+        prisma.document.count(),
+      ]);
 
-    return {
-      items: items.map((d) => ({
-        id: d.id,
-        templateId: d.templateId,
-        templateName: d.template.name,
-        name: d.name,
-        status: d.status.toLowerCase(),
-        totalItems: d.totalItems,
-        completedItems: d._count.filledFields,
-        createdAt: d.createdAt.toISOString(),
-        updatedAt: d.updatedAt.toISOString(),
-      })),
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
-    };
+      return {
+        items: items.map((d) => ({
+          id: d.id,
+          templateId: d.templateId,
+          templateName: d.template.name,
+          name: d.name,
+          status: d.status.toLowerCase(),
+          totalItems: d.totalItems,
+          completedItems: d._count.filledFields,
+          createdAt: d.createdAt.toISOString(),
+          updatedAt: d.updatedAt.toISOString(),
+        })),
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      };
+    }, 60); // 1 minute TTL (highly dynamic data)
   }
 
   /** Create a new document from a template */
@@ -65,26 +81,75 @@ export class DocumentService {
       },
     });
 
+    // Invalidate list cache
+    await cacheService.delPattern('documents:list:*');
+
     return doc;
   }
 
   /** Get document by ID with filled data */
   static async getById(id: string) {
-    const doc = await prisma.document.findUnique({
-      where: { id },
-      include: {
-        template: {
-          include: {
-            pdfFile: true,
-            fields: true,
+    const cacheKey = `document:${id}`;
+    
+    return cacheService.wrap(cacheKey, async () => {
+      const doc = await prisma.document.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          totalItems: true,
+          templateId: true,
+          templateVersion: true,
+          generatedPdfKey: true,
+          metadata: true,
+          createdAt: true,
+          updatedAt: true,
+          template: {
+            select: {
+              id: true,
+              name: true,
+              status: true,
+              version: true,
+              repetitionConfig: true,
+              pdfFile: {
+                select: {
+                  id: true,
+                  key: true,
+                  url: true,
+                  filename: true,
+                },
+              },
+              fields: {
+                select: {
+                  id: true,
+                  type: true,
+                  config: true,
+                  page: true,
+                  x: true,
+                  y: true,
+                  width: true,
+                  height: true,
+                },
+                orderBy: { page: 'asc' },
+              },
+            },
+          },
+          filledFields: {
+            select: {
+              id: true,
+              fieldId: true,
+              itemIndex: true,
+              value: true,
+              fileKey: true,
+            },
           },
         },
-        filledFields: true,
-      },
-    });
+      });
 
-    if (!doc) throw new AppError(404, 'Document not found', 'NOT_FOUND');
-    return doc;
+      if (!doc) throw new AppError(404, 'Document not found', 'NOT_FOUND');
+      return doc;
+    }, 60); // 1 minute TTL (highly dynamic data)
   }
 
   /** Save filled field data (autosave-friendly: upserts) */
@@ -124,6 +189,10 @@ export class DocumentService {
         data: { status: 'IN_PROGRESS' },
       });
     }
+
+    // Invalidate cache for this document and list cache
+    await cacheService.del(`document:${documentId}`);
+    await cacheService.delPattern('documents:list:*');
   }
 
   /** Update document metadata */
@@ -133,7 +202,13 @@ export class DocumentService {
     if (input.status) data.status = STATUS_MAP[input.status];
     if (input.totalItems) data.totalItems = input.totalItems;
 
-    return prisma.document.update({ where: { id }, data });
+    const result = await prisma.document.update({ where: { id }, data });
+
+    // Invalidate cache for this document and list cache
+    await cacheService.del(`document:${id}`);
+    await cacheService.delPattern('documents:list:*');
+
+    return result;
   }
 
   /** Populate document with equipment data, grouping by setor and respecting itemsPerPage */
@@ -267,7 +342,26 @@ export class DocumentService {
       },
     });
 
+    // Invalidate cache for this document and list cache
+    await cacheService.del(`document:${documentId}`);
+    await cacheService.delPattern('documents:list:*');
+
     return { totalItems, assignments };
+  }
+
+  /** Delete a document and all its FilledFields in a single transaction */
+  static async delete(id: string): Promise<void> {
+    const doc = await prisma.document.findUnique({ where: { id } });
+    if (!doc) throw new AppError(404, 'Document not found', 'NOT_FOUND');
+
+    await prisma.$transaction([
+      prisma.filledField.deleteMany({ where: { documentId: id } }),
+      prisma.document.delete({ where: { id } }),
+    ]);
+
+    // Invalidate cache for this document and list cache
+    await cacheService.del(`document:${id}`);
+    await cacheService.delPattern('documents:list:*');
   }
 
   /** Queue PDF generation for a document */
@@ -286,6 +380,10 @@ export class DocumentService {
       // Abort job if it runs for more than 5 minutes
       timeout: 5 * 60 * 1000,
     });
+
+    // Invalidate cache for this document and list cache
+    await cacheService.del(`document:${documentId}`);
+    await cacheService.delPattern('documents:list:*');
 
     return { message: 'PDF generation queued', documentId };
   }
