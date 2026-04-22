@@ -252,10 +252,15 @@ export function EquipmentForm({
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <Button type="submit" disabled={!isValid || isLoading}>
-            {isLoading ? 'Salvando...' : initialData ? 'Atualizar' : 'Cadastrar'}
+        <div className="flex flex-col sm:flex-row gap-3 pt-4">
+          <Button type="submit" disabled={!isValid || isLoading} className="h-12 sm:h-10 text-base font-bold flex-1">
+            {isLoading ? 'Salvando...' : initialData ? 'Atualizar Equipamento' : 'Cadastrar Equipamento'}
           </Button>
+          {initialData && (
+             <Button type="button" variant="ghost" onClick={() => window.history.back()} className="h-12 sm:h-10 text-muted-foreground">
+               Cancelar
+             </Button>
+          )}
         </div>
       </form>
 

@@ -33,6 +33,11 @@ class ApiClient {
       },
     });
 
+    // 204 No Content — no body to parse
+    if (res.status === 204) {
+      return undefined as T;
+    }
+
     // Check if response is JSON
     const contentType = res.headers.get('content-type');
     if (!contentType?.includes('application/json')) {
@@ -161,8 +166,8 @@ class ApiClient {
     }>(`/api/documents/${documentId}/status`);
   }
 
-  deleteDocument(documentId: string) {
-    return this.request<{ message: string }>(`/api/documents/${documentId}`, { method: 'DELETE' });
+  deleteDocument(id: string): Promise<void> {
+    return this.request<void>(`/api/documents/${id}`, { method: 'DELETE' });
   }
 
   // Uploads
@@ -276,6 +281,10 @@ class ApiClient {
 
   updateEquipamento(id: string, data: Record<string, unknown>) {
     return this.request<EquipamentoDTO>(`/api/equipamentos/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
+  getImageUrl(key: string) {
+    return `${this.baseUrl}/api/uploads/file?key=${encodeURIComponent(key)}`;
   }
 
   deleteEquipamento(id: string) {

@@ -37,7 +37,8 @@ import {
   RotateCcw, 
   Trash2, 
   Settings, 
-  Home 
+  Home,
+  List
 } from 'lucide-react';
 
 export const IconChevronLeft = ChevronLeft;
@@ -75,3 +76,4 @@ export const IconRotate = RotateCcw;
 export const IconTrash = Trash2;
 export const IconSettings = Settings;
 export const IconHome = Home;
+export const IconList = List;

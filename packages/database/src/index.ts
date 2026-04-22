@@ -7,11 +7,17 @@ const globalForPrisma = globalThis as unknown as {
 /**
  * Singleton Prisma client instance.
  * Prevents multiple instances during hot-reloading in development.
+ * 
+ * Configured with query event emission for performance monitoring.
  */
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log: [
+      { level: 'query', emit: 'event' },
+      { level: 'error', emit: 'stdout' },
+      { level: 'warn', emit: 'stdout' },
+    ],
   });
 
 if (process.env.NODE_ENV !== 'production') {

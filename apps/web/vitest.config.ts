@@ -15,6 +15,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@regcheck/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts'),
+      '@regcheck/validators': path.resolve(__dirname, '../../packages/validators/src/index.ts'),
+      '@regcheck/editor-engine': path.resolve(__dirname, '../../packages/editor-engine/src/index.ts'),
+      '@regcheck/ui': path.resolve(__dirname, '../../packages/ui/src/index.ts'),
     },
   },
 });

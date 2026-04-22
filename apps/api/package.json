@@ -7,7 +7,9 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
-    "clean": "rimraf dist .turbo"
+    "clean": "rimraf dist .turbo",
+    "test": "vitest --run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@regcheck/database": "workspace:*",
@@ -30,8 +32,12 @@
     "@types/express": "^4.17.21",
     "@types/multer": "^1.4.11",
     "@types/node": "^20.11.0",
+    "@types/supertest": "^6.0.0",
     "dotenv-cli": "^7.3.0",
+    "fast-check": "^3.23.2",
+    "supertest": "^7.0.0",
     "tsx": "^4.7.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
   }
 }

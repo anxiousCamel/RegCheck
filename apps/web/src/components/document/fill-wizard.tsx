@@ -1,24 +1,10 @@
 import * as React from 'react';
-import { TemplateField, FieldConfig } from '@regcheck/shared';
+import { TemplateField, FieldType, ItemAssignment } from '@regcheck/shared';
 import { ProgressBar, SectionLabel, YesNo } from '../ui/regcheck-ui';
-import { Button, Spinner } from '@regcheck/ui';
-import {
-  IconChevronLeft, IconChevronRight, IconCheck, IconCamera, IconRefresh,
-  IconPackage, IconPrinter, IconScale, IconWifiOff, IconSparkles,
-  IconMoreVertical,
-} from '@/components/ui/icons';
+import { Button, Badge, Spinner, cn } from '@regcheck/ui';
+import { IconChevronLeft, IconChevronRight, IconCheck, IconX, IconCamera, IconRefresh } from '@/components/ui/icons'; 
 import { SignatureCanvas } from '@/components/document/signature-canvas';
-
-interface ItemAssignment {
-  itemIndex: number;
-  setorId: string;
-  setorNome: string;
-  equipamentoId: string;
-  numeroEquipamento: string;
-  tipoEquipamento?: string;
-}
-
-// ─── Wizard wrapper (layout-only) ────────────────────────────────────────────
+import { api } from '@/lib/api';
 
 interface WizardProps {
   step: number;
@@ -27,270 +13,22 @@ interface WizardProps {
   onPrev: () => void;
   onFinish: () => void;
   children: React.ReactNode;
+  progress?: number;
 }
 
-export function Wizard({ children }: WizardProps) {
-  return <>{children}</>;
-}
-
-// ─── FillListScreen ───────────────────────────────────────────────────────────
-
-interface FillListScreenProps {
-  docName: string;
-  allAssignments: ItemAssignment[];
-  filteredAssignments: ItemAssignment[];
-  setores: { id: string; nome: string }[];
-  selectedSetorId: string | null;
-  onSetSetor: (id: string | null) => void;
-  onStartFilling: () => void;
-  onGenerate: () => void;
-  generationState: 'idle' | 'queuing' | 'generating' | 'done' | 'error';
-  globalFields: TemplateField[];
-  getValue: (id: string, index: number) => string | boolean;
-  updateField: (id: string, index: number, value: string | boolean) => void;
-  isOnline: boolean;
-  pendingUploads: number;
-  hasPendingChanges: boolean;
-  onSyncNow: () => void;
-  documentId: string;
-  onPopulated: () => void;
-  repopulateSlot?: React.ReactNode;
-}
-
-export function FillListScreen({
-  docName,
-  allAssignments,
-  filteredAssignments,
-  setores,
-  selectedSetorId,
-  onSetSetor,
-  onStartFilling,
-  onGenerate,
-  generationState,
-  globalFields,
-  getValue,
-  updateField,
-  isOnline,
-  pendingUploads,
-  hasPendingChanges,
-  onSyncNow,
-  repopulateSlot,
-}: FillListScreenProps) {
-  const done = allAssignments.filter((a) => isAssignmentDone(a, getValue)).length;
-  const total = allAssignments.length;
-  const allDone = done === total && total > 0;
+export function Wizard({ step, totalSteps, onNext, onPrev, onFinish, children, progress }: WizardProps) {
+  const displayProgress = progress !== undefined ? progress : (step / (totalSteps - 1)) * 100;
 
   return (
-    <div style={{ background: 'var(--rc-bg)', minHeight: '100vh', position: 'relative' }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '10px 14px',
-        borderBottom: '1px solid var(--rc-border)',
-        background: '#fff',
-        minHeight: 56,
-      }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontSize: 15, fontWeight: 700, lineHeight: '18px', letterSpacing: '-0.01em',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>{docName}</div>
-        </div>
-        <button style={{
-          width: 36, height: 36, borderRadius: 10, border: 'none',
-          background: 'transparent', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--rc-fg-muted)',
-        }}>
-          <IconMoreVertical size={18} />
-        </button>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between gap-4">
+        <ProgressBar value={displayProgress} className="flex-1" height={8} />
+        <span className="text-sm font-bold text-primary min-w-[3rem] text-right">
+          {Math.round(displayProgress)}%
+        </span>
       </div>
-
-      {/* Sync banner */}
-      {(!isOnline || pendingUploads > 0 || hasPendingChanges) && (
-        <div style={{ padding: '10px 14px 0' }}>
-          <SyncBanner
-            isOnline={isOnline}
-            pendingUploads={pendingUploads}
-            hasPendingChanges={hasPendingChanges}
-            onSyncNow={onSyncNow}
-          />
-        </div>
-      )}
-
-      {/* Generation state banners */}
-      {generationState === 'generating' || generationState === 'queuing' ? (
-        <div style={{ padding: '10px 14px 0' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 12px', borderRadius: 10,
-            background: 'var(--rc-primary-50)',
-            border: '1px solid var(--rc-primary-100)',
-            color: 'var(--rc-primary-700)',
-            fontSize: 13, fontWeight: 600,
-          }}>
-            <Spinner className="h-4 w-4" />
-            <span>Gerando PDF… Você pode continuar preenchendo.</span>
-          </div>
-        </div>
-      ) : generationState === 'done' ? (
-        <div style={{ padding: '10px 14px 0' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 12px', borderRadius: 10,
-            background: 'var(--rc-success-bg)',
-            border: '1px solid var(--rc-success-border)',
-            color: 'var(--rc-success)',
-            fontSize: 13, fontWeight: 600,
-          }}>
-            <IconCheck size={16} strokeWidth={3} />
-            <span style={{ flex: 1 }}>PDF pronto!</span>
-          </div>
-        </div>
-      ) : generationState === 'error' ? (
-        <div style={{ padding: '10px 14px 0' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 12px', borderRadius: 10,
-            background: 'var(--rc-danger-bg)',
-            border: '1px solid var(--rc-danger-border)',
-            color: 'var(--rc-danger)',
-            fontSize: 13, fontWeight: 600,
-          }}>
-            <span style={{ flex: 1 }}>Erro ao gerar PDF</span>
-            <button
-              onClick={onGenerate}
-              style={{
-                fontSize: 12, fontWeight: 700, color: 'var(--rc-danger)',
-                textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer',
-              }}
-            >
-              Tentar novamente
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Progress card */}
-      <div style={{ padding: '14px 14px 10px' }}>
-        <div style={{
-          background: '#fff', borderRadius: 14, padding: 14,
-          boxShadow: 'var(--rc-shadow-sm)',
-          border: '1px solid var(--rc-border)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div>
-              <div style={{ fontSize: 12, color: 'var(--rc-fg-muted)', fontWeight: 600, letterSpacing: '0.02em' }}>
-                Progresso
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', marginTop: 2 }}>
-                {done}
-                <span style={{ color: 'var(--rc-fg-muted)', fontWeight: 600 }}>/{total}</span>
-                <span style={{ fontSize: 13, color: 'var(--rc-fg-muted)', fontWeight: 500, marginLeft: 6 }}>
-                  equipamentos
-                </span>
-              </div>
-            </div>
-            <div style={{
-              fontSize: 13, fontWeight: 700,
-              color: 'var(--rc-primary-700)',
-              background: 'var(--rc-primary-50)',
-              padding: '4px 10px', borderRadius: 999,
-            }}>
-              {total > 0 ? Math.round((done / total) * 100) : 0}%
-            </div>
-          </div>
-          <ProgressBar value={done} max={total || 1} />
-        </div>
-      </div>
-
-      {/* Sector filter chips */}
-      {setores.length > 1 && (
-        <div style={{
-          display: 'flex', gap: 8, padding: '4px 14px 14px',
-          overflowX: 'auto', scrollbarWidth: 'none',
-        }}>
-          <FilterChip active={selectedSetorId === null} label="Todos" count={total} onClick={() => onSetSetor(null)} />
-          {setores.map((s) => (
-            <FilterChip
-              key={s.id}
-              active={selectedSetorId === s.id}
-              label={s.nome}
-              count={filteredAssignments.filter(a => a.setorId === s.id).length}
-              onClick={() => onSetSetor(s.id)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Global fields (if any) */}
-      {globalFields.length > 0 && (
-        <div style={{ padding: '0 14px 14px' }}>
-          <SectionLabel>Dados gerais</SectionLabel>
-          <div style={{
-            background: '#fff', borderRadius: 12,
-            border: '1px solid var(--rc-border)',
-            padding: '10px 12px',
-            boxShadow: 'var(--rc-shadow-sm)',
-            display: 'flex', flexDirection: 'column', gap: 10,
-          }}>
-            {globalFields.map((field) => (
-              <ListGlobalField
-                key={field.id}
-                field={field}
-                getValue={getValue}
-                updateField={updateField}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Equipment list */}
-      <div style={{ padding: '0 14px 110px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filteredAssignments.map((a, idx) => (
-          <EquipmentCard
-            key={a.equipamentoId ?? idx}
-            assignment={a}
-            isDone={isAssignmentDone(a, getValue)}
-            onClick={onStartFilling}
-          />
-        ))}
-        {repopulateSlot && (
-          <div style={{ opacity: 0.5, marginTop: 8 }}>{repopulateSlot}</div>
-        )}
-      </div>
-
-      {/* Bottom CTA */}
-      <div style={{
-        position: 'fixed', left: 0, right: 0, bottom: 0,
-        padding: '10px 14px 16px',
-        background: 'linear-gradient(to top, rgba(245,246,248,1) 55%, rgba(245,246,248,0))',
-        zIndex: 30,
-      }}>
-        {allDone ? (
-          <button
-            onClick={onGenerate}
-            disabled={generationState === 'queuing' || generationState === 'generating'}
-            className="rc-btn rc-btn--lg rc-btn--block"
-            style={{ fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-          >
-            {(generationState === 'queuing' || generationState === 'generating') && (
-              <Spinner className="h-4 w-4" />
-            )}
-            Revisar e gerar PDF
-            {generationState === 'idle' && <IconChevronRight size={18} />}
-          </button>
-        ) : (
-          <button
-            onClick={onStartFilling}
-            className="rc-btn rc-btn--lg rc-btn--block"
-            style={{ fontSize: 15 }}
-          >
-            {done === 0 ? 'Iniciar preenchimento' : 'Continuar preenchimento'}
-            <IconChevronRight size={18} />
-          </button>
-        )}
+      <div className="min-h-[400px]">
+        {children}
       </div>
     </div>
   );
@@ -302,10 +40,22 @@ interface GlobalFormProps {
   fields: TemplateField[];
   getValue: (id: string, index: number) => string | boolean;
   updateField: (id: string, index: number, value: string | boolean) => void;
+  onImageChange: (id: string, index: number, file: File) => void;
+  getFileKey: (id: string, index: number) => string | undefined;
+  getPendingBlobForField: (id: string, index: number) => Blob | undefined;
   onNext: () => void;
 }
 
-export function GlobalForm({ fields, getValue, updateField, onNext }: GlobalFormProps) {
+export function GlobalForm({ 
+  fields, 
+  getValue, 
+  updateField, 
+  onImageChange,
+  getFileKey,
+  getPendingBlobForField,
+  onNext 
+}: GlobalFormProps) {
+  // Group fields
   const { groupedFields, hiddenFieldIds } = groupDateFields(fields);
 
   return (
@@ -323,7 +73,7 @@ export function GlobalForm({ fields, getValue, updateField, onNext }: GlobalForm
 
           if (field.type === 'date-group') {
             return (
-              <DateGroupField
+              <DateGroupField 
                 key={field.id}
                 group={field}
                 itemIndex={0}
@@ -338,11 +88,28 @@ export function GlobalForm({ fields, getValue, updateField, onNext }: GlobalForm
               <div key={field.id} className="space-y-2">
                 <label className="text-sm font-semibold text-foreground">{field.config.label}</label>
                 <div className="bg-white p-3 rounded-xl border border-border shadow-sm">
-                  <SignatureCanvas
-                    value={String(getValue(field.id, 0) || '')}
-                    onChange={(dataUrl) => updateField(field.id, 0, dataUrl)}
+                  <SignatureCanvas 
+                    value={String(getValue(field.id, 0) || '')} 
+                    onChange={(dataUrl) => updateField(field.id, 0, dataUrl)} 
                   />
                 </div>
+              </div>
+            );
+          }
+
+          if (field.type === 'image') {
+            return (
+              <div key={field.id} className="space-y-2">
+                <label className="text-sm font-semibold text-foreground">{field.config.label}</label>
+                <PhotoUploadField 
+                  field={field}
+                  itemIndex={0}
+                  getValue={getValue}
+                  updateField={updateField}
+                  onImageChange={onImageChange}
+                  getFileKey={getFileKey}
+                  getPendingBlobForField={getPendingBlobForField}
+                />
               </div>
             );
           }
@@ -351,7 +118,7 @@ export function GlobalForm({ fields, getValue, updateField, onNext }: GlobalForm
             return (
               <div key={field.id} className="bg-white p-4 rounded-xl shadow-sm border border-border flex flex-col gap-3">
                 <label className="text-[15px] font-bold text-foreground leading-tight">{field.config.label}</label>
-                <YesNo
+                <YesNo 
                   value={getValue(field.id, 0) === 'true' || getValue(field.id, 0) === true ? true : getValue(field.id, 0) === 'false' || getValue(field.id, 0) === false ? false : null}
                   onChange={(val) => updateField(field.id, 0, val)}
                   className="w-full"
@@ -395,11 +162,11 @@ interface EquipmentStepProps {
   getValue: (id: string, index: number) => string | boolean;
   updateField: (id: string, index: number, value: string | boolean) => void;
   onImageChange: (id: string, index: number, file: File) => void;
+  getFileKey: (id: string, index: number) => string | undefined;
+  getPendingBlobForField: (id: string, index: number) => Blob | undefined;
   onNext: () => void;
   onPrev: () => void;
   isLast: boolean;
-  isOnline?: boolean;
-  pendingUploads?: number;
 }
 
 export function EquipmentStep({
@@ -413,497 +180,203 @@ export function EquipmentStep({
   onNext,
   onPrev,
   isLast,
-  isOnline = true,
-  pendingUploads = 0,
+  getFileKey,
+  getPendingBlobForField,
 }: EquipmentStepProps) {
   const itemIndex = assignment.itemIndex;
+
+  // Group fields
   const { groupedFields, hiddenFieldIds } = groupDateFields(fields);
 
-  const identificationFields = groupedFields.filter((f) => f.type === 'text' && f.bindingKey);
-  const checklistFields = groupedFields.filter((f) => f.type === 'checkbox');
-  const observationFields = groupedFields.filter((f) => f.type === 'text' && !f.bindingKey);
-  const photoFields = groupedFields.filter((f) => f.type === 'image');
-  const signatureFields = groupedFields.filter((f) => f.type === 'signature');
-  const dateGroups = groupedFields.filter((f) => f.type === 'date-group');
-
-  const requiredFields = groupedFields.filter(
-    (f) => !hiddenFieldIds.has(f.id) && f.config?.required && f.type !== 'date-group',
-  );
-  const filledCount = requiredFields.filter((f) => {
-    const v = getValue(f.id, itemIndex);
-    if (f.type === 'checkbox') return v === true || v === false;
-    return v !== '' && v !== null && v !== undefined && v !== 'false' && v !== false;
-  }).length;
-  const equipPct = requiredFields.length > 0 ? Math.round((filledCount / requiredFields.length) * 100) : 100;
+  // Categorize fields
+  const identificationFields = groupedFields.filter(f => f.type === 'text' && f.bindingKey);
+  const checklistFields = groupedFields.filter(f => f.type === 'checkbox');
+  const observationFields = groupedFields.filter(f => f.type === 'text' && !f.bindingKey);
+  const photoFields = groupedFields.filter(f => f.type === 'image');
+  const signatureFields = groupedFields.filter(f => f.type === 'signature');
+  const dateGroups = groupedFields.filter(f => f.type === 'date-group');
 
   const setAllChecklist = (val: boolean) => {
-    checklistFields.forEach((f) => updateField(f.id, itemIndex, val));
+    checklistFields.forEach(f => updateField(f.id, itemIndex, val));
   };
 
   return (
-    <div style={{ background: 'var(--rc-bg)', minHeight: '100vh', position: 'relative' }}>
-      {/* Sticky header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '10px 14px',
-        borderBottom: '1px solid var(--rc-border)',
-        background: '#fff',
-        minHeight: 56,
-      }}>
-        <button
-          onClick={onPrev}
-          style={{
-            width: 36, height: 36, borderRadius: 10, border: 'none',
-            background: 'transparent', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--rc-fg)',
-          }}
-          aria-label="Voltar"
-        >
-          <IconChevronLeft size={22} />
-        </button>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontSize: 15, fontWeight: 700, lineHeight: '18px', letterSpacing: '-0.01em',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
-            {assignment.numeroEquipamento}
-          </div>
-          <div style={{
-            fontSize: 12, color: 'var(--rc-fg-muted)', lineHeight: '14px', marginTop: 2,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
-            {assignment.setorNome} · {index + 1} de {total}
-          </div>
+    <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-extrabold text-foreground leading-tight">
+            {assignment.setorNome}
+          </h2>
+          <p className="text-muted-foreground text-sm font-medium">
+            {assignment.numeroEquipamento} • {index + 1} de {total}
+          </p>
         </div>
-        <div style={{
-          fontSize: 12, fontWeight: 700,
-          color: 'var(--rc-primary-700)', background: 'var(--rc-primary-50)',
-          padding: '4px 10px', borderRadius: 999,
-        }}>
-          {equipPct}%
-        </div>
+        <Badge variant="outline" className="h-7 px-3 text-xs font-bold bg-muted/50 border-border">
+          {index + 1}/{total}
+        </Badge>
       </div>
 
-      {/* Progress bar */}
-      <div style={{ padding: '10px 14px 0' }}>
-        <ProgressBar value={filledCount} max={requiredFields.length || 1} />
-      </div>
-
-      {/* Offline banner */}
-      {(!isOnline || pendingUploads > 0) && (
-        <div style={{ padding: '10px 14px 0' }}>
-          <SyncBanner isOnline={isOnline} pendingUploads={pendingUploads} hasPendingChanges={false} onSyncNow={() => {}} />
-        </div>
+      {/* Identification */}
+      {identificationFields.length > 0 && (
+        <section>
+          <SectionLabel right={<span className="text-[10px] text-muted-foreground flex items-center gap-1 opacity-50"><IconCheck size={10} /> Auto</span>}>
+            Identificação
+          </SectionLabel>
+          <div className="bg-muted/30 p-4 rounded-xl border border-border/50 grid grid-cols-1 gap-y-3">
+            {identificationFields
+              // Deduplicate by bindingKey to avoid "Número da Balança" and "Nº da Balança" appearing twice
+              .filter((f, i, self) => 
+                i === self.findIndex((t) => t.bindingKey === f.bindingKey)
+              )
+              .map(f => (
+                <div key={f.id} className="flex justify-between items-center gap-4">
+                  <span className="text-sm text-muted-foreground font-medium">{f.config.label}</span>
+                  <span className="text-sm font-bold text-foreground text-right">{String(getValue(f.id, itemIndex) || '—')}</span>
+                </div>
+              ))}
+          </div>
+        </section>
       )}
 
-      {/* Content */}
-      <div style={{ padding: '14px 14px 110px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {/* Identification */}
-        {identificationFields.length > 0 && (
-          <div>
-            <SectionLabel right={
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                fontSize: 11, fontWeight: 600, color: 'var(--rc-fg-muted)',
-                background: 'var(--rc-bg-muted)', padding: '2px 8px', borderRadius: 999,
-              }}>
-                <IconSparkles size={10} /> Auto
-              </span>
-            }>
-              Identificação
-            </SectionLabel>
-            <div style={{
-              background: 'var(--rc-bg-muted)', borderRadius: 12,
-              border: '1px solid var(--rc-border)',
-              padding: '12px 14px',
-              display: 'flex', flexDirection: 'column', gap: 10,
-            }}>
-              {identificationFields.map((f) => (
-                <div key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 24 }}>
-                  <span style={{ fontSize: 13, color: 'var(--rc-fg-muted)', fontWeight: 500 }}>{f.config.label}</span>
-                  <span style={{ fontSize: 14, color: 'var(--rc-fg)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                    {String(getValue(f.id, itemIndex) || '—')}
-                  </span>
-                </div>
-              ))}
+      {/* Checklist */}
+      {checklistFields.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-2">
+            <SectionLabel className="mb-0">Checklist</SectionLabel>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setAllChecklist(true)}
+                className="text-[10px] font-bold text-primary hover:underline bg-primary/5 px-2 py-1 rounded"
+              >
+                TUDO SIM
+              </button>
+              <button 
+                onClick={() => setAllChecklist(false)}
+                className="text-[10px] font-bold text-destructive hover:underline bg-destructive/5 px-2 py-1 rounded"
+              >
+                TUDO NÃO
+              </button>
             </div>
           </div>
-        )}
-
-        {/* Checklist */}
-        {checklistFields.length > 0 && (
-          <div>
-            <SectionLabel right={
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => setAllChecklist(true)}
-                  style={{
-                    fontSize: 10, fontWeight: 700, color: 'var(--rc-success)',
-                    background: 'var(--rc-success-bg)', border: 'none',
-                    padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
-                  }}
-                >
-                  TUDO SIM
-                </button>
-                <button
-                  onClick={() => setAllChecklist(false)}
-                  style={{
-                    fontSize: 10, fontWeight: 700, color: 'var(--rc-danger)',
-                    background: 'var(--rc-danger-bg)', border: 'none',
-                    padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
-                  }}
-                >
-                  TUDO NÃO
-                </button>
+          <div className="space-y-3">
+            {checklistFields.map(f => (
+              <div key={f.id} className="bg-white p-4 rounded-xl shadow-sm border border-border flex flex-col gap-3">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[15px] font-bold text-foreground leading-tight">{f.config.label}</span>
+                  {f.config.required && <span className="text-[10px] font-extrabold text-red-500 uppercase tracking-wider">Obrigatório</span>}
+                </div>
+                <YesNo 
+                  value={getValue(f.id, itemIndex) === 'true' || getValue(f.id, itemIndex) === true ? true : getValue(f.id, itemIndex) === 'false' || getValue(f.id, itemIndex) === false ? false : null}
+                  onChange={(val) => updateField(f.id, itemIndex, val)}
+                  className="w-full"
+                />
               </div>
-            }>
-              Checklist
-            </SectionLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {checklistFields.map((f) => {
-                const rawVal = getValue(f.id, itemIndex);
-                const val = rawVal === true || rawVal === 'true' ? true
-                  : rawVal === false || rawVal === 'false' ? false
-                  : null;
-                const pending = val === null;
-                return (
-                  <div key={f.id} style={{
-                    background: '#fff', borderRadius: 12,
-                    border: `1px solid ${pending && f.config.required ? 'var(--rc-border-strong)' : 'var(--rc-border)'}`,
-                    padding: '12px 14px',
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    boxShadow: 'var(--rc-shadow-sm)',
-                  }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: '-0.005em' }}>
-                          {f.config.label}
-                        </span>
-                        {f.config.required && (
-                          <span style={{
-                            fontSize: 10, fontWeight: 700, color: 'var(--rc-danger)',
-                            textTransform: 'uppercase', letterSpacing: '0.04em',
-                          }}>
-                            Obrigatório
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <YesNo
-                      value={val}
-                      onChange={(v) => updateField(f.id, itemIndex, v)}
-                      className="w-40"
-                    />
-                  </div>
-                );
-              })}
-            </div>
+            ))}
           </div>
-        )}
+        </section>
+      )}
 
-        {/* Date fields */}
-        {dateGroups.length > 0 && (
-          <div>
-            <SectionLabel>Datas</SectionLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {dateGroups.map((g) => (
-                <div key={g.id} style={{
-                  background: '#fff', borderRadius: 12,
-                  border: '1px solid var(--rc-border)',
-                  padding: '10px 14px',
-                  boxShadow: 'var(--rc-shadow-sm)',
-                }}>
-                  <DateGroupField group={g as unknown as DateGroup} itemIndex={itemIndex} getValue={getValue} updateField={updateField} />
-                </div>
-              ))}
-            </div>
+      {/* Dates */}
+      {dateGroups.length > 0 && (
+        <section>
+          <SectionLabel>Datas</SectionLabel>
+          <div className="space-y-4">
+            {dateGroups.map(g => (
+              <DateGroupField 
+                key={g.id}
+                group={g}
+                itemIndex={itemIndex}
+                getValue={getValue}
+                updateField={updateField}
+              />
+            ))}
           </div>
-        )}
+        </section>
+      )}
 
-        {/* Observations */}
-        {observationFields.length > 0 && (
-          <div>
-            <SectionLabel>Observações</SectionLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {observationFields.map((f) => (
-                <div key={f.id} style={{
-                  background: '#fff', borderRadius: 12,
-                  border: '1px solid var(--rc-border)',
-                  padding: '10px 12px',
-                  boxShadow: 'var(--rc-shadow-sm)',
-                }}>
-                  <textarea
-                    value={String(getValue(f.id, itemIndex) || '')}
-                    onChange={(e) => updateField(f.id, itemIndex, e.target.value)}
-                    placeholder={f.config.placeholder || 'Descreva qualquer irregularidade…'}
-                    rows={3}
-                    style={{
-                      width: '100%', border: 'none', outline: 'none',
-                      fontSize: 14, lineHeight: '20px',
-                      background: 'transparent', resize: 'none',
-                      minHeight: 60,
-                      fontFamily: 'var(--rc-font)',
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
+      {/* Observations */}
+      {observationFields.length > 0 && (
+        <section>
+          <SectionLabel>Observações</SectionLabel>
+          <div className="space-y-4">
+            {observationFields.map(f => (
+              <div key={f.id} className="space-y-2">
+                <label className="text-[13px] font-bold text-foreground ml-1 flex items-center gap-2">
+                  {f.config.label}
+                  {f.config.required && <span className="text-red-500">*</span>}
+                </label>
+                <textarea
+                  value={String(getValue(f.id, itemIndex) || '')}
+                  onChange={(e) => updateField(f.id, itemIndex, e.target.value)}
+                  placeholder={f.config.placeholder || 'Descreva qualquer irregularidade...'}
+                  className="w-full min-h-[100px] p-4 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-medium resize-none shadow-sm"
+                />
+              </div>
+            ))}
           </div>
-        )}
+        </section>
+      )}
 
-        {/* Photos */}
-        {photoFields.length > 0 && (
-          <div>
-            <SectionLabel>Fotos da preventiva</SectionLabel>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              {photoFields.map((f) => (
-                <PhotoUploadField
-                  key={f.id}
-                  field={f as TemplateField}
+      {/* Photos */}
+      {photoFields.length > 0 && (
+        <section>
+          <SectionLabel>Fotos</SectionLabel>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {photoFields.map(f => (
+              <div key={f.id} className="space-y-2">
+                <span className="text-xs font-bold text-muted-foreground ml-1">{f.config.label}</span>
+                <PhotoUploadField 
+                  field={f}
                   itemIndex={itemIndex}
                   getValue={getValue}
                   updateField={updateField}
                   onImageChange={onImageChange}
+                  getFileKey={getFileKey}
+                  getPendingBlobForField={getPendingBlobForField}
                 />
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        )}
+        </section>
+      )}
 
-        {/* Signatures */}
-        {signatureFields.length > 0 && (
-          <div>
-            <SectionLabel>Assinatura do responsável</SectionLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {signatureFields.map((f) => (
-                <div key={f.id} style={{
-                  background: '#fff', borderRadius: 12,
-                  border: '1px solid var(--rc-border)',
-                  padding: '12px',
-                  boxShadow: 'var(--rc-shadow-sm)',
-                }}>
-                  <SignatureCanvas
-                    value={String(getValue(f.id, itemIndex) || '')}
-                    onChange={(dataUrl) => updateField(f.id, itemIndex, dataUrl)}
+      {/* Signatures */}
+      {signatureFields.length > 0 && (
+        <section>
+          <SectionLabel>Assinatura</SectionLabel>
+          <div className="space-y-4">
+            {signatureFields.map(f => (
+              <div key={f.id} className="space-y-2">
+                <span className="text-xs font-bold text-muted-foreground ml-1">{f.config.label}</span>
+                <div className="bg-white p-3 rounded-xl border border-border shadow-sm">
+                  <SignatureCanvas 
+                    value={String(getValue(f.id, itemIndex) || '')} 
+                    onChange={(dataUrl) => updateField(f.id, itemIndex, dataUrl)} 
                   />
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
-
-      {/* Fixed footer */}
-      <div style={{
-        position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 30,
-        padding: '10px 14px 16px',
-        background: '#fff', borderTop: '1px solid var(--rc-border)',
-        display: 'flex', gap: 8,
-      }}>
-        <button
-          className="rc-btn rc-btn--outline rc-btn--lg"
-          style={{ flex: '0 0 52px', padding: 0 }}
-          onClick={onPrev}
-          aria-label="Anterior"
-        >
-          <IconChevronLeft size={20} />
-        </button>
-        <button
-          className="rc-btn rc-btn--lg"
-          style={{ flex: 1 }}
-          onClick={onNext}
-        >
-          {isLast ? 'Finalizar e Gerar PDF' : 'Próximo equipamento'}
-          <IconChevronRight size={18} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function SyncBanner({
-  isOnline, pendingUploads, hasPendingChanges, onSyncNow,
-}: {
-  isOnline: boolean; pendingUploads: number; hasPendingChanges: boolean; onSyncNow: () => void;
-}) {
-  const isWarning = !isOnline || pendingUploads > 0;
-  if (!isWarning && !hasPendingChanges) return null;
-
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      padding: '8px 12px', borderRadius: 10,
-      background: isWarning ? 'var(--rc-warning-bg)' : 'var(--rc-primary-50)',
-      border: `1px solid ${isWarning ? 'var(--rc-warning-border)' : 'var(--rc-primary-100)'}`,
-      color: isWarning ? 'var(--rc-warning)' : 'var(--rc-primary-700)',
-      fontSize: 12, fontWeight: 600,
-    }}>
-      <IconWifiOff size={14} />
-      <span style={{ flex: 1 }}>
-        {!isOnline ? `Offline${pendingUploads > 0 ? ` — ${pendingUploads} foto${pendingUploads !== 1 ? 's' : ''} aguardando` : ''}` : `${pendingUploads} foto${pendingUploads !== 1 ? 's' : ''} aguardando upload`}
-      </span>
-      <span style={{ fontSize: 11, opacity: 0.7 }}>Salvo local</span>
-      {isOnline && hasPendingChanges && (
-        <button
-          onClick={onSyncNow}
-          style={{
-            fontSize: 11, fontWeight: 700, textDecoration: 'underline',
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--rc-primary-700)',
-          }}
-        >
-          Sincronizar
-        </button>
+        </section>
       )}
-    </div>
-  );
-}
 
-function FilterChip({
-  active, label, count, onClick,
-}: {
-  active: boolean; label: string; count: number; onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        flexShrink: 0, height: 36, padding: '0 12px', borderRadius: 999,
-        border: active ? '1px solid var(--rc-primary)' : '1px solid var(--rc-border-strong)',
-        background: active ? 'var(--rc-primary)' : '#fff',
-        color: active ? '#fff' : 'var(--rc-fg)',
-        fontSize: 13, fontWeight: 600,
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        cursor: 'pointer',
-      }}
-    >
-      {label}
-      <span style={{
-        fontSize: 11, fontWeight: 700,
-        padding: '1px 6px', borderRadius: 999,
-        background: active ? 'rgba(255,255,255,0.22)' : 'var(--rc-bg-muted)',
-        color: active ? '#fff' : 'var(--rc-fg-muted)',
-      }}>
-        {count}
-      </span>
-    </button>
-  );
-}
-
-function EquipIcon({ kind, size = 20, color }: { kind?: string; size?: number; color?: string }) {
-  const c = color || 'var(--rc-fg-muted)';
-  if (kind === 'Impressora' || kind === 'printer') return <IconPrinter size={size} stroke={c} />;
-  if (kind === 'Balança' || kind === 'scale') return <IconScale size={size} stroke={c} />;
-  return <IconPackage size={size} stroke={c} />;
-}
-
-function EquipmentCard({
-  assignment, isDone, onClick,
-}: {
-  assignment: ItemAssignment; isDone: boolean; onClick: () => void;
-}) {
-  const color = isDone ? 'var(--rc-success)' : 'var(--rc-fg-subtle)';
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        width: '100%', textAlign: 'left',
-        background: '#fff', borderRadius: 12,
-        border: '1px solid var(--rc-border)',
-        padding: '12px 14px',
-        display: 'flex', alignItems: 'center', gap: 12,
-        cursor: 'pointer',
-        boxShadow: 'var(--rc-shadow-sm)',
-      }}
-    >
-      <div style={{
-        width: 40, height: 40, borderRadius: 10,
-        background: isDone ? 'var(--rc-success-bg)' : 'var(--rc-bg-muted)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexShrink: 0,
-      }}>
-        <EquipIcon kind={assignment.tipoEquipamento} size={20} color={color} />
+      {/* Navigation */}
+      <div className="flex gap-3 pt-4 border-t border-border mt-8">
+        <Button 
+          variant="outline" 
+          onClick={onPrev} 
+          className="h-14 w-14 rounded-xl border-2 shrink-0"
+        >
+          <IconChevronLeft className="h-6 w-6" />
+        </Button>
+        <Button 
+          onClick={onNext} 
+          className="h-14 flex-1 text-lg font-bold rounded-xl shadow-lg"
+        >
+          {isLast ? 'Finalizar' : 'Próximo equipamento'} <IconChevronRight className="ml-2 h-5 w-5" />
+        </Button>
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, letterSpacing: '-0.01em' }}>
-            {assignment.numeroEquipamento}
-          </div>
-          {assignment.tipoEquipamento && (
-            <>
-              <span style={{ fontSize: 12, color: 'var(--rc-fg-muted)' }}>·</span>
-              <div style={{ fontSize: 13, color: 'var(--rc-fg-muted)' }}>{assignment.tipoEquipamento}</div>
-            </>
-          )}
-        </div>
-        <div style={{
-          fontSize: 12, color: 'var(--rc-fg-subtle)', marginTop: 2,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
-          {assignment.setorNome}
-        </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-        {isDone ? (
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4,
-            height: 22, padding: '0 8px', borderRadius: 999,
-            fontSize: 12, fontWeight: 600,
-            background: 'var(--rc-success-bg)', color: 'var(--rc-success)',
-          }}>
-            <IconCheck size={12} strokeWidth={3} /> Concluído
-          </span>
-        ) : (
-          <span style={{
-            display: 'inline-flex', alignItems: 'center',
-            height: 22, padding: '0 8px', borderRadius: 999,
-            fontSize: 12, fontWeight: 600,
-            background: 'var(--rc-bg-muted)', color: 'var(--rc-fg-muted)',
-          }}>
-            Pendente
-          </span>
-        )}
-        <IconChevronRight size={16} stroke="var(--rc-fg-subtle)" />
-      </div>
-    </button>
-  );
-}
-
-function ListGlobalField({
-  field, getValue, updateField,
-}: {
-  field: TemplateField;
-  getValue: (id: string, index: number) => string | boolean;
-  updateField: (id: string, index: number, value: string | boolean) => void;
-}) {
-  if (field.type === 'checkbox') {
-    const raw = getValue(field.id, 0);
-    const val = raw === true || raw === 'true' ? true : raw === false || raw === 'false' ? false : null;
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <span style={{ fontSize: 13, color: 'var(--rc-fg-muted)', fontWeight: 500 }}>{field.config.label}</span>
-        <YesNo value={val} onChange={(v) => updateField(field.id, 0, v)} className="w-36" />
-      </div>
-    );
-  }
-  return (
-    <div>
-      <div style={{ fontSize: 11, color: 'var(--rc-fg-muted)', fontWeight: 600, marginBottom: 3, letterSpacing: '0.02em' }}>
-        {field.config.label}
-      </div>
-      <input
-        value={String(getValue(field.id, 0) || '')}
-        onChange={(e) => updateField(field.id, 0, e.target.value)}
-        placeholder={field.config.placeholder}
-        style={{
-          width: '100%', border: 'none', outline: 'none',
-          fontSize: 14, fontWeight: 600, background: 'transparent',
-          padding: 0, fontFamily: 'var(--rc-font)',
-        }}
-      />
     </div>
   );
 }
@@ -916,97 +389,168 @@ interface PhotoUploadFieldProps {
   getValue: (id: string, index: number) => string | boolean;
   updateField: (id: string, index: number, value: string | boolean) => void;
   onImageChange: (id: string, index: number, file: File) => void;
+  getFileKey: (id: string, index: number) => string | undefined;
+  getPendingBlobForField: (id: string, index: number) => Blob | undefined;
 }
 
-function PhotoUploadField({ field, itemIndex, getValue, updateField, onImageChange }: PhotoUploadFieldProps) {
+function PhotoUploadField({ 
+  field, 
+  itemIndex, 
+  getValue, 
+  updateField, 
+  onImageChange,
+  getFileKey,
+  getPendingBlobForField
+}: PhotoUploadFieldProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const value = getValue(field.id, itemIndex);
+  const fileKey = getFileKey(field.id, itemIndex);
+  const pendingBlob = getPendingBlobForField(field.id, itemIndex);
   const hasValue = !!value;
 
-  const label = field.config.label || 'Foto';
+  // Refactored preview logic for maximum stability
+  const [blobPreview, setBlobPreview] = React.useState<string | null>(null);
+  const [serverPreview, setServerPreview] = React.useState<string | null>(null);
+  const [isServerLoading, setIsServerLoading] = React.useState(false);
+  const blobUrlRef = React.useRef<string | null>(null);
+
+  // 1. Create a blob URL whenever we have a new pendingBlob.
+  // IMPORTANT: we do NOT revoke / clear the URL when pendingBlob becomes undefined
+  // (that happens right after upload succeeds). Doing so would briefly leave the
+  // preview empty while the server image is still loading — causing the image to
+  // "disappear" for ~1s after capture. The URL is only revoked when a new blob
+  // replaces it, when the server image finishes loading, or on unmount.
+  React.useEffect(() => {
+    if (!pendingBlob) return;
+    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    const url = URL.createObjectURL(pendingBlob);
+    blobUrlRef.current = url;
+    setBlobPreview(url);
+    setServerPreview(null);
+    setIsServerLoading(false);
+  }, [pendingBlob]);
+
+  // 2. Handle server key changes
+  React.useEffect(() => {
+    if (fileKey) {
+      const url = `${api.getImageUrl(fileKey)}&t=${Date.now()}`;
+      setServerPreview(url);
+      setIsServerLoading(true);
+    } else {
+      setServerPreview(null);
+      setIsServerLoading(false);
+    }
+  }, [fileKey]);
+
+  // 3. Release the blob URL on unmount
+  React.useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleImgError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    console.error('[PhotoPreview] Error loading:', e.currentTarget.src);
+    setIsServerLoading(false);
+  };
+
+  const handleImgLoad = () => {
+    setIsServerLoading(false);
+    // Server image is now visible — safe to drop the local blob fallback.
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
+    setBlobPreview(null);
+  };
 
   return (
-    <button
-      style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+    <div 
+      className={cn(
+        "relative h-40 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden group",
+        hasValue ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/50"
+      )}
       onClick={() => fileInputRef.current?.click()}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--rc-fg)' }}>{label}</div>
-        {field.config.required && (
-          <span style={{ fontSize: 10, fontWeight: 700, color: hasValue ? 'var(--rc-success)' : 'var(--rc-fg-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            {hasValue ? 'OK' : 'Obrig.'}
-          </span>
-        )}
-      </div>
+      {/* Priority 1: Server Preview (if loaded or loading) */}
+      {serverPreview && (
+        <img 
+          src={serverPreview} 
+          alt="Server Preview" 
+          onLoad={handleImgLoad}
+          onError={handleImgError}
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-300",
+            isServerLoading ? "opacity-0" : "opacity-100"
+          )}
+        />
+      )}
 
-      {hasValue ? (
-        <div style={{
-          height: 120, borderRadius: 12, overflow: 'hidden', position: 'relative',
-          border: '1px solid var(--rc-border)',
-          background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)',
-        }}>
-          <svg width="100%" height="100%" viewBox="0 0 200 120" style={{ position: 'absolute', inset: 0 }} preserveAspectRatio="none">
-            <rect x="60" y="30" width="80" height="60" rx="4" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
-            <rect x="72" y="42" width="56" height="22" fill="rgba(255,255,255,0.15)" />
-            <rect x="72" y="70" width="20" height="6" rx="2" fill="rgba(255,255,255,0.25)" />
-            <rect x="96" y="70" width="20" height="6" rx="2" fill="rgba(255,255,255,0.25)" />
-          </svg>
-          <div style={{
-            position: 'absolute', left: 8, bottom: 8,
-            padding: '3px 8px', borderRadius: 6,
-            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
-            color: '#fff', fontSize: 11, fontWeight: 600,
-          }}>{label}</div>
-          <button
-            style={{
-              position: 'absolute', right: 8, top: 8,
-              width: 28, height: 28, borderRadius: 8, border: 'none',
-              background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
-              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-            }}
-            aria-label="Refazer foto"
+      {/* Priority 2: Local Blob Preview (acts as fallback and background) */}
+      {blobPreview && (
+        <img 
+          src={blobPreview} 
+          alt="Local Preview" 
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover z-0",
+            // Keep visible if server is still loading
+            "opacity-100"
+          )}
+        />
+      )}
+
+      {/* Loading Spinner */}
+      {isServerLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[1px] z-20">
+          <Spinner className="w-6 h-6 text-white" />
+        </div>
+      )}
+
+      {!blobPreview && !serverPreview && (
+        <div className="flex flex-col items-center gap-2 text-muted-foreground group-hover:text-primary transition-colors">
+          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10">
+            <IconCamera size={24} />
+          </div>
+          <span className="text-xs font-bold uppercase tracking-wider">Tirar Foto</span>
+        </div>
+      )}
+
+      {(blobPreview || serverPreview) && (
+        <>
+          <div className="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors z-30" />
+          <div className="relative z-40 bg-white/90 backdrop-blur-sm text-primary px-3 py-1 rounded-full shadow-lg flex items-center gap-2 transform group-hover:scale-105 transition-transform">
+            <IconCheck size={14} className="stroke-[3]" />
+            <span className="text-[10px] font-bold uppercase tracking-wider">Alterar Foto</span>
+          </div>
+          <button 
+            className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-lg hover:bg-red-500 transition-colors z-50"
             onClick={(e) => { e.stopPropagation(); updateField(field.id, itemIndex, ''); }}
           >
             <IconRefresh size={14} />
           </button>
-        </div>
-      ) : (
-        <div style={{
-          height: 120, borderRadius: 12,
-          border: '1.5px dashed var(--rc-border-strong)',
-          background: 'var(--rc-bg-muted)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          gap: 6, color: 'var(--rc-fg-muted)',
-        }}>
-          <IconCamera size={22} />
-          <span style={{ fontSize: 12, fontWeight: 600 }}>Tirar foto</span>
-        </div>
+        </>
       )}
-
-      <input
-        type="file"
+      <input 
+        type="file" 
         ref={fileInputRef}
-        style={{ display: 'none' }}
-        accept="image/*"
+        className="hidden" 
+        accept="image/*" 
         capture="environment"
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) onImageChange(field.id, itemIndex, file);
+          if (file) {
+            onImageChange(field.id, itemIndex, file);
+          }
         }}
       />
-    </button>
+    </div>
   );
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function isAssignmentDone(
-  _assignment: ItemAssignment,
-  _getValue: (id: string, index: number) => string | boolean,
-): boolean {
-  return false;
-}
+// ─── Date Grouping Logic ──────────────────────────────────────────────────────
 
 interface DateGroup {
   id: string;
@@ -1015,83 +559,142 @@ interface DateGroup {
   dayId: string;
   monthId: string;
   yearId: string;
-  config: FieldConfig;
+  config: any;
   bindingKey?: string | null;
 }
 
 function groupDateFields(fields: TemplateField[]) {
-  const groupedFields: (TemplateField | DateGroup)[] = [];
+  const groupedFields: (any)[] = [];
   const hiddenFieldIds = new Set<string>();
+  
+  // 1. Group by bindingKey (e.g. global.data.dia, global.data.mes, global.data.ano)
+  const bindingGroups = new Map<string, { day: string[]; month: string[]; year: string[] }>();
+  
+  fields.forEach(f => {
+    if (!f.bindingKey) return;
+    const parts = f.bindingKey.toLowerCase().split('.');
+    if (parts.length < 2) return;
+    
+    const suffix = parts[parts.length - 1];
+    const base = parts.slice(0, -1).join('.');
+    
+    if (['dia', 'mes', 'mês', 'ano'].includes(suffix)) {
+      if (!bindingGroups.has(base)) {
+        bindingGroups.set(base, { day: [], month: [], year: [] });
+      }
+      const group = bindingGroups.get(base)!;
+      if (suffix === 'dia') group.day.push(f.id);
+      else if (suffix === 'mes' || suffix === 'mês') group.month.push(f.id);
+      else if (suffix === 'ano') group.year.push(f.id);
+    }
+  });
 
-  const dayFields = fields.filter((f) => f.config.label.toLowerCase().includes('dia'));
+  bindingGroups.forEach((ids, base) => {
+    if (ids.day.length > 0 && ids.month.length > 0 && ids.year.length > 0) {
+      const firstDayId = ids.day[0];
+      const dayField = fields.find(f => f.id === firstDayId)!;
+      
+      groupedFields.push({
+        id: `date-group-binding-${base}`,
+        type: 'date-group',
+        label: dayField.config.label.replace(/dia/i, 'Data').replace(/\..*$/, ''),
+        dayIds: ids.day,
+        monthIds: ids.month,
+        yearIds: ids.year,
+        bindingKey: base,
+        config: { ...dayField.config, label: dayField.config.label.replace(/dia/i, 'Data') }
+      });
+      
+      [...ids.day, ...ids.month, ...ids.year].forEach(id => hiddenFieldIds.add(id));
+    }
+  });
 
-  dayFields.forEach((dayField) => {
-    const baseLabel = dayField.config.label.toLowerCase().replace('dia', '').trim();
-    const monthField = fields.find(
-      (f) => f.config.label.toLowerCase().includes('mês') && f.config.label.toLowerCase().includes(baseLabel),
-    );
-    const yearField = fields.find(
-      (f) => f.config.label.toLowerCase().includes('ano') && f.config.label.toLowerCase().includes(baseLabel),
-    );
-
+  // 2. Fallback to label-based grouping for fields without bindingKey
+  const remainingFields = fields.filter(f => !hiddenFieldIds.has(f.id));
+  const dayFields = remainingFields.filter(f => {
+    const label = f.config.label.toLowerCase();
+    return label.includes('dia') && !label.includes('diário') && !label.includes('diagnóstico');
+  });
+  
+  dayFields.forEach(dayField => {
+    const fullLabel = dayField.config.label.toLowerCase();
+    // Remove "dia" to find the base context (e.g. "do ti" from "dia do ti")
+    const baseContext = fullLabel.replace('dia', '').trim();
+    
+    const monthField = remainingFields.find(f => {
+      if (hiddenFieldIds.has(f.id)) return false;
+      const l = f.config.label.toLowerCase();
+      const isMonth = l.includes('mês') || l.includes('mes');
+      return isMonth && (baseContext === '' || l.includes(baseContext));
+    });
+    
+    const yearField = remainingFields.find(f => {
+      if (hiddenFieldIds.has(f.id)) return false;
+      const l = f.config.label.toLowerCase();
+      const isYear = l.includes('ano');
+      return isYear && (baseContext === '' || l.includes(baseContext));
+    });
+    
     if (monthField && yearField) {
       groupedFields.push({
-        id: `date-group-${dayField.id}`,
+        id: `date-group-label-${dayField.id}`,
         type: 'date-group',
         label: dayField.config.label.replace(/dia/i, 'Data'),
-        dayId: dayField.id,
-        monthId: monthField.id,
-        yearId: yearField.id,
-        config: { ...dayField.config, label: dayField.config.label.replace(/dia/i, 'Data') },
-      } as DateGroup);
-
+        dayIds: [dayField.id],
+        monthIds: [monthField.id],
+        yearIds: [yearField.id],
+        config: { ...dayField.config, label: dayField.config.label.replace(/dia/i, 'Data') }
+      });
+      
       hiddenFieldIds.add(dayField.id);
       hiddenFieldIds.add(monthField.id);
       hiddenFieldIds.add(yearField.id);
     }
   });
-
-  fields.forEach((f) => {
-    if (!hiddenFieldIds.has(f.id)) groupedFields.push(f);
+  
+  // 3. Add all other fields
+  fields.forEach(f => {
+    if (!hiddenFieldIds.has(f.id)) {
+      groupedFields.push(f);
+    }
   });
-
+  
   return { groupedFields, hiddenFieldIds };
 }
 
-function DateGroupField({
-  group, itemIndex, getValue, updateField,
-}: {
-  group: DateGroup; itemIndex: number;
-  getValue: (id: string, index: number) => string | boolean;
-  updateField: (id: string, index: number, value: string | boolean) => void;
-}) {
-  const day = String(getValue(group.dayId, itemIndex) || '');
-  const month = String(getValue(group.monthId, itemIndex) || '');
-  const year = String(getValue(group.yearId, itemIndex) || '');
-
-  const dateVal =
-    year && month && day
-      ? `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-      : (new Date().toISOString().split('T')[0] ?? '');
+function DateGroupField({ group, itemIndex, getValue, updateField }: { group: any, itemIndex: number, getValue: any, updateField: any }) {
+  const day = String(getValue(group.dayIds[0], itemIndex) || '');
+  const month = String(getValue(group.monthIds[0], itemIndex) || '');
+  const year = String(getValue(group.yearIds[0], itemIndex) || '');
+  
+  const dateVal = year && month && day ? `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}` : new Date().toISOString().split('T')[0];
 
   const handleDateChange = (val: string) => {
     if (!val) return;
-    const parts = val.split('-');
-    const y = parts[0] ?? '';
-    const m = parts[1] ?? '';
-    const d = parts[2] ?? '';
-    updateField(group.dayId, itemIndex, d);
-    updateField(group.monthId, itemIndex, m);
-    updateField(group.yearId, itemIndex, y);
+    const [y, m, d] = val.split('-');
+    group.dayIds.forEach((id: string) => updateField(id, itemIndex, d));
+    group.monthIds.forEach((id: string) => updateField(id, itemIndex, m));
+    group.yearIds.forEach((id: string) => updateField(id, itemIndex, y));
   };
 
   React.useEffect(() => {
-    if (!day || !month || !year) handleDateChange(dateVal);
+    if (!day || !month || !year) {
+      handleDateChange(dateVal);
+    }
   }, []);
 
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-semibold text-foreground">{group.label}</label>
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+          {group.label}
+        </label>
+        {group.bindingKey && (
+          <span className="text-[10px] text-primary/50 font-bold uppercase tracking-widest flex items-center gap-1">
+            <IconCheck size={10} /> Sincronizado
+          </span>
+        )}
+      </div>
       <input
         type="date"
         value={dateVal}

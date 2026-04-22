@@ -1,4 +1,5 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import sharp from 'sharp';
 import type { GeneratePdfOptions, FieldOverlay } from './types';
 
 /**
@@ -95,11 +96,17 @@ export class PdfGenerator {
 
     // Draw checkmark if checked
     if (overlay.checked) {
-      page.drawText('✓', {
-        x: x + 2,
-        y: y + 1,
-        size: size - 2,
-        font,
+      // Draw a vector checkmark instead of a character to avoid font encoding issues
+      page.drawLine({
+        start: { x: x + 2, y: y + size / 2 },
+        end: { x: x + size / 3 + 1, y: y + 2 },
+        thickness: 1.5,
+        color: rgb(0, 0, 0),
+      });
+      page.drawLine({
+        start: { x: x + size / 3 + 1, y: y + 2 },
+        end: { x: x + size - 2, y: y + size - 2 },
+        thickness: 1.5,
         color: rgb(0, 0, 0),
       });
     }
@@ -116,11 +123,19 @@ export class PdfGenerator {
   ): Promise<void> {
     if (!overlay.imageBytes) return;
 
+    const bytes = Buffer.from(overlay.imageBytes);
+    const isPng = bytes[0] === 0x89 && bytes[1] === 0x50;
+    const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8;
+
     let image;
-    try {
-      image = await doc.embedPng(overlay.imageBytes);
-    } catch {
-      image = await doc.embedJpg(overlay.imageBytes);
+    if (isPng) {
+      image = await doc.embedPng(bytes);
+    } else if (isJpeg) {
+      image = await doc.embedJpg(bytes);
+    } else {
+      // WebP, HEIC, or unknown format — convert to JPEG via sharp
+      const converted = await sharp(bytes).jpeg({ quality: 85 }).toBuffer();
+      image = await doc.embedJpg(converted);
     }
 
     const scaled = image.scaleToFit(width, height);

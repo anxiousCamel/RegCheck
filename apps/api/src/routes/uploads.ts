@@ -35,12 +35,13 @@ uploadRouter.get('/file', async (req, res, next) => {
       return;
     }
     const buffer = await downloadFile(key);
-    const ext = key.split('.').pop()?.toLowerCase();
+    const ext = key.includes('.') ? key.split('.').pop()?.toLowerCase() : '';
     const mimeMap: Record<string, string> = {
       pdf: 'application/pdf',
       png: 'image/png',
       jpg: 'image/jpeg',
       jpeg: 'image/jpeg',
+      webp: 'image/webp',
     };
     res.setHeader('Content-Type', mimeMap[ext ?? ''] ?? 'application/octet-stream');
     res.setHeader('Cache-Control', 'public, max-age=3600');

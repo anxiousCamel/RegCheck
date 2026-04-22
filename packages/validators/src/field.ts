@@ -34,8 +34,8 @@ export const fieldConfigSchema = z.object({
  */
 export const bindingKeySchema = z
   .string()
-  .regex(/^(global|eq)\.[a-z][a-z0-9_]*$/, {
-    message: "bindingKey must match '<global|eq>.<snake_case_key>'",
+  .regex(/^(global|eq)\.[a-z][a-z0-9_.]*$/i, {
+    message: "bindingKey must match '<global|eq>.<key>'",
   });
 
 export const createFieldSchema = z
@@ -74,7 +74,7 @@ export const filledFieldDataSchema = z.object({
   fieldId: z.string().uuid(),
   itemIndex: z.number().int().min(0),
   value: z.union([z.string(), z.boolean()]),
-  fileKey: z.string().optional(),
+  fileKey: z.string().nullable().optional(),
 });
 
 export type CreateFieldInput = z.infer<typeof createFieldSchema>;
