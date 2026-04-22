@@ -42,7 +42,7 @@ fieldRouter.delete('/:id/fields/:fieldId', async (req, res, next) => {
   }
 });
 
-/** POST /api/templates/:id/fields/batch-positions - Batch update fields (positions + config) */
+/** POST /api/templates/:id/fields/batch-positions - Batch update fields (position + optional scope/slot/binding/config) */
 fieldRouter.post('/:id/fields/batch-positions', async (req, res, next) => {
   try {
     const batchSchema = z.object({
@@ -51,6 +51,13 @@ fieldRouter.post('/:id/fields/batch-positions', async (req, res, next) => {
           id: z.string().uuid(),
           position: fieldPositionSchema,
           config: fieldConfigSchema.optional(),
+          scope: z.enum(['global', 'item']).optional(),
+          slotIndex: z.number().int().min(0).nullable().optional(),
+          bindingKey: z
+            .string()
+            .regex(/^(global|eq)\.[a-z][a-z0-9_.]*$/i)
+            .nullable()
+            .optional(),
         }),
       ),
     });

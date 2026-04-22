@@ -34,9 +34,6 @@ model Template {
   pdfFileId String
   pdfFile   PdfFile @relation(fields: [pdfFileId], references: [id])
 
-  /// Repetition configuration (stored as JSON)
-  repetitionConfig Json?
-
   fields   TemplateField[]
   versions TemplateVersion[]
   documents Document[]
@@ -87,11 +84,16 @@ model TemplateField {
   /// Configuration as JSON: { label, required, placeholder, ... }
   config Json
 
-  /// Group ID for repetition cloning
-  repetitionGroupId String?
+  /// Field scope: 'global' (one value, rendered on every page) or 'item' (per SX slot)
+  scope String @default("item")
 
-  /// Order within the group
-  repetitionIndex Int?
+  /// SX slot index on the page (0..N-1). Null for global-scope fields.
+  slotIndex Int?
+
+  /// Optional binding for auto-population. Free-form `<ns>.<key>`:
+  ///   - `global.<key>`: resolved from document-level globals
+  ///   - `eq.<key>`:     resolved from the item's source record at itemIndex
+  bindingKey String?
 
   filledData FilledField[]
 
@@ -100,7 +102,7 @@ model TemplateField {
 
   @@index([templateId])
   @@index([templateId, pageIndex])
-  @@index([repetitionGroupId])
+  @@index([templateId, slotIndex])
   @@map("template_fields")
 }
 
@@ -227,6 +229,8 @@ model Equipamento {
   numeroEquipamento String
   serie             String?
   patrimonio        String?
+  modelo            String?
+  ip                String?
   glpiId            String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt

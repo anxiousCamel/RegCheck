@@ -2,11 +2,13 @@ import { z } from 'zod';
 
 export const fieldTypeSchema = z.enum(['text', 'image', 'signature', 'checkbox']);
 
+export const fieldScopeSchema = z.enum(['global', 'item']);
+
 export const fieldPositionSchema = z.object({
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
-  width: z.number().min(0.01).max(1),
-  height: z.number().min(0.01).max(1),
+  width: z.number().nonnegative().max(1),
+  height: z.number().nonnegative().max(1),
 });
 
 export const fieldConfigSchema = z.object({
@@ -24,21 +26,55 @@ export const fieldConfigSchema = z.object({
   maxLength: z.number().int().min(1).max(10000).optional(),
 });
 
-export const createFieldSchema = z.object({
-  type: fieldTypeSchema,
-  pageIndex: z.number().int().min(0),
-  position: fieldPositionSchema,
-  config: fieldConfigSchema,
-  repetitionGroupId: z.string().uuid().optional(),
-});
+/**
+ * Free-form binding key: `<namespace>.<key>`.
+ *   - `global.<key>`: document-level value
+ *   - `eq.<key>`:     per-item value (e.g. `eq.serie`, `eq.patrimonio`)
+ * New namespaces/keys don't require schema changes — just producer side.
+ */
+export const bindingKeySchema = z
+  .string()
+  .regex(/^(global|eq)\.[a-z][a-z0-9_.]*$/i, {
+    message: "bindingKey must match '<global|eq>.<key>'",
+  });
 
-export const updateFieldSchema = createFieldSchema.partial();
+export const createFieldSchema = z
+  .object({
+    type: fieldTypeSchema,
+    pageIndex: z.number().int().min(0),
+    position: fieldPositionSchema,
+    config: fieldConfigSchema,
+    scope: fieldScopeSchema.default('item'),
+    /** SX slot on the page (0..N-1). null for scope='global'. */
+    slotIndex: z.number().int().min(0).nullable(),
+    /** Optional auto-populate binding. null = manual fill. */
+    bindingKey: bindingKeySchema.nullable(),
+  })
+  .refine(
+    (v) => (v.scope === 'global' ? v.slotIndex === null : v.slotIndex !== null),
+    {
+      message:
+        "slotIndex must be null when scope='global' and non-null when scope='item'",
+      path: ['slotIndex'],
+    },
+  );
+
+export const updateFieldSchema = z
+  .object({
+    type: fieldTypeSchema.optional(),
+    pageIndex: z.number().int().min(0).optional(),
+    position: fieldPositionSchema.optional(),
+    config: fieldConfigSchema.optional(),
+    scope: fieldScopeSchema.optional(),
+    slotIndex: z.number().int().min(0).nullable().optional(),
+    bindingKey: bindingKeySchema.nullable().optional(),
+  });
 
 export const filledFieldDataSchema = z.object({
   fieldId: z.string().uuid(),
   itemIndex: z.number().int().min(0),
   value: z.union([z.string(), z.boolean()]),
-  fileKey: z.string().optional(),
+  fileKey: z.string().nullable().optional(),
 });
 
 export type CreateFieldInput = z.infer<typeof createFieldSchema>;

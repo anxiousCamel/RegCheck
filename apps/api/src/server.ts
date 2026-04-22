@@ -12,6 +12,9 @@ import { equipamentoRouter } from './routes/equipamentos';
 import { errorHandler } from './middleware/error-handler';
 import { performanceMiddleware } from './middleware/performance-middleware';
 import { initializePrismaQueryLogging } from './lib/prisma-query-logger';
+import { requestLogger } from './middleware/request-logger';
+import { createPdfWorker } from './lib/queue';
+import { processPdfGeneration } from './jobs/pdf-generation-worker';
 
 // Initialize Prisma query logging
 initializePrismaQueryLogging();
@@ -22,7 +25,7 @@ const PORT = process.env.API_PORT ?? 4000;
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : true,
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -47,8 +50,18 @@ app.use('/api/equipamentos', equipamentoRouter);
 app.use(errorHandler);
 
 if (process.env['NODE_ENV'] !== 'test') {
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`[API] Server running on port ${PORT}`);
+
+    // Start the PDF generation worker (BullMQ consumer)
+    const worker = createPdfWorker(processPdfGeneration);
+    worker.on('completed', (job) => {
+      console.log(`[Worker] PDF job ${job.id} completed`);
+    });
+    worker.on('failed', (job, err) => {
+      console.error(`[Worker] PDF job ${job?.id} failed:`, err.message);
+    });
+    console.log('[Worker] PDF generation worker started');
   });
 }
 

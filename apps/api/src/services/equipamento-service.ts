@@ -57,6 +57,8 @@ function toDTO(eq: {
   numeroEquipamento: string;
   serie: string | null;
   patrimonio: string | null;
+  modelo: string | null;
+  ip: string | null;
   glpiId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -72,6 +74,8 @@ function toDTO(eq: {
     numeroEquipamento: eq.numeroEquipamento,
     serie: eq.serie,
     patrimonio: eq.patrimonio,
+    modelo: eq.modelo,
+    ip: eq.ip,
     glpiId: eq.glpiId,
     createdAt: eq.createdAt.toISOString(),
     updatedAt: eq.updatedAt.toISOString(),
@@ -187,6 +191,8 @@ export class EquipamentoService {
         numeroEquipamento: input.numeroEquipamento,
         serie: input.serie ?? null,
         patrimonio: input.patrimonio ?? null,
+        modelo: input.modelo ?? null,
+        ip: input.ip ?? null,
         glpiId: input.glpiId ?? null,
       },
       select: detailSelect,

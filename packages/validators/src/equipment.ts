@@ -38,6 +38,8 @@ export const createEquipamentoSchema = z.object({
   numeroEquipamento: z.string().min(1).max(100).trim(),
   serie: z.string().max(200).trim().optional(),
   patrimonio: z.string().max(200).trim().optional(),
+  modelo: z.string().max(200).trim().optional(),
+  ip: z.string().ip({ version: 'v4' }).optional(),
   glpiId: z.string().max(100).trim().optional(),
 });
 
@@ -48,6 +50,8 @@ export const updateEquipamentoSchema = z.object({
   numeroEquipamento: z.string().min(1).max(100).trim().optional(),
   serie: z.string().max(200).trim().nullable().optional(),
   patrimonio: z.string().max(200).trim().nullable().optional(),
+  modelo: z.string().max(200).trim().nullable().optional(),
+  ip: z.string().ip({ version: 'v4' }).nullable().optional(),
   glpiId: z.string().max(100).trim().nullable().optional(),
 });
 

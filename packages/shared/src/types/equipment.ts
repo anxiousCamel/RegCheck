@@ -34,6 +34,8 @@ export interface EquipamentoDTO {
   numeroEquipamento: string;
   serie: string | null;
   patrimonio: string | null;
+  modelo: string | null;
+  ip: string | null;
   glpiId: string | null;
   createdAt: string;
   updatedAt: string;

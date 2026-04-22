@@ -1,7 +1,8 @@
 import { prisma } from '@regcheck/database';
 import type { Prisma } from '@regcheck/database';
-import type { TemplateSummary } from '@regcheck/shared';
-import type { CreateTemplateInput, UpdateTemplateInput, RepetitionConfigInput } from '@regcheck/validators';
+import { TemplatePaginator } from '@regcheck/editor-engine';
+import type { TemplateSummary, TemplateField, FieldScope } from '@regcheck/shared';
+import type { CreateTemplateInput, UpdateTemplateInput } from '@regcheck/validators';
 import { AppError } from '../middleware/error-handler';
 import { cacheService } from '../lib/cache';
 
@@ -99,7 +100,7 @@ export class TemplateService {
     return template;
   }
 
-  /** Update template metadata and repetition config */
+  /** Update template metadata */
   static async update(id: string, input: UpdateTemplateInput) {
     const existing = await prisma.template.findUnique({ where: { id } });
     if (!existing) throw new AppError(404, 'Template not found', 'NOT_FOUND');
@@ -111,7 +112,6 @@ export class TemplateService {
     if (input.name) data.name = input.name;
     if (input.description !== undefined) data.description = input.description;
     if (input.status) data.status = input.status.toUpperCase() as Prisma.TemplateUpdateInput['status'];
-    if (input.repetition) data.repetitionConfig = input.repetition as unknown as Prisma.JsonObject;
 
     const updated = await prisma.template.update({
       where: { id },
@@ -126,7 +126,10 @@ export class TemplateService {
     return updated;
   }
 
-  /** Publish a template, creating a version snapshot */
+  /**
+   * Publish a template after running structural validation via {@link TemplatePaginator}.
+   * Creates a version snapshot for audit/rollback.
+   */
   static async publish(id: string) {
     const template = await prisma.template.findUnique({
       where: { id },
@@ -134,6 +137,28 @@ export class TemplateService {
     });
 
     if (!template) throw new AppError(404, 'Template not found', 'NOT_FOUND');
+
+    // Block publish if SX slots are misconfigured.
+    const sharedFields: TemplateField[] = template.fields.map((f) => ({
+      id: f.id,
+      type: f.type.toLowerCase() as TemplateField['type'],
+      pageIndex: f.pageIndex,
+      position: f.position as unknown as TemplateField['position'],
+      config: f.config as unknown as TemplateField['config'],
+      scope: f.scope as FieldScope,
+      slotIndex: f.slotIndex,
+      bindingKey: f.bindingKey,
+      createdAt: f.createdAt.toISOString(),
+      updatedAt: f.updatedAt.toISOString(),
+    }));
+    const errors = TemplatePaginator.validate(sharedFields);
+    if (errors.length > 0) {
+      throw new AppError(
+        400,
+        `Template invalido: ${errors.join('; ')}`,
+        'TEMPLATE_INVALID',
+      );
+    }
 
     const [published] = await prisma.$transaction([
       prisma.template.update({
@@ -151,7 +176,6 @@ export class TemplateService {
             name: template.name,
             description: template.description,
             fields: template.fields,
-            repetitionConfig: template.repetitionConfig,
           } as unknown as Prisma.JsonObject,
         },
       }),

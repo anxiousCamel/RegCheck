@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { UploadService } from '../services/upload-service';
-import { getPresignedUrl, downloadFile } from '../lib/s3';
+import { getPresignedUrl, downloadFile, uploadFile } from '../lib/s3';
 import type { ApiResponse, UploadResponse } from '@regcheck/shared';
 
 const upload = multer({
@@ -35,12 +35,13 @@ uploadRouter.get('/file', async (req, res, next) => {
       return;
     }
     const buffer = await downloadFile(key);
-    const ext = key.split('.').pop()?.toLowerCase();
+    const ext = key.includes('.') ? key.split('.').pop()?.toLowerCase() : '';
     const mimeMap: Record<string, string> = {
       pdf: 'application/pdf',
       png: 'image/png',
       jpg: 'image/jpeg',
       jpeg: 'image/jpeg',
+      webp: 'image/webp',
     };
     res.setHeader('Content-Type', mimeMap[ext ?? ''] ?? 'application/octet-stream');
     res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -50,7 +51,26 @@ uploadRouter.get('/file', async (req, res, next) => {
   }
 });
 
-/** POST /api/uploads/pdf - Upload a PDF file */
+/** POST /api/uploads/restore - Upload a file with a specific key (for backup restore) */
+uploadRouter.post('/restore', upload.single('file'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ success: false, error: { code: 'NO_FILE', message: 'No file uploaded' } });
+      return;
+    }
+    const key = req.query.key as string;
+    if (!key) {
+      res.status(400).json({ success: false, error: { code: 'MISSING_KEY', message: 'key is required' } });
+      return;
+    }
+    console.log(`[restore] uploading key=${key} size=${req.file.buffer.length}`);
+    await uploadFile(key, req.file.buffer, req.file.mimetype);
+    res.json({ success: true, data: { key } });
+  } catch (err) {
+    console.error('[restore] error:', err);
+    next(err);
+  }
+});
 uploadRouter.post('/pdf', upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {

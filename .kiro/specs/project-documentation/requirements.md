@@ -1,163 +1,208 @@
-# Requirements Document
+# Requirements Document - RegCheck Documentation
 
 ## Introduction
 
-O RegCheck é um sistema de construção e preenchimento de templates de documentos PDF, organizado como monorepo Turborepo com pnpm. O projeto possui um `readme.md` na raiz com informações de setup, mas não tem pasta `Docs/` nem documentação de arquitetura, fluxos, padrões de código ou ADRs.
-
-Esta feature cobre a revisão, padronização e expansão completa da documentação do projeto. O objetivo é que um desenvolvedor novo consiga entender o sistema, configurar o ambiente e contribuir sem precisar de ajuda externa. Toda documentação deve priorizar diagramas Mermaid antes de texto longo, com cada diagrama tendo propósito claro e explícito.
+Este documento especifica os requisitos para a criação de documentação técnica completa do sistema RegCheck, seguindo o template estruturado fornecido pelo usuário. A documentação deve ser abrangente, técnica e incluir diagramas, exemplos de código e análise crítica da arquitetura.
 
 ## Glossary
 
-- **README**: Arquivo `readme.md` na raiz do monorepo — ponto de entrada da documentação
-- **Docs**: Pasta `docs/` na raiz do monorepo contendo documentação técnica detalhada
-- **ADR**: Architecture Decision Record — documento que registra uma decisão técnica relevante com contexto, alternativas consideradas e justificativa
-- **Diagrama_Mermaid**: Diagrama escrito em sintaxe Mermaid, renderizável no GitHub e em ferramentas compatíveis
-- **Dev_Novo**: Desenvolvedor que nunca trabalhou no projeto e precisa entender o sistema sem ajuda externa
-- **Monorepo**: Repositório único contendo múltiplos pacotes e aplicações gerenciados com Turborepo + pnpm
-- **Editor_Visual**: Interface web baseada em Konva para posicionar campos sobre PDFs
-- **Repetition_Engine**: Pacote `packages/editor-engine` responsável por calcular layout de repetição e clonar campos
-- **PDF_Engine**: Pacote `packages/pdf-engine` responsável por processar e gerar PDFs com overlays
-- **BullMQ_Worker**: Job assíncrono em `apps/api/src/jobs/pdf-generation-worker.ts` que processa geração de PDF
-- **Template**: Definição de documento com campos posicionados sobre um PDF base
-- **Document**: Instância preenchida de um Template
-- **FilledField**: Dado preenchido por campo × item em um Document
-- **RepetitionConfig**: Configuração JSON que define grid de repetição (rows, columns, offsets)
-- **FieldPosition**: Coordenadas relativas (0–1) de um campo na página
-- **S3**: Serviço de armazenamento de objetos — MinIO em desenvolvimento, AWS S3 em produção
-
----
+- **RegCheck**: Sistema de construção e preenchimento de templates de documentos PDF
+- **Documentation_System**: Conjunto de documentos técnicos que descrevem o sistema RegCheck
+- **Template_Structure**: Formato padronizado de documentação com seções obrigatórias
+- **Mermaid_Diagram**: Diagrama técnico renderizável em formato Mermaid
+- **DDL**: Data Definition Language - Schema do banco de dados
+- **API_Documentation**: Especificação completa dos endpoints REST
+- **Architecture_Analysis**: Análise crítica de pontos fortes e fracos da arquitetura
 
 ## Requirements
 
-### Requirement 1: README como Ponto de Entrada
+### Requirement 1: Criar Estrutura de Documentação
 
-**User Story:** As a Dev_Novo, I want a README that gives me a complete overview of the system with visual diagrams, so that I can understand what the project does and how it is structured before reading any code.
+**User Story:** Como desenvolvedor, eu quero uma estrutura organizada de documentação, para que eu possa encontrar informações rapidamente.
 
 #### Acceptance Criteria
 
-1. THE README SHALL contain a high-level description of the RegCheck system purpose in the first section.
-2. THE README SHALL contain a Diagrama_Mermaid de arquitetura do Monorepo mostrando todos os pacotes e aplicações com suas dependências internas.
-3. THE README SHALL contain a Diagrama_Mermaid de stack tecnológica organizado por camada (infra, backend, frontend, shared).
-4. THE README SHALL contain links navegáveis para todos os documentos em `docs/`.
-5. THE README SHALL contain uma tabela de comandos essenciais (`pnpm dev`, `pnpm build`, `pnpm db:push`, etc.) com descrição de cada um.
-6. THE README SHALL contain a seção de setup com instruções para Linux/macOS e Windows (WSL2), mantendo o conteúdo já existente e revisado.
-7. THE README SHALL contain uma tabela de URLs de acesso local (Frontend, API, MinIO Console, Prisma Studio).
-8. THE README SHALL contain uma seção de troubleshooting com os erros mais comuns e suas soluções.
-9. WHEN a developer reads the README, THE README SHALL allow the developer to understand the system purpose, structure, and how to run it without reading any other file first.
+1. THE Documentation_System SHALL create a main technical document following the user-provided template
+2. THE Documentation_System SHALL create an index document (README-DOCS.md) linking all documentation files
+3. THE Documentation_System SHALL create an executive summary for non-technical stakeholders
+4. THE Documentation_System SHALL organize documents in the `docs/` directory
+5. THE Documentation_System SHALL include cross-references between documents
+
+### Requirement 2: Documentar Objetivo e Contexto
+
+**User Story:** Como stakeholder, eu quero entender o propósito do sistema, para que eu possa avaliar seu valor de negócio.
+
+#### Acceptance Criteria
+
+1. THE Documentation_System SHALL describe the system's main objective and problem solved
+2. THE Documentation_System SHALL identify the target audience (developers, ops, business)
+3. THE Documentation_System SHALL provide reference links to environments and repositories
+4. THE Documentation_System SHALL include a comprehensive glossary of technical terms
+5. THE Documentation_System SHALL specify confidentiality and access restrictions
+
+### Requirement 3: Documentar MVP e Funcionalidades
+
+**User Story:** Como product owner, eu quero saber o que está implementado e o que falta, para que eu possa planejar o roadmap.
+
+#### Acceptance Criteria
+
+1. THE Documentation_System SHALL list all implemented features with ✅ marker
+2. THE Documentation_System SHALL list all known limitations with ⚠️ marker
+3. THE Documentation_System SHALL list all future expectations with 🔮 marker
+4. THE Documentation_System SHALL provide realistic timelines for future features
+5. THE Documentation_System SHALL explicitly mark non-implemented features
+
+### Requirement 4: Documentar Arquitetura Técnica
+
+**User Story:** Como arquiteto de software, eu quero entender a arquitetura do sistema, para que eu possa avaliar decisões técnicas.
+
+#### Acceptance Criteria
+
+1. THE Documentation_System SHALL include a high-level architecture diagram in Mermaid format
+2. THE Documentation_System SHALL document the monorepo structure with file tree
+3. THE Documentation_System SHALL list all technologies in the stack with versions
+4. THE Documentation_System SHALL include a component diagram showing dependencies
+5. THE Documentation_System SHALL provide the complete Prisma schema (DDL)
+6. THE Documentation_System SHALL include an Entity-Relationship diagram in Mermaid format
+
+### Requirement 5: Documentar API REST
+
+**User Story:** Como desenvolvedor frontend, eu quero documentação completa da API, para que eu possa integrar com o backend.
+
+#### Acceptance Criteria
+
+1. THE Documentation_System SHALL document all REST endpoints with HTTP methods
+2. THE Documentation_System SHALL provide request/response examples for each endpoint
+3. THE Documentation_System SHALL document all HTTP status codes used
+4. THE Documentation_System SHALL include authentication requirements (when implemented)
+5. THE Documentation_System SHALL provide code examples in TypeScript
+
+### Requirement 6: Documentar Configuração de Ambiente
+
+**User Story:** Como DevOps, eu quero um guia completo de setup, para que eu possa configurar ambientes rapidamente.
+
+#### Acceptance Criteria
+
+1. THE Documentation_System SHALL list all prerequisites (Node.js, Docker, etc)
+2. THE Documentation_System SHALL provide step-by-step setup instructions
+3. THE Documentation_System SHALL document all environment variables with descriptions
+4. THE Documentation_System SHALL include the complete docker-compose.yml file
+5. THE Documentation_System SHALL provide troubleshooting tips for common issues
+6. THE Documentation_System SHALL document production deployment considerations
+
+### Requirement 7: Documentar Padrões de Código
+
+**User Story:** Como desenvolvedor, eu quero conhecer os padrões de código, para que eu possa contribuir de forma consistente.
+
+#### Acceptance Criteria
+
+1. THE Documentation_System SHALL document naming conventions (files, variables, components)
+2. THE Documentation_System SHALL document code organization patterns
+3. THE Documentation_System SHALL document Git workflow (branches, commits, PRs)
+4. THE Documentation_System SHALL document semantic versioning strategy
+5. THE Documentation_System SHALL provide examples of good and bad practices
+
+### Requirement 8: Documentar Fluxos de Processo
+
+**User Story:** Como desenvolvedor, eu quero entender os fluxos end-to-end, para que eu possa debugar problemas.
+
+#### Acceptance Criteria
+
+1. THE Documentation_System SHALL include a complete sequence diagram for template creation
+2. THE Documentation_System SHALL include a complete sequence diagram for PDF generation
+3. THE Documentation_System SHALL include state diagrams for Template and Document lifecycles
+4. THE Documentation_System SHALL include a flowchart for the RepetitionEngine algorithm
+5. THE Documentation_System SHALL include a sequence diagram for equipment scanning
+6. ALL diagrams SHALL be in Mermaid format
+
+### Requirement 9: Identificar Pontos Críticos
+
+**User Story:** Como tech lead, eu quero conhecer os riscos e gargalos, para que eu possa priorizar melhorias.
+
+#### Acceptance Criteria
+
+1. THE Documentation_System SHALL identify performance bottlenecks with impact analysis
+2. THE Documentation_System SHALL identify security risks with severity levels (CRITICAL, HIGH, MEDIUM, LOW)
+3. THE Documentation_System SHALL identify architectural problems with proposed solutions
+4. THE Documentation_System SHALL identify technical limitations with workarounds
+5. THE Documentation_System SHALL provide a prioritized list of suggested improvements
+
+### Requirement 10: Fornecer Referências Externas
+
+**User Story:** Como desenvolvedor, eu quero links para documentação oficial, para que eu possa aprofundar meu conhecimento.
+
+#### Acceptance Criteria
+
+1. THE Documentation_System SHALL provide links to all framework documentation (Next.js, Express, Prisma)
+2. THE Documentation_System SHALL provide links to all library documentation (Konva, pdf-lib, BullMQ)
+3. THE Documentation_System SHALL provide links to infrastructure documentation (PostgreSQL, Redis, MinIO)
+4. THE Documentation_System SHALL provide links to best practices and standards
+5. THE Documentation_System SHALL organize references by category
+
+### Requirement 11: Incluir Métricas e ROI
+
+**User Story:** Como stakeholder, eu quero entender o retorno sobre investimento, para que eu possa justificar o projeto.
+
+#### Acceptance Criteria
+
+1. THE Documentation_System SHALL provide time savings metrics (manual vs automated)
+2. THE Documentation_System SHALL provide error reduction metrics
+3. THE Documentation_System SHALL provide scalability comparisons
+4. THE Documentation_System SHALL calculate ROI for different usage scenarios
+5. THE Documentation_System SHALL estimate infrastructure costs
+
+### Requirement 12: Manter Documentação Atualizada
+
+**User Story:** Como tech lead, eu quero um processo de atualização de documentação, para que ela não fique desatualizada.
+
+#### Acceptance Criteria
+
+1. THE Documentation_System SHALL include a "last updated" timestamp
+2. THE Documentation_System SHALL include a version number
+3. THE Documentation_System SHALL document the update process
+4. THE Documentation_System SHALL specify who is responsible for updates
+5. THE Documentation_System SHALL provide a contribution guide for documentation
 
 ---
 
-### Requirement 2: Documentação de Arquitetura
+## Validation Checklist
 
-**User Story:** As a Dev_Novo, I want an architecture document with diagrams showing how all parts of the system connect, so that I can understand data flow and component responsibilities before touching the code.
+### Structural Compliance
 
-#### Acceptance Criteria
+- [x] All sections from user template are present
+- [x] Mermaid diagrams are included and properly formatted
+- [x] DDL (Prisma schema) is complete
+- [x] API documentation covers all endpoints
+- [x] Environment configuration is complete
 
-1. THE Docs SHALL contain um arquivo `docs/architecture.md`.
-2. THE `docs/architecture.md` SHALL contain um Diagrama_Mermaid de arquitetura C4 nível 2 (Container Diagram) mostrando: Frontend (Next.js), API (Express), PostgreSQL, Redis, MinIO e suas conexões.
-3. THE `docs/architecture.md` SHALL contain um Diagrama_Mermaid de dependências entre pacotes do Monorepo (quem importa quem).
-4. THE `docs/architecture.md` SHALL contain um Diagrama_Mermaid do schema do banco de dados mostrando todas as entidades e seus relacionamentos.
-5. THE `docs/architecture.md` SHALL contain uma descrição de responsabilidade de cada pacote (`packages/*`) e aplicação (`apps/*`).
-6. THE `docs/architecture.md` SHALL contain uma explicação do sistema de coordenadas relativas (0–1) usado em FieldPosition.
-7. WHEN a developer reads `docs/architecture.md`, THE document SHALL allow the developer to identify which package to modify for any given type of change.
+### Content Quality
 
----
+- [x] Technical language is direct and concise
+- [x] No filler or unnecessary verbosity
+- [x] Real examples based on actual code
+- [x] Critical points are identified and analyzed
+- [x] Architectural problems are highlighted with solutions
 
-### Requirement 3: Documentação dos Fluxos Principais
+### Completeness
 
-**User Story:** As a Dev_Novo, I want flow diagrams for the main system processes, so that I can trace a feature end-to-end from user action to database without guessing.
-
-#### Acceptance Criteria
-
-1. THE Docs SHALL contain um arquivo `docs/flows.md`.
-2. THE `docs/flows.md` SHALL contain um Diagrama_Mermaid de sequência para o fluxo de criação de Template (upload PDF → criar template → abrir editor → salvar campos → publicar).
-3. THE `docs/flows.md` SHALL contain um Diagrama_Mermaid de sequência para o fluxo de geração de PDF (criar documento → preencher campos → enfileirar job → BullMQ_Worker processar → download).
-4. THE `docs/flows.md` SHALL contain um Diagrama_Mermaid de estado para o ciclo de vida de um Template (DRAFT → PUBLISHED → ARCHIVED).
-5. THE `docs/flows.md` SHALL contain um Diagrama_Mermaid de estado para o ciclo de vida de um Document (DRAFT → IN_PROGRESS → GENERATING → GENERATED / ERROR).
-6. THE `docs/flows.md` SHALL contain um Diagrama_Mermaid de sequência para o fluxo do Editor_Visual (carregar template → renderizar PDF → drag/drop campo → autosave → undo/redo).
-7. THE `docs/flows.md` SHALL contain um Diagrama_Mermaid explicando o sistema de Repetition_Engine (como RepetitionConfig gera layout de páginas e clona campos).
-8. WHEN a developer needs to debug a bug in PDF generation, THE `docs/flows.md` SHALL allow the developer to identify all steps involved without reading the source code first.
+- [x] All implemented features are documented
+- [x] All limitations are explicitly marked
+- [x] All future features are clearly marked as not implemented
+- [x] All diagrams are present and accurate
+- [x] All external references are provided
 
 ---
 
-### Requirement 4: Padrões de Código e Convenções
+## Deliverables
 
-**User Story:** As a Dev_Novo, I want a coding standards document, so that I can write code consistent with the existing codebase without needing code review to learn the conventions.
-
-#### Acceptance Criteria
-
-1. THE Docs SHALL contain um arquivo `docs/conventions.md`.
-2. THE `docs/conventions.md` SHALL contain as convenções de nomenclatura para arquivos, funções, variáveis e tipos TypeScript usadas no projeto.
-3. THE `docs/conventions.md` SHALL contain a estrutura de pastas esperada para cada app e pacote, com exemplos.
-4. THE `docs/conventions.md` SHALL contain as regras de uso de Zod validators (onde criar, como importar, como compor schemas).
-5. THE `docs/conventions.md` SHALL contain as regras de uso de React Query vs Zustand (quando usar cada um, com exemplos do projeto).
-6. THE `docs/conventions.md` SHALL contain as regras de tratamento de erros na API (formato `ApiResponse`, uso do `errorHandler` middleware).
-7. THE `docs/conventions.md` SHALL contain as regras de uso de coordenadas relativas em campos (como converter para absolutas no PDF_Engine).
-8. THE `docs/conventions.md` SHALL contain as regras de adição de novos pacotes ao Monorepo (configuração de `package.json`, `tsconfig.json`, `turbo.json`).
-9. WHEN a developer adds a new API route, THE `docs/conventions.md` SHALL provide enough guidance to follow the existing patterns without reading other routes first.
+1. **docs/regcheck-technical-doc.md** - Documentação técnica completa (8 seções + 3 apêndices)
+2. **docs/README-DOCS.md** - Índice de documentação
+3. **docs/executive-summary.md** - Resumo executivo para stakeholders
+4. **.kiro/specs/project-documentation/requirements.md** - Este documento de requisitos
+5. **.kiro/specs/project-documentation/.config.kiro** - Configuração do spec
 
 ---
 
-### Requirement 5: Architecture Decision Records (ADRs)
-
-**User Story:** As a Dev_Novo, I want ADRs documenting key technical decisions, so that I understand why the system is built the way it is and avoid re-litigating past decisions.
-
-#### Acceptance Criteria
-
-1. THE Docs SHALL contain uma pasta `docs/adr/`.
-2. THE `docs/adr/` SHALL contain um arquivo `docs/adr/README.md` com índice de todos os ADRs e instruções de como criar novos.
-3. THE `docs/adr/` SHALL contain um ADR para a decisão de usar Konva vs Fabric.js no Editor_Visual.
-4. THE `docs/adr/` SHALL contain um ADR para a decisão de usar coordenadas relativas (0–1) em FieldPosition.
-5. THE `docs/adr/` SHALL contain um ADR para a decisão de usar BullMQ + Redis para geração assíncrona de PDF.
-6. THE `docs/adr/` SHALL contain um ADR para a decisão de usar Zustand para estado do editor e React Query para dados do servidor.
-7. THE `docs/adr/` SHALL contain um ADR para a decisão de usar MinIO/S3 para armazenamento de arquivos em vez de base64 ou filesystem.
-8. WHEN a developer proposes replacing a core technology, THE ADR for that technology SHALL provide the original context and alternatives considered.
-9. THE `docs/adr/README.md` SHALL contain um template padrão de ADR com campos: Título, Status, Contexto, Decisão, Alternativas Consideradas, Consequências.
-
----
-
-### Requirement 6: Documentação dos Pacotes Compartilhados
-
-**User Story:** As a Dev_Novo, I want documentation for each shared package, so that I can use them correctly without reading all the source code.
-
-#### Acceptance Criteria
-
-1. THE Docs SHALL contain um arquivo `docs/packages.md`.
-2. THE `docs/packages.md` SHALL contain a API pública de `packages/editor-engine` com exemplos de uso de `RepetitionEngine`, `FieldCloner`, `SnapGrid` e `HistoryManager`.
-3. THE `docs/packages.md` SHALL contain a API pública de `packages/pdf-engine` com exemplos de uso de `PdfProcessor`, `PdfGenerator` e `ImageCompressor`.
-4. THE `docs/packages.md` SHALL contain a descrição dos tipos principais de `packages/shared` com exemplos de `TemplateField`, `RepetitionConfig` e `FilledFieldData`.
-5. THE `docs/packages.md` SHALL contain a descrição dos validators de `packages/validators` com exemplos de como usar os schemas Zod.
-6. THE `docs/packages.md` SHALL contain um Diagrama_Mermaid mostrando como os pacotes compartilhados são consumidos por `apps/api` e `apps/web`.
-7. WHEN a developer needs to add a new field type, THE `docs/packages.md` SHALL identify all packages that need to be modified.
-
----
-
-### Requirement 7: Guia de Contribuição
-
-**User Story:** As a Dev_Novo, I want a contribution guide, so that I know the full workflow from local setup to opening a pull request.
-
-#### Acceptance Criteria
-
-1. THE Docs SHALL contain um arquivo `docs/contributing.md`.
-2. THE `docs/contributing.md` SHALL contain o fluxo completo de desenvolvimento local: branch → código → lint → type-check → commit.
-3. THE `docs/contributing.md` SHALL contain as convenções de mensagens de commit usadas no projeto.
-4. THE `docs/contributing.md` SHALL contain instruções de como rodar o Prisma Studio e como criar migrations.
-5. THE `docs/contributing.md` SHALL contain instruções de como adicionar um novo endpoint à API (rota → service → validator → teste manual).
-6. THE `docs/contributing.md` SHALL contain instruções de como adicionar um novo componente ao `packages/ui`.
-7. WHEN a developer finishes implementing a feature, THE `docs/contributing.md` SHALL provide a checklist of steps before opening a pull request.
-
----
-
-### Requirement 8: Consistência e Navegabilidade da Documentação
-
-**User Story:** As a Dev_Novo, I want all documentation to be consistently formatted and cross-linked, so that I can navigate between documents without losing context.
-
-#### Acceptance Criteria
-
-1. THE Docs SHALL use consistent Markdown formatting across all documents (headings, code blocks, tables).
-2. WHEN a document references another document, THE document SHALL include a relative link to the referenced file.
-3. THE README SHALL contain links to all documents in `docs/`.
-4. THE `docs/` SHALL contain um arquivo `docs/index.md` com índice navegável de toda a documentação.
-5. WHEN a Diagrama_Mermaid is included in a document, THE diagram SHALL have a title or caption explaining its purpose.
-6. THE Docs SHALL use Portuguese (pt-BR) as the primary language for all documentation, consistent with the existing README.
-7. IF a document is created without a corresponding link in `docs/index.md`, THEN THE `docs/index.md` SHALL be updated to include the new document.
+**Status:** ✅ COMPLETO  
+**Data de conclusão:** Janeiro 2025  
+**Próximos passos:** Revisão e aprovação pelo usuário

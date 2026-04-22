@@ -1,341 +1,233 @@
-# RegCheck - Document Template Builder + Filler
+# RegCheck
 
-Sistema de construção e preenchimento de templates de documentos PDF.
+> Construtor e preenchedor de templates de documentos PDF — monorepo Turborepo + pnpm.
 
-## Arquitetura
+O RegCheck permite criar templates visuais sobre PDFs existentes, posicionando campos interativos via drag-and-drop, e depois preencher esses campos para gerar novos PDFs automaticamente. Suporta repetição de campos em grade (ex.: etiquetas de equipamentos) e geração assíncrona via fila BullMQ.
 
+---
+
+## Arquitetura do Monorepo
+
+```mermaid
+graph LR
+  subgraph apps
+    API["apps/api\n(Express :4000)"]
+    WEB["apps/web\n(Next.js :3000)"]
+  end
+
+  subgraph packages
+    DB["@regcheck/database\n(Prisma)"]
+    PDF["@regcheck/pdf-engine"]
+    EDITOR["@regcheck/editor-engine"]
+    SHARED["@regcheck/shared"]
+    VALIDATORS["@regcheck/validators"]
+    UI["@regcheck/ui"]
+  end
+
+  API --> DB
+  API --> SHARED
+  API --> VALIDATORS
+  API --> PDF
+  API --> EDITOR
+
+  WEB --> EDITOR
+  WEB --> SHARED
+  WEB --> VALIDATORS
+  WEB --> UI
+
+  PDF --> SHARED
+  EDITOR --> SHARED
 ```
-regcheck/
-├── apps/
-│   ├── api/          # Backend Node.js + Express + TypeScript
-│   └── web/          # Frontend Next.js 14 (App Router) + TailwindCSS
-├── packages/
-│   ├── database/     # Prisma ORM + PostgreSQL schema
-│   ├── shared/       # Tipos TypeScript compartilhados
-│   ├── validators/   # Schemas Zod para validação
-│   ├── pdf-engine/   # Processamento e geração de PDF (pdf-lib + sharp)
-│   ├── editor-engine/ # Motor do editor: repetição, clonagem, snap grid, undo/redo
-│   └── ui/           # Componentes UI reutilizáveis (shadcn-style)
-├── docker-compose.yml
-├── turbo.json
-└── pnpm-workspace.yaml
+
+## Stack Tecnológica por Camada
+
+```mermaid
+graph LR
+  subgraph infra["Infra (Docker)"]
+    PG["PostgreSQL 16\n:5432"]
+    REDIS["Redis 7\n:6379"]
+    MINIO["MinIO\n:9000 / :9001"]
+  end
+
+  subgraph backend["Backend"]
+    EXPRESS["Express 4\n(apps/api)"]
+    BULLMQ["BullMQ\n(jobs)"]
+    PRISMA["Prisma 5\n(ORM)"]
+    PDFLIB["pdf-lib\n(overlay)"]
+    SHARP["sharp\n(imagens)"]
+  end
+
+  subgraph frontend["Frontend"]
+    NEXT["Next.js 14\n(apps/web)"]
+    KONVA["Konva / react-konva\n(editor canvas)"]
+    PDFJS["pdfjs-dist\n(render PDF)"]
+    RQ["TanStack Query\n(server state)"]
+    ZUSTAND["Zustand\n(editor state)"]
+    TW["Tailwind CSS"]
+  end
+
+  subgraph shared["Shared"]
+    SHAREDPKG["@regcheck/shared\n(tipos)"]
+    VALIDATORS["@regcheck/validators\n(Zod schemas)"]
+    EDITORENG["@regcheck/editor-engine\n(RepetitionEngine)"]
+    PDFENG["@regcheck/pdf-engine\n(PdfGenerator)"]
+    UI["@regcheck/ui\n(componentes)"]
+  end
+
+  backend --> infra
+  frontend --> backend
+  backend --> shared
+  frontend --> shared
 ```
 
-## Stack
+---
 
-| Camada | Tecnologia | Justificativa |
-|--------|-----------|---------------|
-| Monorepo | Turborepo + pnpm | Cache inteligente, builds paralelos, workspaces nativos |
-| Backend | Express + TypeScript | Leve, flexível, ecossistema maduro |
-| Frontend | Next.js 14 App Router | SSR, routing file-based, React Server Components |
-| Editor | Konva (react-konva) | Canvas 2D performático, drag/resize nativo, leve (vs Fabric.js) |
-| UI | TailwindCSS + shadcn/ui pattern | Utility-first, componentes copiáveis sem lock-in |
-| ORM | Prisma | Type-safe queries, migrations, studio |
-| Banco | PostgreSQL | JSONB para configs flexíveis, confiabilidade |
-| Cache/Fila | Redis + BullMQ | Cache de API, fila de jobs para geração de PDF |
-| Storage | S3 (MinIO local) | API S3-compatible, migração transparente para cloud |
-| PDF | pdf-lib | Manipulação de PDF em JS puro, sem dependências nativas |
-| Imagens | sharp | Compressão eficiente, resize, conversão |
-| Validação | Zod | Schema-first, type inference, composable |
-| State | Zustand (editor) + React Query (server) | Zustand para estado síncrono do editor; React Query para cache de API |
+## URLs de Acesso Local
 
-## Decisões Técnicas
+| Serviço          | URL                          | Descrição                        |
+|------------------|------------------------------|----------------------------------|
+| Frontend         | http://localhost:3000        | Interface Next.js                |
+| API              | http://localhost:4000        | API Express                      |
+| MinIO Console    | http://localhost:9001        | Painel de administração do MinIO |
+| Prisma Studio    | http://localhost:5555        | Visualizador do banco de dados   |
 
-### Zustand vs React Query
-- **Zustand**: estado do editor (campos, seleção, zoom, undo/redo) — precisa de updates síncronos e rápidos
-- **React Query**: dados do servidor (templates, documentos) — cache automático, refetch, mutations
-
-### Konva vs Fabric.js
-- **Konva**: mais leve, API React nativa (react-konva), melhor performance para drag/resize simples
-- Fabric.js seria necessário apenas se precisássemos de formas vetoriais complexas
-
-### Coordenadas Relativas (0-1)
-- Campos são salvos com posição relativa à página (0-1)
-- Permite renderizar em qualquer resolução/zoom sem recalcular
-- Geração de PDF converte para coordenadas absolutas
-
-### Storage: S3 vs Base64
-- Imagens armazenadas em S3 (MinIO local → AWS S3 em produção)
-- Base64 apenas para assinaturas em preview no canvas
-- Compressão via sharp antes do upload (qualidade + economia)
+---
 
 ## Setup
 
 ### Pré-requisitos
-- Node.js >= 20
-- pnpm >= 9
-- Docker + Docker Compose
 
-### Instalação (Linux / macOS)
+- Node.js >= 20
+- pnpm 9.x (`npm install -g pnpm@9`)
+- Docker e Docker Compose
+
+### Instalação
 
 ```bash
 # 1. Clone o repositório
-git clone <repo-url> && cd regcheck
+git clone <url-do-repo>
+cd regcheck
 
-# 2. Copie as variáveis de ambiente
-cp .env.example .env
-
-# 3. Suba os serviços (PostgreSQL, Redis, MinIO)
-docker compose up -d
-
-# 4. Instale dependências
+# 2. Instale as dependências
 pnpm install
 
-# 5. Gere o Prisma Client
-pnpm db:generate
+# 3. Configure as variáveis de ambiente
+cp .env.example .env
+# Edite .env com suas configurações locais
 
-# 6. Aplique o schema no banco
+# 4. Suba a infraestrutura (PostgreSQL, Redis, MinIO)
+pnpm infra:up
+
+# 5. Aplique o schema do banco de dados
 pnpm db:push
 
-# 7. Inicie em modo desenvolvimento
+# 6. Inicie o ambiente de desenvolvimento
 pnpm dev
 ```
 
 ---
 
-### Setup no Windows (WSL2) — Passo a Passo
+## Comandos Essenciais
 
-O projeto usa Docker para rodar PostgreSQL, Redis e MinIO. No Windows, a forma recomendada é via **Docker Desktop + WSL2**.
-
-> **IMPORTANTE: Onde rodar os comandos?**
->
-> Você tem **duas opções**. Escolha UMA e siga com ela:
->
-> | Opção | Onde rodar `pnpm install` / `pnpm dev` | Quando usar |
-> |-------|---------------------------------------|-------------|
-> | **A) PowerShell no Windows** (mais simples) | PowerShell normal | Se já tem Node.js/pnpm no Windows |
-> | **B) WSL2 com projeto no filesystem nativo** | Terminal WSL2 | Se prefere ambiente Linux |
->
-> **NÃO rode `pnpm install` dentro do WSL2 em `/mnt/c/...`** (caminho Windows montado).
-> O filesystem montado (9P) causa erros de permissão (`EACCES`) e é 10-50x mais lento.
-> Se for usar WSL2, copie o projeto para `~/projects/RegCheck` (filesystem nativo do Linux).
-
-#### 1. Instalar WSL2
-
-> Se já tem o WSL2 instalado (Ubuntu ou Debian), pule para o passo 2.
-
-Abra o **PowerShell como Administrador** e execute:
-
-```powershell
-# Instala WSL2 com Ubuntu por padrão
-wsl --install
-```
-
-Se você já tem o WSL com **Debian** (como no seu caso), funciona igual.
-Reinicie o computador quando solicitado.
-
-Para verificar se está usando WSL2:
-
-```powershell
-wsl --list --verbose
-```
-
-A coluna `VERSION` deve mostrar `2`. Exemplo:
-```
-  NAME      STATE           VERSION
-* Debian    Running         2
-```
-
-#### 2. Instalar Docker Desktop
-
-1. Baixe o **Docker Desktop** em: https://www.docker.com/products/docker-desktop/
-2. Execute o instalador e reinicie se necessário
-3. Abra o Docker Desktop
-4. Vá em **Settings > General** e marque **"Use the WSL 2 based engine"**
-5. Vá em **Settings > Resources > WSL Integration** e ative a integração com sua distro (ex: Ubuntu)
-6. Clique **Apply & Restart**
-
-Para verificar que está funcionando, abra um novo terminal (PowerShell ou WSL) e rode:
-
-```powershell
-docker --version
-docker compose version
-```
-
-Ambos devem retornar versões válidas.
-
-#### 3. Instalar Node.js e pnpm
-
-**Opção A — Direto no Windows (mais simples):**
-
-Baixe o Node.js 20+ em https://nodejs.org/ e instale normalmente.
-Depois instale o pnpm no PowerShell:
-
-```powershell
-corepack enable
-corepack prepare pnpm@9.15.0 --activate
-```
-
-**Opção B — Dentro do WSL2 (Ubuntu ou Debian):**
-
-```bash
-# Instalar Node.js 20
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Habilitar corepack (precisa de sudo no Debian/Ubuntu)
-sudo corepack enable
-corepack prepare pnpm@9.15.0 --activate
-```
-
-> **Nota**: `corepack enable` precisa de `sudo` porque cria symlinks em `/usr/bin/`.
-> Se der erro `EACCES`, adicione `sudo` antes do comando.
-
-#### 4. Subir os serviços com Docker
-
-Abra o **Docker Desktop** (ele precisa estar rodando em background).
-Em seguida, no terminal onde está o projeto:
-
-```powershell
-# PowerShell (Windows)
-docker compose up -d
-```
-
-```bash
-# Ou no WSL2 (Ubuntu)
-docker compose up -d
-```
-
-Verifique que os 3 serviços estão rodando:
-
-```powershell
-docker compose ps
-```
-
-Deve mostrar `postgres`, `redis` e `minio` com status `running`.
-
-#### 5. Configurar variáveis de ambiente
-
-```powershell
-# PowerShell (Windows)
-copy .env.example .env
-```
-
-```bash
-# WSL2 (Linux)
-cp .env.example .env
-```
-
-O arquivo `.env` já vem com os valores corretos para desenvolvimento local.
-As variáveis principais são:
-
-| Variável | Valor padrão | Descrição |
-|----------|-------------|-----------|
-| `DATABASE_URL` | `postgresql://regcheck:regcheck@localhost:5432/regcheck` | Conexão PostgreSQL |
-| `REDIS_URL` | `redis://localhost:6379` | Conexão Redis |
-| `S3_ENDPOINT` | `http://localhost:9000` | MinIO (S3 local) |
-| `S3_ACCESS_KEY` | `minioadmin` | Credencial MinIO |
-| `S3_SECRET_KEY` | `minioadmin` | Credencial MinIO |
-| `API_PORT` | `4000` | Porta do backend |
-| `NEXT_PUBLIC_API_URL` | `http://localhost:4000` | URL da API para o frontend |
-
-#### 6. Instalar dependências e iniciar
-
-**Se estiver no PowerShell (Opção A):**
-
-```powershell
-pnpm install
-pnpm db:generate
-pnpm db:push
-pnpm dev
-```
-
-**Se estiver no WSL2 (Opção B) — copie o projeto para o filesystem nativo primeiro:**
-
-```bash
-# Copiar projeto do disco Windows para o filesystem Linux nativo
-mkdir -p ~/projects
-cp -r /mnt/c/Users/<SEU_USUARIO>/Desktop/Dev/RegCheck ~/projects/RegCheck
-cd ~/projects/RegCheck
-
-# Criar .env
-cp .env.example .env
-
-# Instalar e iniciar
-pnpm install
-pnpm db:generate
-pnpm db:push
-pnpm dev
-```
-
-> **Por que copiar?** O `/mnt/c/...` usa o filesystem 9P que não suporta symlinks
-> e operações atômicas de rename corretamente, causando `EACCES` no pnpm.
-> O filesystem nativo (`~/...`) é rápido e sem problemas de permissão.
->
-> Depois de copiar, abra o VSCode com: `code ~/projects/RegCheck`
-> (o VSCode detecta automaticamente o WSL2 com a extensão Remote - WSL).
-
-#### 7. Verificar que tudo está funcionando
-
-| Serviço | URL | Credenciais |
-|---------|-----|-------------|
-| Frontend | http://localhost:3000 | — |
-| API | http://localhost:4000/health | — |
-| MinIO Console | http://localhost:9001 | minioadmin / minioadmin |
-| Prisma Studio | `pnpm --filter @regcheck/database db:studio` | — |
+| Comando              | Descrição                                                        |
+|----------------------|------------------------------------------------------------------|
+| `pnpm dev`           | Inicia todos os apps em modo desenvolvimento (Turborepo)         |
+| `pnpm dev:api`       | Inicia apenas a API (`apps/api`) com logs completos              |
+| `pnpm dev:web`       | Inicia apenas o frontend (`apps/web`) com logs completos         |
+| `pnpm dev:all`       | Inicia API + Web com logs em stream                              |
+| `pnpm build`         | Build de produção de todos os pacotes e apps                     |
+| `pnpm lint`          | Executa lint em todos os pacotes e apps                          |
+| `pnpm type-check`    | Verifica tipos TypeScript em todos os pacotes e apps             |
+| `pnpm format`        | Formata todos os arquivos com Prettier                           |
+| `pnpm infra:up`      | Sobe os containers Docker (PostgreSQL, Redis, MinIO) em background |
+| `pnpm infra:down`    | Para e remove os containers Docker                               |
+| `pnpm infra:logs`    | Sobe os containers com logs no terminal                          |
+| `pnpm db:push`       | Aplica o schema Prisma no banco sem criar migration              |
+| `pnpm db:migrate`    | Cria e aplica uma migration Prisma                               |
+| `pnpm db:generate`   | Gera o Prisma Client                                             |
+| `pnpm db:studio`     | Abre o Prisma Studio na porta 5555                               |
+| `pnpm up`            | Atalho: `infra:up` + `wait:infra` + `dev:all`                    |
+| `pnpm clean`         | Remove artefatos de build de todos os pacotes                    |
 
 ---
 
-### Troubleshooting
+## Documentação
 
-| Erro | Causa | Solução |
-|------|-------|---------|
-| `docker: O termo 'docker' não é reconhecido` | Docker Desktop não instalado ou não está no PATH | Instale o Docker Desktop e reinicie o terminal |
-| `Environment variable not found: DATABASE_URL` | Arquivo `.env` não existe na raiz do monorepo | Rode `copy .env.example .env` (PowerShell) ou `cp .env.example .env` (WSL). Depois rode `pnpm install` para instalar `dotenv-cli` |
-| `sh: 1: turbo: not found` | `pnpm install` falhou ou não foi executado | Rode `pnpm install` novamente. Se falhou com EACCES, veja abaixo |
-| `EACCES: permission denied, rename` no pnpm install (WSL2) | Projeto em `/mnt/c/...` (filesystem Windows montado) | **Copie o projeto para `~/projects/RegCheck`** (filesystem nativo do WSL2) e rode lá. Veja passo 6 |
-| `EACCES: permission denied, symlink` no `corepack enable` | Falta sudo | Rode `sudo corepack enable` |
-| `Connection refused` no PostgreSQL | Docker não está rodando | Abra o Docker Desktop e rode `docker compose up -d` |
-| `Port 5432 already in use` | Outro PostgreSQL rodando na máquina | Pare o serviço local: `net stop postgresql-x64-16` (PowerShell) ou mude a porta no docker-compose.yml |
-| MinIO bucket não criado | Serviço minio-init falhou | Rode `docker compose restart minio-init` |
-| Warning `version` obsolete no docker-compose | Campo `version` não é mais necessário | Já removido — faça `git pull` para atualizar |
+- [Índice da documentação](docs/index.md)
+- [Arquitetura do sistema](docs/architecture.md)
+- [Fluxos principais](docs/flows.md)
+- [Convenções de código](docs/conventions.md)
+- [API dos pacotes compartilhados](docs/packages.md)
+- [Guia de contribuição](docs/contributing.md)
+- [Architecture Decision Records (ADRs)](docs/adr/README.md)
 
-### Acessos
-- **Frontend**: http://localhost:3000
-- **API**: http://localhost:4000
-- **MinIO Console**: http://localhost:9001 (minioadmin/minioadmin)
-- **Prisma Studio**: `pnpm --filter @regcheck/database db:studio`
+---
 
-## Fluxo do Sistema
+## Troubleshooting
 
-```
-1. Upload PDF → S3 → Registro no banco (PdfFile)
-2. Criar Template → Associar PDF → Abrir Editor
-3. Editor Visual → Arrastar campos sobre o PDF → Salvar posições
-4. Configurar Repetição → Definir grid (linhas × colunas, offsets)
-5. Publicar Template → Criar snapshot de versão
-6. Criar Documento → Selecionar template + quantidade de itens
-7. Preencher Dados → Texto, checkboxes, imagens, assinaturas
-8. Gerar PDF → Job na fila (BullMQ) → Clonar campos × itens
-   → Duplicar páginas → Overlay dados no PDF → Upload resultado
-9. Download → URL pré-assinada do S3
+### Porta já em uso
+
+**Sintoma:** `Error: listen EADDRINUSE :::4000` ou `:::3000`
+
+**Solução:**
+```bash
+# Encontre o processo usando a porta
+lsof -i :4000
+# Encerre o processo
+kill -9 <PID>
 ```
 
-## Entidades (Schema Prisma)
+No Windows (PowerShell):
+```powershell
+netstat -ano | findstr :4000
+taskkill /PID <PID> /F
+```
 
-- **PdfFile**: PDF base uploadado
-- **Template**: Definição do template (status, versão, config de repetição)
-- **TemplateField**: Campos posicionados (tipo, posição relativa, config)
-- **TemplateVersion**: Snapshots versionados para histórico
-- **Document**: Instância preenchida de um template
-- **FilledField**: Dados preenchidos por campo × item
+---
 
-## Features Implementadas
+### MinIO não sobe
 
-- [x] Monorepo Turborepo + pnpm
-- [x] Upload de PDF com validação (tamanho, páginas)
-- [x] Editor visual com Konva (drag, resize, snap grid)
-- [x] 4 tipos de campo: texto, imagem, assinatura, checkbox
-- [x] Painel de propriedades editáveis
-- [x] Sistema de repetição inteligente (grid configurável)
-- [x] Clonagem automática de campos por item
-- [x] Preview de layout de repetição
-- [x] Undo/redo no editor
-- [x] Autosave (5s interval)
-- [x] Preenchimento dinâmico por item
-- [x] Canvas de assinatura (desenho touch/mouse)
-- [x] Geração de PDF via fila (BullMQ)
-- [x] Compressão de imagens (sharp)
-- [x] Versionamento de templates
-- [x] API REST completa com validação Zod
-- [x] Docker Compose (PostgreSQL + Redis + MinIO)
+**Sintoma:** Container `minio` reinicia em loop ou `minio-init` falha com connection refused.
+
+**Solução:**
+```bash
+# Verifique os logs do container
+pnpm infra:logs
+
+# Remova volumes antigos e recrie
+pnpm infra:down
+docker volume rm regcheck_minio_data
+pnpm infra:up
+```
+
+---
+
+### Prisma migration falha
+
+**Sintoma:** `Error: P3009 migrate found failed migrations` ou `drift detected`.
+
+**Solução:**
+```bash
+# Reseta o banco (apaga todos os dados) e reaaplica o schema
+pnpm --filter @regcheck/database db:push -- --force-reset
+
+# Ou, para ambientes de desenvolvimento com dados que podem ser perdidos:
+pnpm db:migrate -- --name reset
+```
+
+---
+
+### Erro de CORS na API
+
+**Sintoma:** `Access to fetch at 'http://localhost:4000' from origin 'http://localhost:3000' has been blocked by CORS policy`
+
+**Solução:** Verifique se a variável `CORS_ORIGIN` no `.env` está configurada corretamente:
+
+```env
+CORS_ORIGIN=http://localhost:3000
+```
+
+Reinicie a API após alterar o `.env`:
+```bash
+pnpm dev:api
+```

@@ -1,5 +1,4 @@
 import type { TemplateField } from './field';
-import type { RepetitionConfig } from './repetition';
 
 /** Status of a template */
 export type TemplateStatus = 'draft' | 'published' | 'archived';
@@ -18,8 +17,6 @@ export interface Template {
   version: number;
   /** Fields defined on this template */
   fields: TemplateField[];
-  /** Repetition configuration */
-  repetition?: RepetitionConfig;
   createdAt: string;
   updatedAt: string;
 }

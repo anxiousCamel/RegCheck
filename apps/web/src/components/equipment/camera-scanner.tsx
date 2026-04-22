@@ -1,338 +1,334 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { Button, Spinner } from '@regcheck/ui';
-import type { ScanCandidate } from '@regcheck/shared';
-import { EquipmentExtractorService } from '@/lib/scanner/equipment-extractor-service';
-import { OCRService } from '@/lib/scanner/ocr-service';
+import { useRef, useCallback } from 'react';
+import { Button, Input, Spinner } from '@regcheck/ui';
+import { useOcr } from '@/hooks/use-ocr';
+import type { OCRCandidate } from '@/lib/scanner/types';
+import { warmupScanner, cleanupScanner } from '@/lib/scanner';
+import { useEffect, useState } from 'react';
 
-interface CameraScannerProps {
-  onResult: (result: { serie?: string; patrimonio?: string }) => void;
-  onClose: () => void;
-  targetField?: 'serie' | 'patrimonio';
+// ─── Props ───────────────────────────────────────────────────────────────────
+
+export type ScannerTarget = 'serie' | 'patrimonio' | 'modelo' | 'all';
+
+export interface ScannerResult {
+  serie?: string;
+  patrimonio?: string;
+  modelo?: string;
 }
 
-export function CameraScanner({ onResult, onClose, targetField }: CameraScannerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+interface CameraScannerProps {
+  onResult: (result: ScannerResult) => void;
+  onClose: () => void;
+  targetField?: ScannerTarget;
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
+export function CameraScanner({ onResult, onClose, targetField = 'all' }: CameraScannerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [serieCandidates, setSerieCandidates] = useState<ScanCandidate[]>([]);
-  const [patrimonioCandidates, setPatrimonioCandidates] = useState<ScanCandidate[]>([]);
-  const [selectedSerie, setSelectedSerie] = useState('');
-  const [selectedPatrimonio, setSelectedPatrimonio] = useState('');
+  const { status, candidates, progress, error, process, recapture, logUserChoice } = useOcr();
 
-  // HTTP (non-secure context) blocks getUserMedia on mobile — use file input fallback
-  const useFileInputFallback =
-    typeof window !== 'undefined' && !window.isSecureContext;
+  // Seleção única por tipo — usuário escolhe, nunca auto-selecionado
+  const [selectedSerie, setSelectedSerie] = useState<string>('');
+  const [selectedPatrimonio, setSelectedPatrimonio] = useState<string>('');
+  const [selectedModelo, setSelectedModelo] = useState<string>('');
 
-  // --- Secure context: video stream mode ---
+  // Campos manuais (fallback)
+  const [manualSerie, setManualSerie] = useState('');
+  const [manualPatrimonio, setManualPatrimonio] = useState('');
+  const [manualModelo, setManualModelo] = useState('');
 
-  const startCamera = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        setIsStreaming(true);
-      }
-    } catch (err) {
-      const isPermissionDenied =
-        err instanceof DOMException &&
-        (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError');
-      setError(
-        isPermissionDenied
-          ? 'Permissão de câmera negada. Verifique as permissões do navegador e tente novamente.'
-          : 'Não foi possível acessar a câmera.'
-      );
-      console.error('[CameraScanner] Camera error:', err);
-    }
+  useEffect(() => {
+    warmupScanner();
+    return () => { cleanupScanner(); };
   }, []);
 
-  const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
+  // Limpa seleções ao receber novos candidatos
+  useEffect(() => {
+    if (status === 'done') {
+      setSelectedSerie('');
+      setSelectedPatrimonio('');
+      setSelectedModelo('');
     }
-    setIsStreaming(false);
-  }, []);
+  }, [status, candidates]);
 
-  const captureAndProcess = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
+  // ─── Captura ─────────────────────────────────────────────────────────────
 
-    setIsProcessing(true);
-    setError(null);
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d')!;
-    ctx.drawImage(video, 0, 0);
-
-    await processCanvas(canvas);
-  };
-
-  // --- File input fallback (HTTP / non-secure context) ---
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !canvasRef.current) return;
-
-    setIsProcessing(true);
-    setError(null);
-
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = async () => {
-      const canvas = canvasRef.current!;
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      canvas.getContext('2d')!.drawImage(img, 0, 0);
-      URL.revokeObjectURL(url);
-      await processCanvas(canvas);
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      setError('Não foi possível carregar a imagem. Tente novamente.');
-      setIsProcessing(false);
-    };
-    img.src = url;
-
-    // Reset input so the same file can be re-selected if needed
+    if (!file) return;
     e.target.value = '';
-  };
+    const bitmap = await createImageBitmap(file);
+    await process(bitmap);
+  }, [process]);
 
-  // --- Shared processing ---
+  const handleNewCapture = useCallback(() => {
+    recapture();
+    setSelectedSerie('');
+    setSelectedPatrimonio('');
+    setSelectedModelo('');
+    fileInputRef.current?.click();
+  }, [recapture]);
 
-  const processCanvas = async (canvas: HTMLCanvasElement) => {
-    try {
-      const result = await EquipmentExtractorService.extract(canvas);
-      setSerieCandidates(result.serie);
-      setPatrimonioCandidates(result.patrimonio);
+  const openCamera = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
 
-      if (result.serie.length > 0) setSelectedSerie(result.serie[0].value);
-      if (result.patrimonio.length > 0) setSelectedPatrimonio(result.patrimonio[0].value);
-    } catch (err) {
-      setError('Erro ao processar imagem. Tente novamente.');
-      console.error('[CameraScanner] Processing error:', err);
-    } finally {
-      setIsProcessing(false);
+  // ─── Seleção de candidato ─────────────────────────────────────────────────
+
+  const selectCandidate = (c: OCRCandidate) => {
+    logUserChoice(c);
+    // When targeting a specific field, always set that field regardless of candidate type
+    if (targetField === 'serie') setSelectedSerie(c.value);
+    else if (targetField === 'patrimonio') setSelectedPatrimonio(c.value);
+    else if (targetField === 'modelo') setSelectedModelo(c.value);
+    else {
+      if (c.type === 'serial') setSelectedSerie(c.value);
+      else if (c.type === 'patrimonio') setSelectedPatrimonio(c.value);
+      else if (c.type === 'modelo') setSelectedModelo(c.value);
     }
   };
+
+  // ─── Confirmar ────────────────────────────────────────────────────────────
 
   const handleConfirm = () => {
-    if (targetField === 'serie') {
-      onResult({ serie: selectedSerie || undefined });
-    } else if (targetField === 'patrimonio') {
-      onResult({ patrimonio: selectedPatrimonio || undefined });
-    } else {
-      onResult({
-        serie: selectedSerie || undefined,
-        patrimonio: selectedPatrimonio || undefined,
-      });
-    }
+    const serie = selectedSerie || manualSerie.trim() || undefined;
+    const patrimonio = selectedPatrimonio || manualPatrimonio.trim() || undefined;
+    const modelo = selectedModelo || manualModelo.trim() || undefined;
+
+    if (targetField === 'serie') onResult({ serie });
+    else if (targetField === 'patrimonio') onResult({ patrimonio });
+    else if (targetField === 'modelo') onResult({ modelo });
+    else onResult({ serie, patrimonio, modelo });
   };
 
-  // Auto-start camera on secure context
-  useEffect(() => {
-    if (!useFileInputFallback) {
-      startCamera();
-    }
-    return () => {
-      stopCamera();
-      OCRService.terminate();
-    };
-  }, [useFileInputFallback, startCamera, stopCamera]);
+  // ─── Candidatos filtrados por target ─────────────────────────────────────
 
-  const hasCandidates = serieCandidates.length > 0 || patrimonioCandidates.length > 0;
+  const showSerie = targetField === 'serie' || targetField === 'all';
+  const showPatrimonio = targetField === 'patrimonio' || targetField === 'all';
+  const showModelo = targetField === 'modelo' || targetField === 'all';
+
+  const serialCandidates = candidates.filter((c) => c.type === 'serial');
+  const patrimonioCandidates = candidates.filter((c) => c.type === 'patrimonio');
+  const modeloCandidates = candidates.filter((c) => c.type === 'modelo');
+
+  // For specific targets: if no candidates of the expected type were found,
+  // show ALL candidates so the user can pick whichever text matches.
+  const serialCandidatesDisplay =
+    targetField === 'serie' && serialCandidates.length === 0 ? candidates : serialCandidates;
+  const patrimonioCandidatesDisplay =
+    targetField === 'patrimonio' && patrimonioCandidates.length === 0 ? candidates : patrimonioCandidates;
+  const modeloCandidatesDisplay =
+    targetField === 'modelo' && modeloCandidates.length === 0 ? candidates : modeloCandidates;
+
+  const isProcessing = status === 'processing';
+  const hasCandidates = candidates.length > 0;
+
+  const hasSelection =
+    selectedSerie || selectedPatrimonio || selectedModelo ||
+    manualSerie.trim() || manualPatrimonio.trim() || manualModelo.trim();
+
+  const titleMap: Record<ScannerTarget, string> = {
+    serie: 'Ler Série via Câmera',
+    patrimonio: 'Ler Patrimônio via Câmera',
+    modelo: 'Ler Modelo via Câmera',
+    all: 'Leitura via Câmera',
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
       <div className="bg-background rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+
+        {/* Header */}
         <div className="p-4 border-b flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            {targetField === 'patrimonio'
-              ? 'Ler Patrimônio via Câmera'
-              : targetField === 'serie'
-              ? 'Ler Série via Câmera'
-              : 'Leitura via Câmera'}
-          </h2>
-          <Button variant="outline" size="sm" onClick={() => { stopCamera(); onClose(); }}>
-            Fechar
-          </Button>
+          <h2 className="text-lg font-semibold">{titleMap[targetField]}</h2>
+          <Button variant="outline" size="sm" onClick={onClose}>Fechar</Button>
         </div>
 
         <div className="p-4 space-y-4">
-          {useFileInputFallback ? (
-            /* HTTP fallback: open native camera via file input */
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Tire uma foto da etiqueta do equipamento para extrair os dados automaticamente.
-              </p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isProcessing}
-                className="w-full"
-              >
-                {isProcessing ? (
-                  <>
-                    <Spinner className="mr-2 h-4 w-4" />
-                    Processando...
-                  </>
-                ) : (
-                  'Abrir Câmera'
-                )}
-              </Button>
-            </div>
-          ) : (
-            /* Secure context: live video stream */
-            <>
-              <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover"
-                />
-                {!isStreaming && !error && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Spinner />
-                  </div>
-                )}
+          <p className="text-sm text-muted-foreground">
+            Tire uma foto da etiqueta. Os candidatos encontrados serão listados — você escolhe qual usar.
+          </p>
+
+          {/* Input câmera */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
+          <Button
+            onClick={hasCandidates ? handleNewCapture : openCamera}
+            disabled={isProcessing}
+            className="w-full"
+          >
+            {isProcessing ? (
+              <><Spinner className="mr-2 h-4 w-4" />Processando...</>
+            ) : hasCandidates ? (
+              'Nova Captura'
+            ) : (
+              'Abrir Câmera'
+            )}
+          </Button>
+
+          {/* Progress */}
+          {isProcessing && progress && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{progress.label}</span>
+                {progress.percent > 0 && <span>{Math.round(progress.percent)}%</span>}
               </div>
-
-              {isStreaming && (
-                <Button
-                  onClick={captureAndProcess}
-                  disabled={isProcessing}
-                  className="w-full"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Spinner className="mr-2 h-4 w-4" />
-                      Processando...
-                    </>
-                  ) : (
-                    'Capturar'
-                  )}
-                </Button>
-              )}
-            </>
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  style={{ width: `${Math.max(progress.percent, 5)}%` }}
+                />
+              </div>
+            </div>
           )}
 
-          {/* Hidden canvas for image processing */}
-          <canvas ref={canvasRef} className="hidden" />
-
-          {/* Error */}
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
+          {/* Erro */}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {status === 'done' && !hasCandidates && (
+            <p className="text-sm text-muted-foreground">
+              Nenhum dado encontrado. Use os campos manuais abaixo ou tente nova captura.
+            </p>
           )}
 
-          {/* Candidates */}
+          {/* Candidatos — usuário escolhe */}
           {hasCandidates && (
             <div className="space-y-4">
-              {targetField !== 'patrimonio' && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Série (candidatos)</h3>
-                  {serieCandidates.length > 0 ? (
-                    <div className="space-y-1">
-                      {serieCandidates.map((c, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setSelectedSerie(c.value)}
-                          className={`w-full text-left px-3 py-2 rounded-md border text-sm flex items-center justify-between transition-colors ${
-                            selectedSerie === c.value
-                              ? 'border-primary bg-primary/10'
-                              : 'border-input hover:bg-muted/50'
-                          }`}
-                        >
-                          <span className="font-mono">{c.value}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {c.source === 'barcode' ? 'Barcode' : 'OCR'} ({Math.round(c.confidence * 100)}%)
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Nenhum candidato encontrado</p>
-                  )}
-                  <input
-                    type="text"
-                    value={selectedSerie}
-                    onChange={(e) => setSelectedSerie(e.target.value)}
-                    placeholder="Editar manualmente..."
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+              {showSerie && serialCandidatesDisplay.length > 0 && (
+                <CandidateGroup
+                  title="Série — selecione uma opção"
+                  candidates={serialCandidatesDisplay}
+                  selected={selectedSerie}
+                  onSelect={selectCandidate}
+                />
+              )}
+              {showPatrimonio && patrimonioCandidatesDisplay.length > 0 && (
+                <CandidateGroup
+                  title="Patrimônio — selecione uma opção"
+                  candidates={patrimonioCandidatesDisplay}
+                  selected={selectedPatrimonio}
+                  onSelect={selectCandidate}
+                />
+              )}
+              {showModelo && modeloCandidatesDisplay.length > 0 && (
+                <CandidateGroup
+                  title="Modelo — selecione uma opção"
+                  candidates={modeloCandidatesDisplay}
+                  selected={selectedModelo}
+                  onSelect={selectCandidate}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Campos manuais (fallback sempre visível após tentativa) */}
+          {(hasCandidates || status === 'done' || status === 'error') && (
+            <div className="space-y-3 border-t pt-4">
+              <p className="text-xs text-muted-foreground font-medium">
+                Ou preencha manualmente:
+              </p>
+              {showSerie && (
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Série (manual)</label>
+                  <Input
+                    value={manualSerie}
+                    onChange={(e) => setManualSerie(e.target.value)}
+                    placeholder="Digite o número de série"
                   />
                 </div>
               )}
-
-              {targetField !== 'serie' && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Patrimônio (candidatos)</h3>
-                  {patrimonioCandidates.length > 0 ? (
-                    <div className="space-y-1">
-                      {patrimonioCandidates.map((c, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setSelectedPatrimonio(c.value)}
-                          className={`w-full text-left px-3 py-2 rounded-md border text-sm flex items-center justify-between transition-colors ${
-                            selectedPatrimonio === c.value
-                              ? 'border-primary bg-primary/10'
-                              : 'border-input hover:bg-muted/50'
-                          }`}
-                        >
-                          <span className="font-mono">{c.value}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {c.source === 'barcode' ? 'Barcode' : 'OCR'} ({Math.round(c.confidence * 100)}%)
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Nenhum candidato encontrado</p>
-                  )}
-                  <input
-                    type="text"
-                    value={selectedPatrimonio}
-                    onChange={(e) => setSelectedPatrimonio(e.target.value)}
-                    placeholder="Editar manualmente..."
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+              {showPatrimonio && (
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Patrimônio (manual)</label>
+                  <Input
+                    value={manualPatrimonio}
+                    onChange={(e) => setManualPatrimonio(e.target.value)}
+                    placeholder="Digite o número do patrimônio"
                   />
                 </div>
               )}
+              {showModelo && (
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Modelo (manual)</label>
+                  <Input
+                    value={manualModelo}
+                    onChange={(e) => setManualModelo(e.target.value)}
+                    placeholder="Digite o modelo"
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
-              <div className="flex gap-3">
-                <Button onClick={handleConfirm} className="flex-1">
-                  Confirmar e Usar
-                </Button>
-                <Button variant="outline" onClick={() => {
-                  setSerieCandidates([]);
-                  setPatrimonioCandidates([]);
-                  setSelectedSerie('');
-                  setSelectedPatrimonio('');
-                }}>
-                  Nova Captura
-                </Button>
-              </div>
+          {/* Ações */}
+          {(hasCandidates || status === 'done' || status === 'error') && (
+            <div className="flex gap-3 pt-2">
+              <Button
+                onClick={handleConfirm}
+                className="flex-1"
+                disabled={!hasSelection}
+              >
+                Confirmar
+              </Button>
+              <Button variant="outline" onClick={handleNewCapture}>
+                Nova Captura
+              </Button>
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Candidate Group ─────────────────────────────────────────────────────────
+
+function CandidateGroup({
+  title,
+  candidates,
+  selected,
+  onSelect,
+}: {
+  title: string;
+  candidates: OCRCandidate[];
+  selected: string;
+  onSelect: (c: OCRCandidate) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-medium">{title}</h3>
+      <div className="space-y-1">
+        {candidates.map((c, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => onSelect(c)}
+            className={`w-full text-left px-3 py-2 rounded-md border text-sm flex items-center gap-3 transition-colors ${
+              selected === c.value
+                ? 'border-primary bg-primary/10'
+                : 'border-input hover:bg-muted/50'
+            }`}
+          >
+            {/* Radio visual */}
+            <div
+              className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
+                selected === c.value ? 'border-primary bg-primary' : 'border-input'
+              }`}
+            />
+            <span className="font-mono flex-1">{c.value}</span>
+            <span className="text-xs text-muted-foreground">
+              {Math.round(c.confidence * 100)}%
+            </span>
+          </button>
+        ))}
       </div>
     </div>
   );

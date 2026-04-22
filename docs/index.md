@@ -42,7 +42,8 @@
 
 | Documento | Descrição |
 |---|---|
-| [contributing.md](./contributing.md) | Fluxo completo de desenvolvimento local, convenções de commit, uso do Prisma Studio, como adicionar endpoints à API, como adicionar componentes ao `packages/ui` e checklist de PR. |
+| [contributing.md](./contributing.md) | Fluxo completo de desenvolvimento local, convenções de commit, uso do Prisma Studio, como adicionar endpoints à API, como adicionar componentes ao `packages/ui`, desenvolvimento cross-platform (Windows ↔ Linux) e checklist de PR. |
+| [backup.md](./backup.md) | Como exportar e restaurar o banco de dados e arquivos do MinIO para continuar o desenvolvimento em outra máquina. |
 
 ---
 

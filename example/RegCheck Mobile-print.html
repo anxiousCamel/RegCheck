@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>RegCheck — Preventiva Mobile (Print)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/tokens.css"/>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      background: #fff;
+      font-family: 'Inter', system-ui, sans-serif;
+      color: #0F172A;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Page header shown once at top */
+    .doc-header {
+      padding: 32px 48px 20px;
+      border-bottom: 1px solid #E2E8F0;
+      break-after: avoid;
+    }
+    .doc-header h1 {
+      margin: 0; font-size: 22px; font-weight: 800;
+      letter-spacing: -0.015em; color: #0F172A;
+    }
+    .doc-header p {
+      margin: 4px 0 0; font-size: 13px; color: #64748B;
+    }
+    .doc-header .meta {
+      margin-top: 10px; display: flex; gap: 24px;
+      font-size: 11px; color: #475569;
+      text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+    }
+    .doc-header .meta b { color: #0F172A; font-weight: 700; letter-spacing: 0; text-transform: none; }
+
+    /* Grid of screens — 3 across, wraps to 2 pages */
+    .grid {
+      padding: 28px 48px 48px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px 32px;
+      justify-items: center;
+    }
+    .screen-cell {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 12px;
+      break-inside: avoid;
+    }
+    .screen-label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 700;
+      color: #0F172A;
+    }
+    .screen-label .num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 999px;
+      background: var(--rc-primary, oklch(0.52 0.17 256));
+      color: #fff; font-size: 11px; font-weight: 800;
+    }
+    .screen-label .desc {
+      font-size: 11px; font-weight: 500; color: #64748B;
+      margin-left: 2px;
+    }
+    .device-shrink {
+      width: 217px;   /* 402 * 0.54 */
+      height: 472px;  /* 874 * 0.54 */
+      position: relative;
+      overflow: hidden;
+    }
+    .device-shrink > .device-inner {
+      transform: scale(0.54);
+      transform-origin: top left;
+      width: 402px; height: 874px;
+    }
+
+    /* Print rules */
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+    @media print {
+      .doc-header { padding: 18px 32px 12px; }
+      .doc-header h1 { font-size: 18px; }
+      .doc-header p { font-size: 11px; }
+      .doc-header .meta { font-size: 10px; gap: 18px; margin-top: 6px; }
+      .grid { padding: 16px 32px 24px; gap: 18px 24px; }
+      .screen-cell { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="doc-header">
+    <h1>RegCheck · Preventiva Mobile</h1>
+    <p>Fluxo completo — Lista → Preenchimento → Foto → Assinatura → Revisão → PDF gerado</p>
+    <div class="meta">
+      <div><b>Context</b> &nbsp;&nbsp; Mercados · Preventiva mensal</div>
+      <div><b>Base</b> &nbsp;&nbsp; github.com/anxiousCamel/RegCheck</div>
+      <div><b>Device</b> &nbsp;&nbsp; iOS · 402×874 @ 0.54×</div>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <!-- Component scripts -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="frames/ios-frame.jsx"></script>
+  <script type="text/babel" src="src/icons.jsx"></script>
+  <script type="text/babel" src="src/data.jsx"></script>
+  <script type="text/babel" src="src/ui.jsx"></script>
+  <script type="text/babel" src="src/screen-list.jsx"></script>
+  <script type="text/babel" src="src/screen-fill.jsx"></script>
+  <script type="text/babel" src="src/screens-rest.jsx"></script>
+
+  <script type="text/babel">
+  const { useEffect } = React;
+
+  // Apply saved tweak values (read from localStorage if available)
+  const TWEAKS = {
+    density: (localStorage.getItem('rc_density') || 'comfortable'),
+    toggleStyle: 'stacked',
+    primary: 'blue',
+  };
+
+  const PRIMARY_COLORS = {
+    blue:   { p: 'oklch(0.52 0.17 256)', p6:'oklch(0.47 0.18 256)', p7:'oklch(0.41 0.18 256)', p50:'oklch(0.97 0.02 256)', p100:'oklch(0.94 0.04 256)' },
+  };
+  const c = PRIMARY_COLORS.blue;
+  document.documentElement.style.setProperty('--rc-primary',      c.p);
+  document.documentElement.style.setProperty('--rc-primary-600',  c.p6);
+  document.documentElement.style.setProperty('--rc-primary-700',  c.p7);
+  document.documentElement.style.setProperty('--rc-primary-50',   c.p50);
+  document.documentElement.style.setProperty('--rc-primary-100',  c.p100);
+
+  const SCREENS = [
+    { id: 'list',      label: '01', name: 'Lista',         desc: 'Equipamentos + filtros por setor' },
+    { id: 'fill',      label: '02', name: 'Preenchimento', desc: 'Checklist + fotos + offline' },
+    { id: 'camera',    label: '03', name: 'Câmera',        desc: 'Foto antes/depois' },
+    { id: 'signature', label: '04', name: 'Assinatura',    desc: 'Responsável da loja' },
+    { id: 'review',    label: '05', name: 'Revisão',       desc: 'Resumo + metrics' },
+    { id: 'success',   label: '06', name: 'PDF gerado',    desc: 'Baixar · compartilhar' },
+  ];
+
+  // No navigation — each device renders a single fixed screen
+  function ScreenCell({ id }) {
+    const tweaks = { density: 'comfortable', toggleStyle: 'stacked', primary: 'blue' };
+    // Noop callbacks (print is static)
+    const noop = () => {};
+    const screen = (() => {
+      switch (id) {
+        case 'list':      return <ScreenList onOpen={noop}/>;
+        case 'fill':      return <ScreenFill tweaks={tweaks} onBack={noop} onNext={noop} onOpenCamera={noop} onOpenSignature={noop}/>;
+        case 'camera':    return <ScreenCamera mode="before" onCancel={noop} onCapture={noop}/>;
+        case 'signature': return <ScreenSignature onCancel={noop} onDone={noop}/>;
+        case 'review':    return <ScreenReview onBack={noop} onGenerate={noop}/>;
+        case 'success':   return <ScreenSuccess onStart={noop} onDownload={noop}/>;
+      }
+    })();
+    return (
+      <div className="device-shrink">
+        <div className="device-inner">
+          <IOSDevice width={402} height={874} dark={id === 'camera'}>
+            <div className="rc-phone" data-density="comfortable"
+                 style={{height:'100%', overflow:'hidden', position:'relative',
+                         paddingTop: id === 'camera' ? 0 : 60}}>
+              {screen}
+            </div>
+          </IOSDevice>
+        </div>
+      </div>
+    );
+  }
+
+  function PrintGrid() {
+    return (
+      <>
+        {SCREENS.map(s => (
+          <div key={s.id} className="screen-cell">
+            <div className="screen-label">
+              <span className="num">{s.label}</span>
+              {s.name}
+              <span className="desc">· {s.desc}</span>
+            </div>
+            <ScreenCell id={s.id}/>
+          </div>
+        ))}
+      </>
+    );
+  }
+
+  const root = ReactDOM.createRoot(document.getElementById('grid'));
+  root.render(<PrintGrid/>);
+
+  // Auto-print once fonts + render are ready
+  (async () => {
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch {}
+    // wait for Babel + React render to settle
+    await new Promise(r => setTimeout(r, 1200));
+    window.print();
+  })();
+  </script>
+</body>
+</html>

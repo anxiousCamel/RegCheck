@@ -17,8 +17,8 @@ export function MobileBottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 h-14 border-t bg-background md:hidden">
-      <div className="flex h-full items-center justify-around">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-primary/5 bg-background/80 backdrop-blur-xl md:hidden pb-[env(safe-area-inset-bottom)] shadow-[0_-1px_15px_rgba(0,0,0,0.05)]">
+      <div className="flex h-16 items-center justify-around px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href ||
@@ -28,15 +28,30 @@ export function MobileBottomNav() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={true}
               className={cn(
-                'flex flex-col items-center justify-center gap-0.5 px-2 py-1 text-xs transition-colors',
-                isActive
-                  ? 'text-primary'
-                  : 'text-muted-foreground',
+                'relative flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-300 active:scale-90',
+                isActive ? 'text-primary' : 'text-muted-foreground/70 hover:text-muted-foreground'
               )}
             >
-              <Icon className="h-5 w-5" />
-              <span>{item.label}</span>
+              {/* Active Indicator Pill */}
+              {isActive && (
+                <div className="absolute top-1 h-1 w-8 bg-primary rounded-full animate-in fade-in slide-in-from-top-1 duration-500" />
+              )}
+
+              <div className={cn(
+                "p-1.5 rounded-xl transition-all duration-300",
+                isActive ? "bg-primary/10" : "bg-transparent"
+              )}>
+                <Icon className={cn("h-5 w-5", isActive ? "stroke-[2.5px]" : "stroke-[2px]")} />
+              </div>
+              
+              <span className={cn(
+                "text-[10px] font-black uppercase tracking-tight transition-all duration-300",
+                isActive ? "opacity-100" : "opacity-60"
+              )}>
+                {item.label}
+              </span>
             </Link>
           );
         })}

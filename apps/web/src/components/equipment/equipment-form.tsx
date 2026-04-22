@@ -5,9 +5,20 @@ import { Camera } from 'lucide-react';
 import { Button, Input, Label } from '@regcheck/ui';
 import type { LojaDTO, SetorDTO, TipoEquipamentoDTO, EquipamentoDTO } from '@regcheck/shared';
 import { CameraScanner } from './camera-scanner';
+import type { ScannerTarget, ScannerResult } from './camera-scanner';
+
+// ─── IPv4 validation ──────────────────────────────────────────────────────────
+
+function isValidIPv4(value: string): boolean {
+  if (!value) return true; // opcional
+  return /^(\d{1,3}\.){3}\d{1,3}$/.test(value) &&
+    value.split('.').every((n) => parseInt(n, 10) <= 255);
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface EquipmentFormProps {
-  initialData?: EquipamentoDTO;
+  initialData?: EquipamentoDTO & { modelo?: string; ip?: string };
   lojas: LojaDTO[];
   setores: SetorDTO[];
   tipos: TipoEquipamentoDTO[];
@@ -18,10 +29,14 @@ interface EquipmentFormProps {
     numeroEquipamento: string;
     serie?: string;
     patrimonio?: string;
+    modelo?: string;
+    ip?: string;
     glpiId?: string;
   }) => void;
   isLoading: boolean;
 }
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function EquipmentForm({
   initialData,
@@ -37,8 +52,11 @@ export function EquipmentForm({
   const [numeroEquipamento, setNumeroEquipamento] = useState(initialData?.numeroEquipamento ?? '');
   const [serie, setSerie] = useState(initialData?.serie ?? '');
   const [patrimonio, setPatrimonio] = useState(initialData?.patrimonio ?? '');
+  const [modelo, setModelo] = useState(initialData?.modelo ?? '');
+  const [ip, setIp] = useState(initialData?.ip ?? '');
   const [glpiId, setGlpiId] = useState(initialData?.glpiId ?? '');
-  const [scannerTarget, setScannerTarget] = useState<'serie' | 'patrimonio' | null>(null);
+  const [scannerTarget, setScannerTarget] = useState<ScannerTarget | null>(null);
+  const [ipError, setIpError] = useState('');
 
   useEffect(() => {
     if (initialData) {
@@ -48,13 +66,21 @@ export function EquipmentForm({
       setNumeroEquipamento(initialData.numeroEquipamento);
       setSerie(initialData.serie ?? '');
       setPatrimonio(initialData.patrimonio ?? '');
+      setModelo(initialData.modelo ?? '');
+      setIp(initialData.ip ?? '');
       setGlpiId(initialData.glpiId ?? '');
     }
   }, [initialData]);
 
+  const handleIpChange = (value: string) => {
+    setIp(value);
+    setIpError(value && !isValidIPv4(value) ? 'IPv4 inválido (ex: 192.168.1.1)' : '');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!lojaId || !setorId || !tipoId || !numeroEquipamento.trim()) return;
+    if (ip && !isValidIPv4(ip)) return;
 
     onSubmit({
       lojaId,
@@ -63,17 +89,20 @@ export function EquipmentForm({
       numeroEquipamento: numeroEquipamento.trim(),
       serie: serie.trim() || undefined,
       patrimonio: patrimonio.trim() || undefined,
+      modelo: modelo.trim() || undefined,
+      ip: ip.trim() || undefined,
       glpiId: glpiId.trim() || undefined,
     });
   };
 
-  const handleScanResult = (result: { serie?: string; patrimonio?: string }) => {
+  const handleScanResult = (result: ScannerResult) => {
     if (result.serie) setSerie(result.serie);
     if (result.patrimonio) setPatrimonio(result.patrimonio);
+    if (result.modelo) setModelo(result.modelo);
     setScannerTarget(null);
   };
 
-  const isValid = lojaId && setorId && tipoId && numeroEquipamento.trim();
+  const isValid = lojaId && setorId && tipoId && numeroEquipamento.trim() && !ipError;
 
   return (
     <>
@@ -138,6 +167,7 @@ export function EquipmentForm({
         <h3 className="text-sm font-medium">Dados de Identificação</h3>
 
         <div className="grid gap-4 sm:grid-cols-2">
+          {/* Série */}
           <div className="space-y-2">
             <Label>Série</Label>
             <div className="flex gap-2">
@@ -158,6 +188,7 @@ export function EquipmentForm({
             </div>
           </div>
 
+          {/* Patrimônio */}
           <div className="space-y-2">
             <Label>Patrimônio</Label>
             <div className="flex gap-2">
@@ -178,6 +209,39 @@ export function EquipmentForm({
             </div>
           </div>
 
+          {/* Modelo */}
+          <div className="space-y-2">
+            <Label>Modelo (opcional)</Label>
+            <div className="flex gap-2">
+              <Input
+                value={modelo}
+                onChange={(e) => setModelo(e.target.value)}
+                placeholder="Modelo do equipamento"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setScannerTarget('modelo')}
+                title="Capturar modelo via câmera"
+              >
+                <Camera className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* IP */}
+          <div className="space-y-2">
+            <Label>IP (opcional)</Label>
+            <Input
+              value={ip}
+              onChange={(e) => handleIpChange(e.target.value)}
+              placeholder="192.168.1.1"
+            />
+            {ipError && <p className="text-xs text-destructive">{ipError}</p>}
+          </div>
+
+          {/* GLPI */}
           <div className="space-y-2">
             <Label>GLPI ID (opcional)</Label>
             <Input
@@ -188,10 +252,15 @@ export function EquipmentForm({
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <Button type="submit" disabled={!isValid || isLoading}>
-            {isLoading ? 'Salvando...' : initialData ? 'Atualizar' : 'Cadastrar'}
+        <div className="flex flex-col sm:flex-row gap-3 pt-4">
+          <Button type="submit" disabled={!isValid || isLoading} className="h-12 sm:h-10 text-base font-bold flex-1">
+            {isLoading ? 'Salvando...' : initialData ? 'Atualizar Equipamento' : 'Cadastrar Equipamento'}
           </Button>
+          {initialData && (
+             <Button type="button" variant="ghost" onClick={() => window.history.back()} className="h-12 sm:h-10 text-muted-foreground">
+               Cancelar
+             </Button>
+          )}
         </div>
       </form>
 

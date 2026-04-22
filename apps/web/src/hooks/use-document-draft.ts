@@ -63,6 +63,8 @@ export function useDocumentDraft(
   // Keep a stable ref to fields for use in callbacks without stale closures
   const fieldsRef = useRef(fields);
   fieldsRef.current = fields;
+  // Track server fields count to detect populate changes
+  const lastServerCountRef = useRef<number>(0);
 
   // ── 1. Load from IndexedDB on mount ────────────────────────────────────────
   useEffect(() => {
@@ -130,12 +132,68 @@ export function useDocumentDraft(
           setFields(map);
           await saveDraftFields(records);
         }
+
+        lastServerCountRef.current = serverFields?.length ?? 0;
       } catch (err) {
         console.error('[Draft] Failed to load from IndexedDB:', err);
       }
     }
 
     init();
+  }, [documentId, serverFields]);
+
+  // ── 1b. Merge server data when it changes (e.g. after populate) ────────────
+  // Detects when serverFields changes significantly and merges values for
+  // fields that the user hasn't locally modified (synced=true or absent).
+  useEffect(() => {
+    if (!loaded.current || !serverFields) return;
+    const prevCount = lastServerCountRef.current;
+    const newCount = serverFields.length;
+    // Only trigger merge when server field count changes (populate/re-populate)
+    if (newCount === prevCount || newCount === 0) return;
+    lastServerCountRef.current = newCount;
+
+    async function mergeServerData() {
+      try {
+        const map = new Map(fieldsRef.current);
+        const records: DraftFieldRecord[] = [];
+        const now = Date.now();
+        let changed = false;
+
+        for (const f of serverFields!) {
+          const mapKey = `${f.fieldId}_${f.itemIndex}`;
+          const existing = map.get(mapKey);
+
+          // Only overwrite if: no local data, or local data is synced (not user-modified)
+          if (!existing || existing.synced) {
+            map.set(mapKey, { value: f.value, fileKey: f.fileKey, synced: true });
+            records.push({
+              key: draftKey(documentId, f.fieldId, f.itemIndex),
+              documentId,
+              fieldId: f.fieldId,
+              itemIndex: f.itemIndex,
+              value: String(f.value),
+              fileKey: f.fileKey,
+              synced: true,
+              updatedAt: now,
+            });
+            changed = true;
+          }
+        }
+
+        if (changed) {
+          setFields(map);
+          if (records.length > 0) {
+            await saveDraftFields(records);
+          }
+          console.debug('[Draft] Merged', records.length, 'fields from server after populate');
+        }
+      } catch (err) {
+        console.error('[Draft] Failed to merge server data:', err);
+      }
+    }
+
+    mergeServerData();
   }, [documentId, serverFields]);
 
   // ── 2. Online / offline detection ─────────────────────────────────────────

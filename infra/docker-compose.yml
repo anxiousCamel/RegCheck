@@ -1,6 +1,9 @@
+name: regcheck
+
 services:
   postgres:
     image: postgres:16-alpine
+    container_name: regcheck-postgres
     environment:
       POSTGRES_USER: regcheck
       POSTGRES_PASSWORD: regcheck
@@ -12,6 +15,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    container_name: regcheck-redis
     ports:
       - '6379:6379'
     volumes:
@@ -19,6 +23,7 @@ services:
 
   minio:
     image: minio/minio:latest
+    container_name: regcheck-minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
@@ -32,6 +37,7 @@ services:
   # Auto-create the bucket on startup
   minio-init:
     image: minio/mc:latest
+    container_name: regcheck-minio-init
     depends_on:
       - minio
     entrypoint: >

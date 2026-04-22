@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { prisma } from '@regcheck/database';
 import { DocumentService } from '../services/document-service';
 import { createDocumentSchema, updateDocumentSchema, saveFilledDataSchema, populateDocumentSchema } from '@regcheck/validators';
 import { paginationSchema, idParamSchema } from '@regcheck/validators';
@@ -19,35 +20,12 @@ documentRouter.get('/', async (req, res, next) => {
   }
 });
 
-/** GET /api/documents/:id - Get document */
-documentRouter.get('/:id', async (req, res, next) => {
-  try {
-    const { id } = idParamSchema.parse(req.params);
-    const doc = await DocumentService.getById(id);
-    res.json({ success: true, data: doc } satisfies ApiResponse<typeof doc>);
-  } catch (err) {
-    next(err);
-  }
-});
-
 /** POST /api/documents - Create document from template */
 documentRouter.post('/', async (req, res, next) => {
   try {
     const input = createDocumentSchema.parse(req.body);
     const doc = await DocumentService.create(input);
     res.status(201).json({ success: true, data: doc } satisfies ApiResponse<typeof doc>);
-  } catch (err) {
-    next(err);
-  }
-});
-
-/** PATCH /api/documents/:id - Update document */
-documentRouter.patch('/:id', async (req, res, next) => {
-  try {
-    const { id } = idParamSchema.parse(req.params);
-    const input = updateDocumentSchema.parse(req.body);
-    const doc = await DocumentService.update(id, input);
-    res.json({ success: true, data: doc } satisfies ApiResponse<typeof doc>);
   } catch (err) {
     next(err);
   }
@@ -94,6 +72,20 @@ documentRouter.get('/:id/status', async (req, res, next) => {
     const { id } = idParamSchema.parse(req.params);
     const doc = await DocumentService.getById(id);
     const job = await getJobStatus(id).catch(() => null);
+
+    // Auto-recover stuck GENERATING: if no active job and stuck > 10 min, reset to ERROR
+    if (doc.status === 'GENERATING' && !job) {
+      const elapsed = Date.now() - new Date(doc.updatedAt).getTime();
+      if (elapsed > 10 * 60 * 1000) {
+        await prisma.document.update({
+          where: { id },
+          data: { status: 'ERROR' },
+        });
+        const result = { status: 'ERROR', generatedPdfKey: doc.generatedPdfKey, job: undefined };
+        res.json({ success: true, data: result } satisfies ApiResponse<typeof result>);
+        return;
+      }
+    }
 
     const result = {
       status: doc.status,
@@ -142,6 +134,40 @@ documentRouter.get('/:id/download', async (req, res, next) => {  try {
 
     const url = await getPresignedUrl(doc.generatedPdfKey);
     res.json({ success: true, data: { downloadUrl: url } } satisfies ApiResponse<{ downloadUrl: string }>);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** GET /api/documents/:id - Get document */
+documentRouter.get('/:id', async (req, res, next) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const doc = await DocumentService.getById(id);
+    res.json({ success: true, data: doc } satisfies ApiResponse<typeof doc>);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** PATCH /api/documents/:id - Update document */
+documentRouter.patch('/:id', async (req, res, next) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const input = updateDocumentSchema.parse(req.body);
+    const doc = await DocumentService.update(id, input);
+    res.json({ success: true, data: doc } satisfies ApiResponse<typeof doc>);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** DELETE /api/documents/:id - Delete document */
+documentRouter.delete('/:id', async (req, res, next) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const result = await DocumentService.delete(id);
+    res.json({ success: true, data: result } satisfies ApiResponse<typeof result>);
   } catch (err) {
     next(err);
   }

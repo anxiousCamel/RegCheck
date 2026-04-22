@@ -37,6 +37,10 @@ const FIELD_COLORS: Record<FieldType, string> = {
   checkbox: '#8b5cf6',
 };
 
+/** Slot badge colors by group index */
+const SLOT_COLORS = ['#2563eb', '#16a34a', '#ea580c', '#9333ea', '#dc2626', '#0891b2', '#ca8a04', '#be185d'];
+const getSlotColor = (group: number) => SLOT_COLORS[group % SLOT_COLORS.length];
+
 interface EditorCanvasProps {
   pdfFileKey: string;
   templateId: string;
@@ -356,6 +360,11 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
           relY = interaction.startY / pageHeight;
         }
 
+        // Enforce minimum dimensions to prevent invisible/broken fields
+        const minSize = defaultSizes[activeTool];
+        width = Math.max(width, minSize.width * 0.5);
+        height = Math.max(height, minSize.height * 0.5);
+
         const fieldId = crypto.randomUUID();
         const config = defaultConfigs[activeTool];
 
@@ -430,8 +439,8 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
       node.scaleX(1);
       node.scaleY(1);
 
-      const newWidth = (node.width() * scaleX) / CANVAS_WIDTH;
-      const newHeight = (node.height() * scaleY) / pageHeight;
+      const newWidth = Math.max((node.width() * scaleX) / CANVAS_WIDTH, 0.005);
+      const newHeight = Math.max((node.height() * scaleY) / pageHeight, 0.005);
       const newX = node.x() / CANVAS_WIDTH;
       const newY = node.y() / pageHeight;
 
@@ -469,17 +478,24 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
         const { clipboard } = useEditorStore.getState();
         if (clipboard.length === 0) return;
         e.preventDefault();
+
+        // Block autosave while creating pasted fields
+        useEditorStore.getState().setBatchOperation(true);
         const newFields = pasteFields();
-        // Persist each pasted field to API
-        for (const f of newFields) {
-          createFieldMutation.mutate({
-            clientId: f.id,
-            type: f.type,
-            pageIndex: f.pageIndex,
-            position: f.position as unknown as Record<string, number>,
-            config: f.config,
-          });
-        }
+        // Persist all pasted fields and wait for completion before unblocking
+        Promise.all(
+          newFields.map((f) =>
+            createFieldMutation.mutateAsync({
+              clientId: f.id,
+              type: f.type,
+              pageIndex: f.pageIndex,
+              position: f.position as unknown as Record<string, number>,
+              config: f.config,
+            }),
+          ),
+        )
+          .catch((err) => console.error('[Paste] Some fields failed to persist:', err))
+          .finally(() => useEditorStore.getState().setBatchOperation(false));
       }
 
       // Ctrl+Z / Cmd+Z — undo
@@ -635,6 +651,56 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
                   verticalAlign="middle"
                   listening={false}
                 />
+                {field.scope === 'global' && (
+                  <>
+                    <Rect
+                      x={width - 22 / zoom}
+                      y={0}
+                      width={22 / zoom}
+                      height={12 / zoom}
+                      fill="#6366f1"
+                      cornerRadius={2}
+                      listening={false}
+                    />
+                    <Text
+                      x={width - 22 / zoom}
+                      y={0}
+                      width={22 / zoom}
+                      height={12 / zoom}
+                      text="GLB"
+                      fontSize={8 / zoom}
+                      fill="white"
+                      align="center"
+                      verticalAlign="middle"
+                      listening={false}
+                    />
+                  </>
+                )}
+                {field.scope === 'item' && field.slotIndex != null && (
+                  <>
+                    <Rect
+                      x={width - 18 / zoom}
+                      y={0}
+                      width={18 / zoom}
+                      height={12 / zoom}
+                      fill={getSlotColor(field.slotIndex)}
+                      cornerRadius={2}
+                      listening={false}
+                    />
+                    <Text
+                      x={width - 18 / zoom}
+                      y={0}
+                      width={18 / zoom}
+                      height={12 / zoom}
+                      text={`S${field.slotIndex}`}
+                      fontSize={8 / zoom}
+                      fill="white"
+                      align="center"
+                      verticalAlign="middle"
+                      listening={false}
+                    />
+                  </>
+                )}
               </Group>
             );
           })}

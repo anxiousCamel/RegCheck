@@ -11,14 +11,26 @@ const FIELD_TYPE_MAP: Record<string, PrismaFieldType> = {
   checkbox: 'CHECKBOX',
 };
 
+/**
+ * Normalize incoming scope/slotIndex/bindingKey values so DB invariants hold:
+ *   - globals always have slotIndex = null
+ *   - items always have slotIndex ≥ 0 (validator should have enforced this; defensive default to 0)
+ */
+function normalizeSlotFor(
+  scope: 'global' | 'item' | undefined,
+  slotIndex: number | null | undefined,
+): number | null | undefined {
+  if (scope === undefined && slotIndex === undefined) return undefined;
+  if (scope === 'global') return null;
+  if (scope === 'item') return slotIndex ?? 0;
+  return slotIndex;
+}
+
 export class FieldService {
   /** Add a field to a template */
   static async create(templateId: string, input: CreateFieldInput) {
     const template = await prisma.template.findUnique({ where: { id: templateId } });
     if (!template) throw new AppError(404, 'Template not found', 'NOT_FOUND');
-    if (template.status === 'PUBLISHED') {
-      throw new AppError(400, 'Cannot add fields to a published template', 'TEMPLATE_PUBLISHED');
-    }
 
     const field = await prisma.templateField.create({
       data: {
@@ -27,7 +39,9 @@ export class FieldService {
         pageIndex: input.pageIndex,
         position: input.position as unknown as Prisma.JsonObject,
         config: input.config as unknown as Prisma.JsonObject,
-        repetitionGroupId: input.repetitionGroupId,
+        scope: input.scope,
+        slotIndex: normalizeSlotFor(input.scope, input.slotIndex) ?? null,
+        bindingKey: input.bindingKey ?? null,
       },
     });
 
@@ -42,15 +56,16 @@ export class FieldService {
       include: { template: true },
     });
     if (!field) throw new AppError(404, 'Field not found', 'NOT_FOUND');
-    if (field.template.status === 'PUBLISHED') {
-      throw new AppError(400, 'Cannot modify fields on a published template', 'TEMPLATE_PUBLISHED');
-    }
 
     const data: Prisma.TemplateFieldUpdateInput = {};
     if (input.type) data.type = FIELD_TYPE_MAP[input.type] as PrismaFieldType;
     if (input.pageIndex !== undefined) data.pageIndex = input.pageIndex;
     if (input.position) data.position = input.position as unknown as Prisma.JsonObject;
     if (input.config) data.config = input.config as unknown as Prisma.JsonObject;
+    if (input.scope !== undefined) data.scope = input.scope;
+    const nextSlot = normalizeSlotFor(input.scope, input.slotIndex);
+    if (nextSlot !== undefined) data.slotIndex = nextSlot;
+    if (input.bindingKey !== undefined) data.bindingKey = input.bindingKey;
 
     const updated = await prisma.templateField.update({
       where: { id: fieldId },
@@ -73,12 +88,15 @@ export class FieldService {
     await invalidateCache(`template:${field.templateId}*`);
   }
 
-  /** Batch update fields (positions and optionally config) */
+  /** Batch update fields (position + optional scope/slot/binding/config). */
   static async batchUpdateFields(
     updates: Array<{
       id: string;
       position: { x: number; y: number; width: number; height: number };
       config?: Record<string, unknown>;
+      scope?: 'global' | 'item';
+      slotIndex?: number | null;
+      bindingKey?: string | null;
     }>,
   ) {
     // Filter to only existing fields before updating (avoids P2025 on deleted fields)
@@ -95,22 +113,15 @@ export class FieldService {
       const data: Prisma.TemplateFieldUpdateInput = {
         position: u.position as unknown as Prisma.JsonObject,
       };
-      if (u.config) {
-        data.config = u.config as unknown as Prisma.JsonObject;
-      }
-      return prisma.templateField.update({
-        where: { id: u.id },
-        data,
-      });
+      if (u.config) data.config = u.config as unknown as Prisma.JsonObject;
+      if (u.scope !== undefined) data.scope = u.scope;
+      const nextSlot = normalizeSlotFor(u.scope, u.slotIndex);
+      if (nextSlot !== undefined) data.slotIndex = nextSlot;
+      if (u.bindingKey !== undefined) data.bindingKey = u.bindingKey;
+
+      return prisma.templateField.update({ where: { id: u.id }, data });
     });
 
     await prisma.$transaction(operations);
-  }
-
-  /** @deprecated Use batchUpdateFields instead */
-  static async batchUpdatePositions(
-    updates: Array<{ id: string; position: { x: number; y: number; width: number; height: number } }>,
-  ) {
-    return this.batchUpdateFields(updates);
   }
 }
