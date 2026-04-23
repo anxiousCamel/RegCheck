@@ -39,12 +39,20 @@ export function performanceMiddleware(
   // Start performance monitoring
   performanceMonitor.startRequest(requestId, req.method, req.path);
 
-  // Track response finish
+  // Intercept res.end to set the header before the response is sent
+  const originalEnd = res.end.bind(res);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (res as any).end = (...args: Parameters<typeof res.end>) => {
+    const duration = Date.now() - startTime;
+    if (!res.headersSent) {
+      res.setHeader('X-Response-Time', `${duration}ms`);
+    }
+    return originalEnd(...args);
+  };
+
+  // Track response finish (logging only — headers already set above)
   res.on('finish', () => {
     const duration = Date.now() - startTime;
-
-    // Add X-Response-Time header
-    res.setHeader('X-Response-Time', `${duration}ms`);
 
     // Get performance metrics
     const metrics = performanceMonitor.endRequest(requestId);

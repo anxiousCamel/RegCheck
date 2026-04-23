@@ -127,27 +127,64 @@ pnpm dev
 
 ---
 
-## Comandos Essenciais
+## Comandos
 
-| Comando              | Descrição                                                        |
-|----------------------|------------------------------------------------------------------|
-| `pnpm dev`           | Inicia todos os apps em modo desenvolvimento (Turborepo)         |
-| `pnpm dev:api`       | Inicia apenas a API (`apps/api`) com logs completos              |
-| `pnpm dev:web`       | Inicia apenas o frontend (`apps/web`) com logs completos         |
-| `pnpm dev:all`       | Inicia API + Web com logs em stream                              |
-| `pnpm build`         | Build de produção de todos os pacotes e apps                     |
-| `pnpm lint`          | Executa lint em todos os pacotes e apps                          |
-| `pnpm type-check`    | Verifica tipos TypeScript em todos os pacotes e apps             |
-| `pnpm format`        | Formata todos os arquivos com Prettier                           |
-| `pnpm infra:up`      | Sobe os containers Docker (PostgreSQL, Redis, MinIO) em background |
-| `pnpm infra:down`    | Para e remove os containers Docker                               |
-| `pnpm infra:logs`    | Sobe os containers com logs no terminal                          |
-| `pnpm db:push`       | Aplica o schema Prisma no banco sem criar migration              |
-| `pnpm db:migrate`    | Cria e aplica uma migration Prisma                               |
-| `pnpm db:generate`   | Gera o Prisma Client                                             |
-| `pnpm db:studio`     | Abre o Prisma Studio na porta 5555                               |
-| `pnpm up`            | Atalho: `infra:up` + `wait:infra` + `dev:all`                    |
-| `pnpm clean`         | Remove artefatos de build de todos os pacotes                    |
+### Desenvolvimento
+
+| Comando          | Descrição                                              |
+|------------------|--------------------------------------------------------|
+| `pnpm dev`       | Inicia API + Web em modo desenvolvimento               |
+| `pnpm dev:api`   | Inicia apenas a API (`apps/api`)                       |
+| `pnpm dev:web`   | Inicia apenas o frontend (`apps/web`)                  |
+
+### Build e qualidade
+
+| Comando            | Descrição                                            |
+|--------------------|------------------------------------------------------|
+| `pnpm build`       | Build de produção de todos os pacotes e apps         |
+| `pnpm lint`        | Executa lint em todos os pacotes e apps              |
+| `pnpm type-check`  | Verifica tipos TypeScript em todos os pacotes e apps |
+| `pnpm format`      | Formata todos os arquivos com Prettier               |
+| `pnpm clean`       | Remove artefatos de build de todos os pacotes        |
+
+### Infraestrutura (Docker)
+
+| Comando           | Descrição                                                    |
+|-------------------|--------------------------------------------------------------|
+| `pnpm infra:up`   | Sobe os containers (PostgreSQL :5432, Redis :6379, MinIO :9000) em background |
+| `pnpm infra:down` | Para e remove os containers                                  |
+| `pnpm infra:logs` | Sobe os containers exibindo logs no terminal                 |
+| `pnpm wait:infra` | Aguarda Postgres e Redis estarem prontos (usado internamente) |
+
+### Banco de dados
+
+| Comando                | Descrição                                                  |
+|------------------------|------------------------------------------------------------|
+| `pnpm db:generate`     | Gera o Prisma Client                                       |
+| `pnpm db:push`         | Aplica o schema Prisma no banco sem criar migration        |
+| `pnpm db:migrate`      | Cria e aplica uma migration Prisma                         |
+| `pnpm db:studio`       | Abre o Prisma Studio na porta 5555                         |
+| `pnpm db:export`       | Exporta banco + arquivos para um `.zip` em `backups/`      |
+| `pnpm db:import`       | Importa um backup gerado por `db:export`                   |
+| `pnpm db:restore`      | Restaura o backup padrão definido no script                |
+| `pnpm db:restore-pdfs` | Restaura apenas os PDFs de um backup (sem sobrescrever o banco) |
+
+### Atalhos de inicialização
+
+| Comando               | Descrição                                                              |
+|-----------------------|------------------------------------------------------------------------|
+| `pnpm up`             | Fluxo completo: `infra:up` → aguarda → configura env → `dev`           |
+| `pnpm up:studio`      | Igual ao `up`, mas também abre o Prisma Studio em paralelo             |
+| `pnpm start:fresh`    | Limpa `node_modules`, reinstala dependências e reinicia (detecta OS)   |
+| `pnpm start:restore`  | Sobe a infra, restaura um backup e inicia o dev                        |
+| `pnpm reinstall`      | Remove `node_modules` e reinstala todas as dependências (detecta OS)   |
+
+### Utilitários
+
+| Comando              | Descrição                                          |
+|----------------------|----------------------------------------------------|
+| `pnpm setup:env`     | Copia `.env.example` para os apps que não têm `.env` |
+| `pnpm seed:balanças` | Popula o banco com dados de balanças de exemplo    |
 
 ---
 

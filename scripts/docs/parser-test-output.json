@@ -1,0 +1,838 @@
+{
+  "success": true,
+  "models": [
+    {
+      "name": "PdfFile",
+      "tableName": "pdf_files",
+      "comment": "Uploaded PDF files used as template bases",
+      "fieldCount": 8,
+      "fields": [
+        {
+          "name": "id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "fileName",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "fileKey",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": true,
+          "isRelation": false
+        },
+        {
+          "name": "fileSize",
+          "type": "Int",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "mimeType",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "pageCount",
+          "type": "Int",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "templates",
+          "type": "Template",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        }
+      ]
+    },
+    {
+      "name": "Template",
+      "tableName": "templates",
+      "comment": "Document template definitions",
+      "fieldCount": 12,
+      "fields": [
+        {
+          "name": "id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "description",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "status",
+          "type": "TemplateStatus",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "version",
+          "type": "Int",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "pdfFileId",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "pdfFile",
+          "type": "PdfFile",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": true,
+          "relationTo": "PdfFile"
+        },
+        {
+          "name": "fields",
+          "type": "TemplateField",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "versions",
+          "type": "TemplateVersion",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "documents",
+          "type": "Document",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        }
+      ]
+    },
+    {
+      "name": "TemplateVersion",
+      "tableName": "template_versions",
+      "comment": "Version history for templates",
+      "fieldCount": 6,
+      "fields": [
+        {
+          "name": "id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "templateId",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "template",
+          "type": "Template",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": true,
+          "relationTo": "Template"
+        },
+        {
+          "name": "version",
+          "type": "Int",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "snapshot",
+          "type": "Json",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        }
+      ]
+    },
+    {
+      "name": "TemplateField",
+      "tableName": "template_fields",
+      "comment": "Fields defined on a template page",
+      "fieldCount": 13,
+      "fields": [
+        {
+          "name": "id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "templateId",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "template",
+          "type": "Template",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": true,
+          "relationTo": "Template"
+        },
+        {
+          "name": "type",
+          "type": "FieldType",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "pageIndex",
+          "type": "Int",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "position",
+          "type": "Json",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "config",
+          "type": "Json",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "scope",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "slotIndex",
+          "type": "Int",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "bindingKey",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "filledData",
+          "type": "FilledField",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        }
+      ]
+    },
+    {
+      "name": "Document",
+      "tableName": "documents",
+      "comment": "A filled document instance",
+      "fieldCount": 12,
+      "fields": [
+        {
+          "name": "id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "status",
+          "type": "DocumentStatus",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "totalItems",
+          "type": "Int",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "templateId",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "template",
+          "type": "Template",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": true,
+          "relationTo": "Template"
+        },
+        {
+          "name": "templateVersion",
+          "type": "Int",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "generatedPdfKey",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "metadata",
+          "type": "Json",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "filledFields",
+          "type": "FilledField",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        }
+      ]
+    },
+    {
+      "name": "FilledField",
+      "tableName": "filled_fields",
+      "comment": "Data filled into a field for a specific item",
+      "fieldCount": 10,
+      "fields": [
+        {
+          "name": "id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "documentId",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "document",
+          "type": "Document",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": true,
+          "relationTo": "Document"
+        },
+        {
+          "name": "fieldId",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "field",
+          "type": "TemplateField",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": true,
+          "relationTo": "TemplateField"
+        },
+        {
+          "name": "itemIndex",
+          "type": "Int",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "value",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "fileKey",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        }
+      ]
+    },
+    {
+      "name": "Loja",
+      "tableName": "lojas",
+      "comment": "Store locations",
+      "fieldCount": 6,
+      "fields": [
+        {
+          "name": "id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "nome",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": true,
+          "isRelation": false
+        },
+        {
+          "name": "ativo",
+          "type": "Boolean",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "equipamentos",
+          "type": "Equipamento",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        }
+      ]
+    },
+    {
+      "name": "Setor",
+      "tableName": "setores",
+      "comment": "Sectors within a store",
+      "fieldCount": 6,
+      "fields": [
+        {
+          "name": "id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "nome",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": true,
+          "isRelation": false
+        },
+        {
+          "name": "ativo",
+          "type": "Boolean",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "equipamentos",
+          "type": "Equipamento",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        }
+      ]
+    },
+    {
+      "name": "TipoEquipamento",
+      "tableName": "tipos_equipamento",
+      "comment": "Equipment type classification",
+      "fieldCount": 6,
+      "fields": [
+        {
+          "name": "id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "nome",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": true,
+          "isRelation": false
+        },
+        {
+          "name": "ativo",
+          "type": "Boolean",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "equipamentos",
+          "type": "Equipamento",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        }
+      ]
+    },
+    {
+      "name": "Equipamento",
+      "tableName": "equipamentos",
+      "comment": "Equipment registry",
+      "fieldCount": 15,
+      "fields": [
+        {
+          "name": "id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "lojaId",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "loja",
+          "type": "Loja",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": true,
+          "relationTo": "Loja"
+        },
+        {
+          "name": "setorId",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "setor",
+          "type": "Setor",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": true,
+          "relationTo": "Setor"
+        },
+        {
+          "name": "tipoId",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "tipo",
+          "type": "TipoEquipamento",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": true,
+          "relationTo": "TipoEquipamento"
+        },
+        {
+          "name": "numeroEquipamento",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "serie",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "patrimonio",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "modelo",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "ip",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "glpiId",
+          "type": "String",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime",
+          "isPrimaryKey": false,
+          "isUnique": false,
+          "isRelation": false
+        }
+      ]
+    }
+  ],
+  "enums": [
+    {
+      "name": "TemplateStatus",
+      "values": [
+        "DRAFT",
+        "PUBLISHED",
+        "ARCHIVED"
+      ]
+    },
+    {
+      "name": "FieldType",
+      "values": [
+        "TEXT",
+        "IMAGE",
+        "SIGNATURE",
+        "CHECKBOX"
+      ]
+    },
+    {
+      "name": "DocumentStatus",
+      "values": [
+        "DRAFT",
+        "IN_PROGRESS",
+        "COMPLETED",
+        "GENERATING",
+        "GENERATED",
+        "ERROR"
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from": "Template",
+      "to": "PdfFile",
+      "type": "many-to-one",
+      "fromField": "pdfFile"
+    },
+    {
+      "from": "TemplateVersion",
+      "to": "Template",
+      "type": "many-to-one",
+      "fromField": "template"
+    },
+    {
+      "from": "TemplateField",
+      "to": "Template",
+      "type": "many-to-one",
+      "fromField": "template"
+    },
+    {
+      "from": "Document",
+      "to": "Template",
+      "type": "many-to-one",
+      "fromField": "template"
+    },
+    {
+      "from": "FilledField",
+      "to": "Document",
+      "type": "many-to-one",
+      "fromField": "document"
+    },
+    {
+      "from": "FilledField",
+      "to": "TemplateField",
+      "type": "many-to-one",
+      "fromField": "field"
+    },
+    {
+      "from": "Equipamento",
+      "to": "Loja",
+      "type": "many-to-one",
+      "fromField": "loja"
+    },
+    {
+      "from": "Equipamento",
+      "to": "Setor",
+      "type": "many-to-one",
+      "fromField": "setor"
+    },
+    {
+      "from": "Equipamento",
+      "to": "TipoEquipamento",
+      "type": "many-to-one",
+      "fromField": "tipo"
+    }
+  ]
+}

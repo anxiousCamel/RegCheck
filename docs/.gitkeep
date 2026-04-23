@@ -1,0 +1,21 @@
+# Documentation Directory
+
+This directory contains auto-generated technical documentation for the RegCheck system.
+
+Generated files:
+- README.md - Documentation index
+- 01-arquitetura.md - System architecture
+- 02-stack-tecnologica.md - Technology stack
+- 03-infraestrutura.md - Infrastructure and environment
+- 04-modelagem-dados.md - Data modeling and ERD
+- 05-prototipo-telas.md - UI screens and navigation
+- 06-api-reference.md - API endpoint documentation
+- 07-codigos-erro.md - Error codes reference
+- 08-guia-setup.md - Setup guide
+- 09-padroes-codigo.md - Code standards
+- 10-fluxos-processo.md - Process flows
+
+To regenerate documentation:
+```bash
+pnpm generate:docs
+```

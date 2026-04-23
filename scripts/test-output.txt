@@ -1,0 +1,42 @@
+
+ RUN  v4.1.5 /var/home/pc/Área de trabalho/Dev/RegCheck
+
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > heading > should generate heading with level 1 2ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > heading > should generate heading with level 2 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > heading > should generate heading with level 3 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > heading > should generate heading with level 6 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > heading > should throw error for invalid level 0 1ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > heading > should throw error for invalid level 7 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > heading > should handle text with special characters 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > codeBlock > should generate code block with typescript language 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > codeBlock > should generate code block with javascript language 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > codeBlock > should generate code block with json language 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > codeBlock > should handle multi-line code 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > codeBlock > should handle empty code 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > table > should generate table with headers and rows 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > table > should generate table with three columns 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > table > should generate table with single row 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > table > should generate table with empty rows 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > table > should handle cells with special characters 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > list > should generate unordered list 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > list > should generate ordered list 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > list > should default to unordered list when ordered parameter is omitted 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > list > should handle single item list 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > list > should handle empty list 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > list > should handle items with special characters 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > link > should generate internal link 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > link > should generate external link 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > link > should handle link text with special characters 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > link > should handle URL with query parameters 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > link > should handle URL with anchor 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > mermaidDiagram > should generate graph diagram 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > mermaidDiagram > should generate erDiagram 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > mermaidDiagram > should generate sequenceDiagram 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > mermaidDiagram > should handle complex multi-line diagram 0ms
+ ✓ scripts/docs/markdown-formatter.test.ts > Markdown Formatter > mermaidDiagram > should handle empty content 0ms
+
+ Test Files  1 passed (1)
+      Tests  33 passed (33)
+   Start at  22:51:19
+   Duration  342ms (transform 42ms, setup 0ms, import 60ms, tests 11ms, environment 0ms)
+

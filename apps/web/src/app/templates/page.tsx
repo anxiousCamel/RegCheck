@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Plus, Edit, Trash2, FilePlus, UploadCloud } from 'lucide-react';
+import { Plus, Edit, Trash2, FilePlus, UploadCloud, LayoutTemplate } from 'lucide-react';
 import { Button, Badge, Spinner } from '@regcheck/ui';
 import { api } from '@/lib/api';
 
