@@ -7,6 +7,7 @@ import type {
   UpdateDocumentInput,
   SaveFilledDataInput,
   PopulateDocumentInput,
+  ManualSelectInput,
 } from '@regcheck/validators';
 import { AppError } from '../middleware/error-handler';
 import { pdfGenerationQueue } from '../lib/queue';
@@ -148,13 +149,13 @@ export class DocumentService {
               name: true,
               status: true,
               version: true,
-              repetitionConfig: true,
+              fillMode: true,
               pdfFile: {
                 select: {
                   id: true,
-                  key: true,
-                  url: true,
-                  filename: true,
+                  fileName: true,
+                  fileKey: true,
+                  pageCount: true,
                 },
               },
               fields: {
@@ -162,13 +163,13 @@ export class DocumentService {
                   id: true,
                   type: true,
                   config: true,
-                  page: true,
-                  x: true,
-                  y: true,
-                  width: true,
-                  height: true,
+                  pageIndex: true,
+                  position: true,
+                  scope: true,
+                  slotIndex: true,
+                  bindingKey: true,
                 },
-                orderBy: { page: 'asc' },
+                orderBy: { pageIndex: 'asc' },
               },
             },
           },
@@ -270,6 +271,9 @@ export class DocumentService {
     const itemsPerPage = TemplatePaginator.itemsPerPage(fields);
 
     // Fetch equipment filtered by tipo + loja, ordered by setor then numero.
+    const loja = await prisma.loja.findUnique({ where: { id: input.lojaId } });
+    if (!loja) throw new AppError(404, 'Loja não encontrada', 'NOT_FOUND');
+
     const equipamentos = await prisma.equipamento.findMany({
       where: { tipoId: input.tipoId, lojaId: input.lojaId },
       include: { setor: true },
@@ -342,10 +346,13 @@ export class DocumentService {
     const totalItems = items.length;
     const layout = TemplatePaginator.compute(fields, totalItems);
 
-    // No global pre-fill sources yet — globals are filled manually in the UI.
-    // Extend `ctx.globals` here later (e.g. system date, logged-in user) without
-    // changing the resolver or any schema.
-    const ctx: BindingContext = { globals: {}, items };
+    // Bind globals like the current store name
+    const ctx: BindingContext = { 
+      globals: {
+        'loja.nome': loja.nome
+      }, 
+      items 
+    };
 
     // Build pre-filled records for every field that has a bindingKey.
     const fieldsToCreate: Prisma.FilledFieldCreateManyInput[] = [];
@@ -401,6 +408,192 @@ export class DocumentService {
       totalPages: layout.totalPages,
       assignments: publicAssignments,
     };
+  }
+
+  /**
+   * SELECAO_MANUAL: Seleciona 1 equipamento para 1 slot/grupo específico.
+   *
+   * 1. Valida que o template está em modo SELECAO_MANUAL
+   * 2. Valida que o equipamento é do tipo certo para o slot
+   * 3. Preenche os campos do slot com binding keys (eq.serie, etc.)
+   * 4. Preenche campos globais se ainda não foram preenchidos
+   * 5. Atualiza metadata.assignments
+   */
+  static async selectEquipmentForSlot(documentId: string, input: ManualSelectInput) {
+    const doc = await prisma.document.findUnique({
+      where: { id: documentId },
+      include: { template: { include: { fields: true } } },
+    });
+    if (!doc) throw new AppError(404, 'Document not found', 'NOT_FOUND');
+
+    if (doc.template.fillMode !== 'SELECAO_MANUAL') {
+      throw new AppError(
+        400,
+        'Este documento não está em modo SELECAO_MANUAL',
+        'INVALID_FILL_MODE',
+      );
+    }
+
+    // Find the fields for this slot
+    const slotFields = doc.template.fields.filter(
+      (f) => f.scope === 'item' && f.slotIndex === input.slotIndex,
+    );
+    if (slotFields.length === 0) {
+      throw new AppError(400, `Slot S${input.slotIndex} não encontrado no template`, 'SLOT_NOT_FOUND');
+    }
+
+    // Get expected tipoEquipamentoId from slot config
+    const expectedTipoId = slotFields
+      .map((f) => (f.config as any)?.tipoEquipamentoId)
+      .find((id: string | undefined) => !!id);
+
+    // Fetch the equipment
+    const equipamento = await prisma.equipamento.findUnique({
+      where: { id: input.equipamentoId },
+      include: { setor: true, tipo: true, loja: true },
+    });
+    if (!equipamento) {
+      throw new AppError(404, 'Equipamento não encontrado', 'EQUIPMENT_NOT_FOUND');
+    }
+
+    // Validate equipment type matches the slot (only if slot has a type requirement)
+    if (expectedTipoId && equipamento.tipoId !== expectedTipoId) {
+      const expectedTipo = await prisma.tipoEquipamento.findUnique({ where: { id: expectedTipoId } });
+      throw new AppError(
+        400,
+        `Equipamento tipo "${equipamento.tipo.nome}" não é compatível com o slot S${input.slotIndex} (esperado: ${expectedTipo?.nome ?? expectedTipoId})`,
+        'TIPO_MISMATCH',
+      );
+    }
+
+    // Build binding context for this single equipment
+    const itemScope: BindingScope = {
+      numero: equipamento.numeroEquipamento,
+      serie: equipamento.serie ?? undefined,
+      patrimonio: equipamento.patrimonio ?? undefined,
+      modelo: equipamento.modelo ?? undefined,
+      ip: equipamento.ip ?? undefined,
+      glpiId: equipamento.glpiId ?? undefined,
+      setor: equipamento.setor.nome,
+    };
+    const ctx: BindingContext = {
+      globals: {
+        'loja.nome': equipamento.loja.nome,
+      },
+      items: [],
+    };
+    // Place the item at the slot's itemIndex position
+    ctx.items[input.slotIndex] = itemScope;
+
+    // Build filled field records for this slot
+    const fieldsToUpsert: Prisma.FilledFieldCreateManyInput[] = [];
+    
+    // 1. Fill global fields (if not already filled)
+    const globalFields = doc.template.fields.filter(f => f.scope === 'global');
+    for (const field of globalFields) {
+      const tf = toTemplateField(field as unknown as DbField);
+      if (!tf.bindingKey) continue;
+      
+      // Check if already filled
+      const existing = await prisma.filledField.findUnique({
+        where: {
+          documentId_fieldId_itemIndex: {
+            documentId,
+            fieldId: field.id,
+            itemIndex: 0,
+          },
+        },
+      });
+      
+      if (existing) continue; // Skip if already filled
+      
+      const value = FieldBindingResolver.resolve(tf.bindingKey, ctx);
+      if (value === undefined) continue;
+      fieldsToUpsert.push({
+        documentId,
+        fieldId: field.id,
+        itemIndex: 0,
+        value,
+      });
+    }
+    
+    // 2. Fill slot-specific fields
+    for (const field of slotFields) {
+      const tf = toTemplateField(field as unknown as DbField);
+      if (!tf.bindingKey) continue;
+      const value = FieldBindingResolver.resolve(tf.bindingKey, ctx, input.slotIndex);
+      if (value === undefined) continue;
+      fieldsToUpsert.push({
+        documentId,
+        fieldId: field.id,
+        itemIndex: input.slotIndex,
+        value,
+      });
+    }
+
+    // Upsert filled fields for this slot only
+    if (fieldsToUpsert.length > 0) {
+      const ops = fieldsToUpsert.map((f) =>
+        prisma.filledField.upsert({
+          where: {
+            documentId_fieldId_itemIndex: {
+              documentId,
+              fieldId: f.fieldId,
+              itemIndex: f.itemIndex,
+            },
+          },
+          create: f,
+          update: { value: f.value },
+        }),
+      );
+      await prisma.$transaction(ops);
+    }
+
+    // Build assignment for this slot
+    const newAssignment = {
+      itemIndex: input.slotIndex,
+      setorId: equipamento.setorId,
+      setorNome: equipamento.setor.nome,
+      equipamentoId: equipamento.id,
+      numeroEquipamento: equipamento.numeroEquipamento,
+    };
+
+    // Update metadata.assignments (add/replace entry for this slot)
+    const meta = (doc.metadata as any) ?? {};
+    const assignments: Array<typeof newAssignment> = meta.assignments ?? [];
+    const existingIdx = assignments.findIndex((a) => a.itemIndex === input.slotIndex);
+    if (existingIdx >= 0) {
+      assignments[existingIdx] = newAssignment;
+    } else {
+      assignments.push(newAssignment);
+    }
+
+    // Count total slots in the template
+    const totalSlots = new Set(
+      doc.template.fields
+        .filter((f) => f.scope === 'item' && f.slotIndex !== null)
+        .map((f) => f.slotIndex),
+    ).size;
+
+    await prisma.document.update({
+      where: { id: documentId },
+      data: {
+        totalItems: totalSlots,
+        metadata: {
+          ...meta,
+          assignments,
+          fillMode: 'SELECAO_MANUAL',
+          totalSlots,
+        } as unknown as Prisma.InputJsonValue,
+        status: 'IN_PROGRESS',
+      },
+    });
+
+    // Invalidate cache
+    await cacheService.del(`document:${documentId}`);
+    await cacheService.delPattern('documents:list:*');
+
+    return { assignment: newAssignment };
   }
 
   /** Delete a document and all its FilledFields in a single transaction */

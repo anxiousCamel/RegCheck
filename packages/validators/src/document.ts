@@ -27,7 +27,15 @@ export const generatePdfSchema = z.object({
   confirm: z.literal(true),
 });
 
+/** Seleção manual de 1 equipamento para 1 grupo/slot */
+export const manualSelectSchema = z.object({
+  slotIndex: z.number().int().min(0),
+  equipamentoId: z.string().uuid(),
+  lojaId: z.string().uuid().optional(),
+});
+
 export type CreateDocumentInput = z.infer<typeof createDocumentSchema>;
 export type UpdateDocumentInput = z.infer<typeof updateDocumentSchema>;
 export type SaveFilledDataInput = z.infer<typeof saveFilledDataSchema>;
 export type PopulateDocumentInput = z.infer<typeof populateDocumentSchema>;
+export type ManualSelectInput = z.infer<typeof manualSelectSchema>;

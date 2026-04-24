@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Plus, Edit, Trash2, FilePlus, UploadCloud, LayoutTemplate } from 'lucide-react';
+import { Plus, Edit, Trash2, FilePlus, UploadCloud, LayoutTemplate, Archive } from 'lucide-react';
 import { Button, Badge, Spinner } from '@regcheck/ui';
 import { api } from '@/lib/api';
 
@@ -14,10 +14,16 @@ export default function TemplatesPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['templates'],
     queryFn: () => api.listTemplates(),
+    refetchOnMount: 'always',
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteTemplate(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['templates'] }),
+  });
+
+  const unpublishMutation = useMutation({
+    mutationFn: (id: string) => api.unpublishTemplate(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['templates'] }),
   });
 
@@ -68,12 +74,30 @@ export default function TemplatesPage() {
                   </div>
                 </div>
                 <div className="flex flex-row sm:flex-row gap-2">
-                  <Link href={`/editor/${template.id}`} className="flex-1 sm:flex-none">
-                    <Button variant="outline" size="sm" className="w-full h-11 sm:h-9 border-2 font-bold gap-2">
-                      <Edit className="h-4 w-4" />
-                      Editar
+                  {template.status === 'published' ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (confirm('Deseja tornar este template um rascunho para editá-lo?')) {
+                          unpublishMutation.mutate(template.id);
+                        }
+                      }}
+                      disabled={unpublishMutation.isPending}
+                      className="flex-1 sm:flex-none h-11 sm:h-9 border-2 font-bold gap-2 text-amber-600 border-amber-200 hover:bg-amber-50"
+                    >
+                      <Archive className="h-4 w-4" />
+                      Tornar Rascunho
                     </Button>
-                  </Link>
+                  ) : (
+                    <Link href={`/editor/${template.id}`} className="flex-1 sm:flex-none">
+                      <Button variant="outline" size="sm" className="w-full h-11 sm:h-9 border-2 font-bold gap-2">
+                        <Edit className="h-4 w-4" />
+                        Editar
+                      </Button>
+                    </Link>
+                  )}
+                  
                   <Button
                     variant="destructive"
                     size="sm"

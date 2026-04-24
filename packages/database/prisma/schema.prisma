@@ -29,6 +29,7 @@ model Template {
   description String?
   status      TemplateStatus @default(DRAFT)
   version     Int            @default(1)
+  fillMode    FillMode       @default(AUTOMATICO)
 
   /// Reference to the base PDF
   pdfFileId String
@@ -50,6 +51,11 @@ enum TemplateStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
+}
+
+enum FillMode {
+  AUTOMATICO
+  SELECAO_MANUAL
 }
 
 /// Version history for templates

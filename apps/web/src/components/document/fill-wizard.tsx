@@ -167,6 +167,7 @@ interface EquipmentStepProps {
   onNext: () => void;
   onPrev: () => void;
   isLast: boolean;
+  hideHeader?: boolean;
 }
 
 export function EquipmentStep({
@@ -182,6 +183,7 @@ export function EquipmentStep({
   isLast,
   getFileKey,
   getPendingBlobForField,
+  hideHeader,
 }: EquipmentStepProps) {
   const itemIndex = assignment.itemIndex;
 
@@ -203,19 +205,21 @@ export function EquipmentStep({
   return (
     <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-extrabold text-foreground leading-tight">
-            {assignment.setorNome}
-          </h2>
-          <p className="text-muted-foreground text-sm font-medium">
-            {assignment.numeroEquipamento} • {index + 1} de {total}
-          </p>
+      {!hideHeader && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-extrabold text-foreground leading-tight">
+              {assignment.setorNome}
+            </h2>
+            <p className="text-muted-foreground text-sm font-medium">
+              {assignment.numeroEquipamento} • {index + 1} de {total}
+            </p>
+          </div>
+          <Badge variant="outline" className="h-7 px-3 text-xs font-bold bg-muted/50 border-border">
+            {index + 1}/{total}
+          </Badge>
         </div>
-        <Badge variant="outline" className="h-7 px-3 text-xs font-bold bg-muted/50 border-border">
-          {index + 1}/{total}
-        </Badge>
-      </div>
+      )}
 
       {/* Identification */}
       {identificationFields.length > 0 && (

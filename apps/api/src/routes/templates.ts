@@ -72,6 +72,17 @@ templateRouter.post('/:id/publish', async (req, res, next) => {
   }
 });
 
+/** POST /api/templates/:id/unpublish - Unpublish template */
+templateRouter.post('/:id/unpublish', async (req, res, next) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const result = await TemplateService.unpublish(id);
+    res.json({ success: true, data: result } satisfies ApiResponse<typeof result>);
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** DELETE /api/templates/:id - Delete template */
 templateRouter.delete('/:id', async (req, res, next) => {
   try {

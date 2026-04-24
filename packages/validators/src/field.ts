@@ -46,15 +46,31 @@ export const createFieldSchema = z
     config: fieldConfigSchema,
     scope: fieldScopeSchema.default('item'),
     /** SX slot on the page (0..N-1). null for scope='global'. */
-    slotIndex: z.number().int().min(0).nullable(),
+    slotIndex: z.number().int().min(0).nullable().optional(),
     /** Optional auto-populate binding. null = manual fill. */
-    bindingKey: bindingKeySchema.nullable(),
+    bindingKey: bindingKeySchema.nullable().optional(),
+  })
+  .transform((v) => {
+    // Normalize: if scope='item' and slotIndex is missing, default to 0
+    const normalizedSlotIndex = v.scope === 'item' && v.slotIndex === undefined ? 0 : v.slotIndex ?? null;
+    const normalizedBindingKey = v.bindingKey ?? null;
+    
+    return {
+      ...v,
+      slotIndex: normalizedSlotIndex,
+      bindingKey: normalizedBindingKey,
+    };
   })
   .refine(
-    (v) => (v.scope === 'global' ? v.slotIndex === null : v.slotIndex !== null),
+    (v) => {
+      if (v.scope === 'global') {
+        return v.slotIndex === null;
+      }
+      return typeof v.slotIndex === 'number' && v.slotIndex >= 0;
+    },
     {
       message:
-        "slotIndex must be null when scope='global' and non-null when scope='item'",
+        "slotIndex must be null when scope='global' and a non-negative number when scope='item'",
       path: ['slotIndex'],
     },
   );

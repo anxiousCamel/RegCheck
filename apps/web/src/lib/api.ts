@@ -5,6 +5,7 @@ import type {
   SetorDTO,
   TipoEquipamentoDTO,
   EquipamentoDTO,
+  ItemAssignment,
 } from '@regcheck/shared';
 
 // Em dev, usa o mesmo host que serviu a página (funciona no mobile e no desktop)
@@ -90,6 +91,10 @@ class ApiClient {
     return this.request<unknown>(`/api/templates/${id}/publish`, { method: 'POST', body: JSON.stringify({ confirm: true }) });
   }
 
+  unpublishTemplate(id: string) {
+    return this.request<unknown>(`/api/templates/${id}/unpublish`, { method: 'POST' });
+  }
+
   deleteTemplate(id: string) {
     return this.request<void>(`/api/templates/${id}`, { method: 'DELETE' });
   }
@@ -130,14 +135,15 @@ class ApiClient {
   populateDocument(documentId: string, data: { tipoId: string; lojaId: string }) {
     return this.request<{
       totalItems: number;
-      assignments: Array<{
-        itemIndex: number;
-        setorId: string;
-        setorNome: string;
-        equipamentoId: string;
-        numeroEquipamento: string;
-      }>;
+      assignments: Array<ItemAssignment>;
     }>(`/api/documents/${documentId}/populate`, { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  selectEquipmentForSlot(documentId: string, data: { slotIndex: number; equipamentoId: string; lojaId?: string }) {
+    return this.request<{ assignment: ItemAssignment }>(
+      `/api/documents/${documentId}/select-equipment`,
+      { method: 'POST', body: JSON.stringify(data) },
+    );
   }
 
   saveFilledData(documentId: string, fields: Array<Record<string, unknown>>) {

@@ -10,6 +10,7 @@ import { useDocumentDraft } from '@/hooks/use-document-draft';
 import type { FieldType, FieldPosition, FieldConfig } from '@regcheck/shared';
 import type { LojaDTO, TipoEquipamentoDTO, ItemAssignment } from '@regcheck/shared';
 import { Wizard, GlobalForm, EquipmentStep } from '@/components/document/fill-wizard';
+import { ManualEquipmentStep } from '@/components/document/manual-equipment-step';
 import { IconCheck, IconX, IconList } from '@/components/ui/icons';
 
 interface TemplateField {
@@ -61,8 +62,9 @@ export default function FillDocumentPage() {
     name: string;
     totalItems: number;
     status: string;
-    metadata?: { assignments?: ItemAssignment[]; itemsPerPage?: number; totalPages?: number } | null;
+    metadata?: { assignments?: ItemAssignment[]; itemsPerPage?: number; totalPages?: number; fillMode?: 'AUTOMATICO' | 'SELECAO_MANUAL' } | null;
     template: {
+      fillMode: 'AUTOMATICO' | 'SELECAO_MANUAL';
       fields: TemplateField[];
       pdfFile: { pageCount: number };
     };
@@ -114,11 +116,25 @@ export default function FillDocumentPage() {
     return { globalFields: gFields, itemFields: iFields, slotMap: sMap };
   }, [docData]);
 
-  // ── Assignments ────────────────────────────────────────────────────────────
+  // ── Assignments & Slots ──────────────────────────────────────────────────
   const allAssignments: ItemAssignment[] = useMemo(
     () => docData?.metadata?.assignments ?? [],
     [docData?.metadata],
   );
+
+  const fillMode = docData?.template?.fillMode ?? 'AUTOMATICO';
+
+  const totalSlots = useMemo(() => {
+    if (!docData) return 0;
+    if (fillMode === 'SELECAO_MANUAL') {
+      const s = new Set<number>();
+      for (const f of docData.template.fields) {
+        if (f.scope === 'item' && f.slotIndex !== null) s.add(f.slotIndex);
+      }
+      return s.size;
+    }
+    return allAssignments.length;
+  }, [docData, fillMode, allAssignments.length]);
 
   const setores = useMemo(() => {
     const seen = new Set<string>();
@@ -142,8 +158,7 @@ export default function FillDocumentPage() {
   // Calculate actual progress based on filled fields
   const completionPercentage = useMemo(() => {
     // fields per item (all slots) + global fields
-    const fieldsPerItem = itemFields.length;
-    const totalFieldsInDoc = (allAssignments.length * fieldsPerItem) + globalFields.length;
+    const totalFieldsInDoc = (totalSlots * itemFields.length) + globalFields.length;
     
     if (totalFieldsInDoc === 0) return 0;
     
@@ -156,7 +171,7 @@ export default function FillDocumentPage() {
     });
     
     return Math.min(100, Math.round((filledCount / totalFieldsInDoc) * 100));
-  }, [fields, allAssignments.length, itemFields.length, globalFields.length]);
+  }, [fields, totalSlots, itemFields.length, globalFields.length]);
 
   useEffect(() => { 
     // If we are already in the equipment steps, jump to the first one of the new filter
@@ -222,12 +237,13 @@ export default function FillDocumentPage() {
   // ── Navigation ─────────────────────────────────────────────────────────────
   const goPrev = useCallback(() => setStep((s) => Math.max(0, s - 1)), []);
   const goNext = useCallback(
-    () => setStep((s) => Math.min(filteredAssignments.length, s + 1)),
-    [filteredAssignments.length],
+    () => setStep((s) => Math.min(totalSlots, s + 1)),
+    [totalSlots],
   );
 
   const hasAssignments = allAssignments.length > 0;
   const isGlobalStep = step === 0;
+  const showPopulatePanel = fillMode === 'AUTOMATICO' && !hasAssignments;
 
   // Equipment selection list for the "Jump to" feature
   const [showIndex, setShowIndex] = useState(false);
@@ -245,7 +261,7 @@ export default function FillDocumentPage() {
             {docData?.name ?? 'Preencher Documento'}
           </h1>
           <p className="text-xs text-muted-foreground font-medium">
-            {isGlobalStep ? 'Informações Gerais' : `Equipamento ${step} de ${filteredAssignments.length}`}
+            {isGlobalStep ? 'Informações Gerais' : `Equipamento ${step} de ${totalSlots}`}
           </p>
         </div>
         
@@ -274,8 +290,8 @@ export default function FillDocumentPage() {
         </div>
       </div>
 
-      {/* Sector Filter - Always available if we have assignments */}
-      {hasAssignments && (
+      {/* Sector Filter - Always available if we have assignments AND automatic fill */}
+      {hasAssignments && fillMode === 'AUTOMATICO' && (
         <div className="sticky top-0 z-10 -mx-4 px-4 py-3 bg-background/95 backdrop-blur-md border-b shadow-sm">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
             <Button
@@ -321,7 +337,7 @@ export default function FillDocumentPage() {
         </div>
       )}
 
-      {!hasAssignments ? (
+      {showPopulatePanel ? (
         <PopulatePanel
           documentId={documentId}
           onPopulated={() => queryClient.invalidateQueries({ queryKey: ['document', documentId] })}
@@ -329,7 +345,7 @@ export default function FillDocumentPage() {
       ) : (
         <Wizard 
           step={step} 
-          totalSteps={1 + filteredAssignments.length} 
+          totalSteps={1 + totalSlots} 
           progress={completionPercentage} // Pass the real progress here
           onNext={goNext} 
           onPrev={goPrev} 
@@ -347,12 +363,15 @@ export default function FillDocumentPage() {
                 onNext={goNext}
               />
               
-              <div className="pt-4 opacity-50">
-                <RePopulatePanel
-                  documentId={documentId}
-                  onPopulated={() => queryClient.invalidateQueries({ queryKey: ['document', documentId] })}
-                />
-              </div>
+              
+              {fillMode === 'AUTOMATICO' && (
+                <div className="pt-4 opacity-50">
+                  <RePopulatePanel
+                    documentId={documentId}
+                    onPopulated={() => queryClient.invalidateQueries({ queryKey: ['document', documentId] })}
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -367,7 +386,7 @@ export default function FillDocumentPage() {
                 </button>
               </div>
 
-              {showIndex && (
+              {showIndex && fillMode === 'AUTOMATICO' && (
                 <div className="bg-muted/30 border rounded-xl p-3 grid grid-cols-2 sm:grid-cols-3 gap-3 animate-in fade-in slide-in-from-top-2 duration-300 max-h-[400px] overflow-y-auto shadow-inner">
                     {filteredAssignments.map((a, i) => {
                       // Determine which slot this item occupies on the page (SX0, SX1, etc.)
@@ -413,20 +432,50 @@ export default function FillDocumentPage() {
                 </div>
               )}
 
-              <EquipmentStep 
-                assignment={filteredAssignments[step - 1]}
-                index={step - 1}
-                total={filteredAssignments.length}
-                fields={currentSlotFields}
-                getValue={getValue}
-                updateField={updateField}
-                onImageChange={updateImageField}
-                getFileKey={getFileKey}
-                getPendingBlobForField={getPendingBlobForField}
-                onNext={step === filteredAssignments.length ? () => generateMutation.mutate() : goNext}
-                onPrev={goPrev}
-                isLast={step === filteredAssignments.length}
-              />
+              {fillMode === 'AUTOMATICO' ? (
+                <EquipmentStep 
+                  assignment={filteredAssignments[step - 1]}
+                  index={step - 1}
+                  total={filteredAssignments.length}
+                  fields={currentSlotFields}
+                  getValue={getValue}
+                  updateField={updateField}
+                  onImageChange={updateImageField}
+                  getFileKey={getFileKey}
+                  getPendingBlobForField={getPendingBlobForField}
+                  onNext={step === filteredAssignments.length ? () => generateMutation.mutate() : goNext}
+                  onPrev={goPrev}
+                  isLast={step === filteredAssignments.length}
+                />
+              ) : (
+                (() => {
+                  const sIndex = step - 1;
+                  const manualAssignment = allAssignments.find(a => a.itemIndex === sIndex) || null;
+                  const sFields = slotMap.get(sIndex) || [];
+                  const tipoEqId = sFields.find((f: any) => f.config?.tipoEquipamentoId)?.config?.tipoEquipamentoId as string | undefined;
+                  const tipoEqNome = sFields.find((f: any) => f.config?.tipoEquipamentoNome)?.config?.tipoEquipamentoNome as string | undefined;
+
+                  return (
+                    <ManualEquipmentStep
+                      documentId={documentId}
+                      slotIndex={sIndex}
+                      totalSlots={totalSlots}
+                      assignment={manualAssignment}
+                      fields={sFields}
+                      tipoEquipamentoId={tipoEqId}
+                      tipoEquipamentoNome={tipoEqNome}
+                      getValue={getValue}
+                      updateField={updateField}
+                      onImageChange={updateImageField}
+                      getFileKey={getFileKey}
+                      getPendingBlobForField={getPendingBlobForField}
+                      onNext={step === totalSlots ? () => generateMutation.mutate() : goNext}
+                      onPrev={goPrev}
+                      isLast={step === totalSlots}
+                    />
+                  );
+                })()
+              )}
             </div>
           )}
         </Wizard>

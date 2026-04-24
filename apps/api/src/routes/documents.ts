@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '@regcheck/database';
 import { DocumentService } from '../services/document-service';
-import { createDocumentSchema, updateDocumentSchema, saveFilledDataSchema, populateDocumentSchema } from '@regcheck/validators';
+import { createDocumentSchema, updateDocumentSchema, saveFilledDataSchema, populateDocumentSchema, manualSelectSchema } from '@regcheck/validators';
 import { paginationSchema, idParamSchema } from '@regcheck/validators';
 import type { ApiResponse } from '@regcheck/shared';
 import { getPresignedUrl } from '../lib/s3';
@@ -37,6 +37,18 @@ documentRouter.post('/:id/populate', async (req, res, next) => {
     const { id } = idParamSchema.parse(req.params);
     const input = populateDocumentSchema.parse(req.body);
     const result = await DocumentService.populate(id, input);
+    res.json({ success: true, data: result } satisfies ApiResponse<typeof result>);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** POST /api/documents/:id/select-equipment - Populate 1 slot with equipment data (SELECAO_MANUAL) */
+documentRouter.post('/:id/select-equipment', async (req, res, next) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const input = manualSelectSchema.parse(req.body);
+    const result = await DocumentService.selectEquipmentForSlot(id, input);
     res.json({ success: true, data: result } satisfies ApiResponse<typeof result>);
   } catch (err) {
     next(err);

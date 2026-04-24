@@ -374,6 +374,9 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
           pageIndex: currentPage,
           position: { x: relX, y: relY, width, height },
           config,
+          scope: 'item',
+          slotIndex: 0,
+          bindingKey: null,
         });
 
         createFieldMutation.mutate({
@@ -382,6 +385,9 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
           pageIndex: currentPage,
           position: { x: relX, y: relY, width, height },
           config,
+          scope: 'item',
+          slotIndex: 0,
+          bindingKey: null,
         });
 
         setInteraction(null);

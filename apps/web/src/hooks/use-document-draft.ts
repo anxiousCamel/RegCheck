@@ -65,6 +65,17 @@ export function useDocumentDraft(
   fieldsRef.current = fields;
   // Track server fields count to detect populate changes
   const lastServerCountRef = useRef<number>(0);
+  // Track server fields hash to detect value changes
+  const lastServerHashRef = useRef<string>('');
+
+  // Helper to create a hash of server fields
+  const hashServerFields = (fields: ServerField[] | undefined): string => {
+    if (!fields || fields.length === 0) return '';
+    return fields
+      .map(f => `${f.fieldId}:${f.itemIndex}:${f.value}:${f.fileKey || ''}`)
+      .sort()
+      .join('|');
+  };
 
   // ── 1. Load from IndexedDB on mount ────────────────────────────────────────
   useEffect(() => {
@@ -134,6 +145,7 @@ export function useDocumentDraft(
         }
 
         lastServerCountRef.current = serverFields?.length ?? 0;
+        lastServerHashRef.current = hashServerFields(serverFields);
       } catch (err) {
         console.error('[Draft] Failed to load from IndexedDB:', err);
       }
@@ -149,9 +161,14 @@ export function useDocumentDraft(
     if (!loaded.current || !serverFields) return;
     const prevCount = lastServerCountRef.current;
     const newCount = serverFields.length;
-    // Only trigger merge when server field count changes (populate/re-populate)
-    if (newCount === prevCount || newCount === 0) return;
+    const prevHash = lastServerHashRef.current;
+    const newHash = hashServerFields(serverFields);
+    
+    // Trigger merge when count changes OR hash changes (values changed)
+    if ((newCount === prevCount && newHash === prevHash) || newCount === 0) return;
+    
     lastServerCountRef.current = newCount;
+    lastServerHashRef.current = newHash;
 
     async function mergeServerData() {
       try {
@@ -186,7 +203,7 @@ export function useDocumentDraft(
           if (records.length > 0) {
             await saveDraftFields(records);
           }
-          console.debug('[Draft] Merged', records.length, 'fields from server after populate');
+          console.debug('[Draft] Merged', records.length, 'fields from server after populate/select');
         }
       } catch (err) {
         console.error('[Draft] Failed to merge server data:', err);
@@ -194,7 +211,7 @@ export function useDocumentDraft(
     }
 
     mergeServerData();
-  }, [documentId, serverFields]);
+  }, [documentId, serverFields, hashServerFields]);
 
   // ── 2. Online / offline detection ─────────────────────────────────────────
   useEffect(() => {

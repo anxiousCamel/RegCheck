@@ -1,14 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { Button, Input, Label, cn } from '@regcheck/ui';
 import { useEditorStore, type EditorField } from '@/stores/editor-store';
 import { api } from '@/lib/api';
 import { Trash2, Link as LinkIcon, Settings, MousePointer2, AlertCircle, Layers } from 'lucide-react';
-import type { FieldScope } from '@regcheck/shared';
+import type { FieldScope, FillMode } from '@regcheck/shared';
 
-export function FieldProperties({ templateId }: { templateId: string }) {
+export function FieldProperties({ templateId, fillMode }: { templateId: string; fillMode: FillMode }) {
   const queryClient = useQueryClient();
   const {
     fields,
@@ -97,6 +97,12 @@ export function FieldProperties({ templateId }: { templateId: string }) {
         <section className="space-y-4">
           <ScopeSection selectedFields={selectedFields} setFieldScope={setFieldScope} setFieldSlot={setFieldSlot} />
         </section>
+
+        {fillMode === 'SELECAO_MANUAL' && selectedFields.some(f => f.scope === 'item') && (
+          <section className="space-y-4">
+            <EquipmentTypeSection selectedFields={selectedFields} />
+          </section>
+        )}
 
         {/* Data Binding */}
         <section className="space-y-4">
@@ -222,6 +228,52 @@ function ScopeSection({ selectedFields, setFieldScope, setFieldSlot }: ScopeSect
   );
 }
 
+// ─── Equipment Type Section ───────────────────────────────────────────────────
+
+function EquipmentTypeSection({ selectedFields }: { selectedFields: EditorField[] }) {
+  const { updateFields } = useEditorStore();
+  const ids = selectedFields.map((f) => f.id);
+  const sharedTipoId = allSame(selectedFields, (f) => (f.config as any).tipoEquipamentoId) as string | undefined;
+
+  const { data: tipos, isLoading } = useQuery({
+    queryKey: ['tipos-active'],
+    queryFn: () => api.listTipos(1, 100),
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+         <Settings className="h-3 w-3 text-primary" />
+         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tipo de Equipamento</span>
+      </div>
+      <div className="space-y-2">
+        <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Filtro do Slot (Modo Manual)</Label>
+        {isLoading ? (
+          <div className="h-10 flex items-center justify-center bg-slate-50 border-slate-200 rounded-xl">
+             <span className="text-[10px] font-bold text-slate-400">Carregando...</span>
+          </div>
+        ) : (
+          <select
+            value={sharedTipoId ?? ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              const nome = tipos?.items?.find((t: any) => t.id === val)?.nome;
+              // We use updateFields to batch update
+              updateFields(ids, { config: { ...selectedFields[0].config, tipoEquipamentoId: val || undefined, tipoEquipamentoNome: nome || undefined } });
+            }}
+            className="w-full h-10 bg-slate-50 border-slate-200 rounded-xl font-bold text-slate-900 px-3 outline-none focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="">Selecione um tipo...</option>
+            {tipos?.items?.map((t: any) => (
+              <option key={t.id} value={t.id}>{t.nome}</option>
+            ))}
+          </select>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Binding key section ─────────────────────────────────────────────────────
 
 interface BindingSectionProps {
@@ -231,7 +283,7 @@ interface BindingSectionProps {
 
 const BINDING_SUGGESTIONS: Record<FieldScope, string[]> = {
   item: ['eq.numero', 'eq.serie', 'eq.patrimonio', 'eq.modelo', 'eq.ip', 'eq.setor'],
-  global: ['global.data.dia', 'global.data.mes', 'global.data.ano', 'global.tecnico', 'global.assinatura'],
+  global: ['global.data.dia', 'global.data.mes', 'global.data.ano', 'global.tecnico', 'global.loja.nome', 'global.assinatura'],
 };
 
 function BindingSection({ selectedFields, setFieldBinding }: BindingSectionProps) {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Spinner, cn } from '@regcheck/ui';
 import { Save, Rocket, AlertCircle, X, ChevronLeft, Layers, Settings2, Eye } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -12,11 +12,12 @@ import { EditorToolbar } from '@/components/editor/editor-toolbar';
 import { FieldProperties } from '@/components/editor/field-properties';
 import { PageNavigator } from '@/components/editor/page-navigator';
 import { useAutosave } from '@/hooks/use-autosave';
-import type { FieldType, FieldScope } from '@regcheck/shared';
+import type { FieldType, FieldScope, FillMode } from '@regcheck/shared';
 
 export default function EditorPage() {
   const params = useParams<{ templateId: string }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const templateId = params.templateId;
 
   const [showNav, setShowNav] = useState(false);
@@ -60,6 +61,27 @@ export default function EditorPage() {
 
   const publishMutation = useMutation({
     mutationFn: () => api.publishTemplate(templateId),
+    onSuccess: () => {
+      // Refresh template query to update status
+      queryClient.invalidateQueries({ queryKey: ['template', templateId] });
+      // Also refresh templates list
+      queryClient.invalidateQueries({ queryKey: ['templates'] });
+    },
+  });
+
+  const updateModeMutation = useMutation({
+    mutationFn: (fillMode: FillMode) => {
+      console.log('[Editor] Updating fillMode via API:', fillMode);
+      return api.updateTemplate(templateId, { fillMode });
+    },
+    onSuccess: (data) => {
+      console.log('[Editor] fillMode updated successfully:', data);
+      // Refresh template query
+      queryClient.invalidateQueries({ queryKey: ['template', templateId] });
+    },
+    onError: (error) => {
+      console.error('[Editor] Error updating fillMode:', error);
+    }
   });
 
   useAutosave(fields, isDirty, async () => {
@@ -87,7 +109,7 @@ export default function EditorPage() {
     initializedRef.current = true;
   }, [template, setFields]);
 
-  const templateData = template as { name: string; status: string; pdfFile: { fileKey: string } } | undefined;
+  const templateData = template as { name: string; status: string; fillMode: FillMode; pdfFile: { fileKey: string } } | undefined;
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] text-slate-900 overflow-hidden font-sans selection:bg-primary/20">
@@ -119,6 +141,23 @@ export default function EditorPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {templateData?.status === 'DRAFT' && (
+            <select
+              value={templateData.fillMode}
+              onChange={(e) => {
+                const newFillMode = e.target.value as FillMode;
+                console.log('[Editor] Changing fillMode to:', newFillMode);
+                updateModeMutation.mutate(newFillMode);
+              }}
+              disabled={updateModeMutation.isPending || isLoading}
+              className="h-9 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 hidden md:block"
+            >
+              <option value="AUTOMATICO">Preenchimento: Auto</option>
+              <option value="SELECAO_MANUAL">Preenchimento: Manual</option>
+            </select>
+          )}
+
+          <div className="w-px h-6 bg-slate-200 mx-1 hidden md:block" />
           <Button
             variant="ghost"
             size="sm"
@@ -227,7 +266,7 @@ export default function EditorPage() {
                   <Button variant="ghost" size="sm" onClick={() => setShowProps(false)} className="h-8 w-8 p-0"><X size={16} /></Button>
                </div>
                <div className="flex-1 overflow-y-auto scrollbar-hide">
-                 <FieldProperties templateId={templateId} />
+                 <FieldProperties templateId={templateId} fillMode={templateData?.fillMode ?? 'AUTOMATICO'} />
                </div>
             </div>
           </div>

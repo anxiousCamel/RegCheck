@@ -19,11 +19,11 @@ const FIELD_TYPE_MAP: Record<string, PrismaFieldType> = {
 function normalizeSlotFor(
   scope: 'global' | 'item' | undefined,
   slotIndex: number | null | undefined,
-): number | null | undefined {
-  if (scope === undefined && slotIndex === undefined) return undefined;
+): number | null {
   if (scope === 'global') return null;
   if (scope === 'item') return slotIndex ?? 0;
-  return slotIndex;
+  // If scope is undefined, preserve the slotIndex value or default to null
+  return slotIndex ?? null;
 }
 
 export class FieldService {
@@ -40,8 +40,8 @@ export class FieldService {
         position: input.position as unknown as Prisma.JsonObject,
         config: input.config as unknown as Prisma.JsonObject,
         scope: input.scope,
-        slotIndex: normalizeSlotFor(input.scope, input.slotIndex) ?? null,
-        bindingKey: input.bindingKey ?? null,
+        slotIndex: normalizeSlotFor(input.scope, input.slotIndex),
+        bindingKey: input.bindingKey,
       },
     });
 
@@ -62,9 +62,12 @@ export class FieldService {
     if (input.pageIndex !== undefined) data.pageIndex = input.pageIndex;
     if (input.position) data.position = input.position as unknown as Prisma.JsonObject;
     if (input.config) data.config = input.config as unknown as Prisma.JsonObject;
-    if (input.scope !== undefined) data.scope = input.scope;
-    const nextSlot = normalizeSlotFor(input.scope, input.slotIndex);
-    if (nextSlot !== undefined) data.slotIndex = nextSlot;
+    if (input.scope !== undefined) {
+      data.scope = input.scope;
+      data.slotIndex = normalizeSlotFor(input.scope, input.slotIndex);
+    } else if (input.slotIndex !== undefined) {
+      data.slotIndex = input.slotIndex;
+    }
     if (input.bindingKey !== undefined) data.bindingKey = input.bindingKey;
 
     const updated = await prisma.templateField.update({
@@ -114,9 +117,12 @@ export class FieldService {
         position: u.position as unknown as Prisma.JsonObject,
       };
       if (u.config) data.config = u.config as unknown as Prisma.JsonObject;
-      if (u.scope !== undefined) data.scope = u.scope;
-      const nextSlot = normalizeSlotFor(u.scope, u.slotIndex);
-      if (nextSlot !== undefined) data.slotIndex = nextSlot;
+      if (u.scope !== undefined) {
+        data.scope = u.scope;
+        data.slotIndex = normalizeSlotFor(u.scope, u.slotIndex);
+      } else if (u.slotIndex !== undefined) {
+        data.slotIndex = u.slotIndex;
+      }
       if (u.bindingKey !== undefined) data.bindingKey = u.bindingKey;
 
       return prisma.templateField.update({ where: { id: u.id }, data });

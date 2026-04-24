@@ -24,6 +24,7 @@ export class TemplateService {
             name: true,
             description: true,
             status: true,
+            fillMode: true,
             version: true,
             createdAt: true,
             updatedAt: true,
@@ -45,6 +46,7 @@ export class TemplateService {
         name: t.name,
         description: t.description ?? undefined,
         status: t.status.toLowerCase() as TemplateSummary['status'],
+        fillMode: t.fillMode,
         pageCount: t.pdfFile.pageCount,
         fieldCount: t._count.fields,
         version: t.version,
@@ -102,6 +104,8 @@ export class TemplateService {
 
   /** Update template metadata */
   static async update(id: string, input: UpdateTemplateInput) {
+    console.log('[TemplateService] Updating template:', id, 'with input:', input);
+    
     const existing = await prisma.template.findUnique({ where: { id } });
     if (!existing) throw new AppError(404, 'Template not found', 'NOT_FOUND');
     if (existing.status === 'PUBLISHED') {
@@ -112,12 +116,17 @@ export class TemplateService {
     if (input.name) data.name = input.name;
     if (input.description !== undefined) data.description = input.description;
     if (input.status) data.status = input.status.toUpperCase() as Prisma.TemplateUpdateInput['status'];
+    if (input.fillMode) data.fillMode = input.fillMode;
+
+    console.log('[TemplateService] Prisma update data:', data);
 
     const updated = await prisma.template.update({
       where: { id },
       data,
       include: { pdfFile: true, fields: true },
     });
+
+    console.log('[TemplateService] Template updated, fillMode:', updated.fillMode);
 
     // Invalidate list caches and specific template cache
     await cacheService.delPattern('templates:list:*');
@@ -182,10 +191,31 @@ export class TemplateService {
     ]);
 
     // Invalidate list caches and specific template cache
+    await cacheService.delPattern(`template:${id}*`);
     await cacheService.delPattern('templates:list:*');
-    await cacheService.del(`template:${id}`);
     
     return published;
+  }
+
+  /** Unpublish a template (return to DRAFT) */
+  static async unpublish(id: string) {
+    const template = await prisma.template.findUnique({
+      where: { id },
+    });
+
+    if (!template) {
+      throw new AppError(404, 'Template not found', 'NOT_FOUND');
+    }
+
+    const updated = await prisma.template.update({
+      where: { id },
+      data: { status: 'DRAFT' },
+    });
+
+    await cacheService.delPattern(`template:${id}*`);
+    await cacheService.delPattern('templates:list:*');
+
+    return updated;
   }
 
   /** Delete a template */

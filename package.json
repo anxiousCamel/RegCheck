@@ -22,6 +22,7 @@
     "db:import": "node scripts/db-import.mjs",
     "db:restore": "node scripts/db-import.mjs backups/backup-2026-03-28T14-12-28.zip",
     "db:restore-pdfs": "node scripts/restore-pdfs-only.mjs backups/backup-2026-03-28T14-12-28.zip",
+    "db:safe-regenerate": "node -e \"require('os').platform()==='win32' ? require('child_process').execSync('powershell -ExecutionPolicy Bypass -File scripts/safe-regenerate.ps1', {stdio:'inherit'}) : require('child_process').execSync('bash scripts/safe-regenerate.sh', {stdio:'inherit'})\"",
     "setup:env": "node scripts/setup-env.mjs",
     "seed:balanças": "node scripts/seed-balanças.mjs",
     "generate:docs": "tsx scripts/generate-docs.ts",
