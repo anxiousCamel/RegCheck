@@ -593,8 +593,15 @@ function PopulatePanel({ documentId, onPopulated }: { documentId: string; onPopu
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
-  const { data: tipos } = useQuery({ queryKey: ['tipos-active'], queryFn: () => api.listActiveTipos() });
-  const { data: lojas } = useQuery({ queryKey: ['lojas-active'], queryFn: () => api.listActiveLojas() });
+  const { data: tipos } = useQuery({ 
+    queryKey: ['tipos-active'], 
+    queryFn: () => api.listActiveTipos() 
+  });
+  
+  const { data: lojas } = useQuery({ 
+    queryKey: ['lojas-active'], 
+    queryFn: () => api.listActiveLojas() 
+  });
 
   const populateMutation = useMutation({
     mutationFn: () => api.populateDocument(documentId, { tipoId, lojaId }),
@@ -610,6 +617,9 @@ function PopulatePanel({ documentId, onPopulated }: { documentId: string; onPopu
       .catch(() => setPreviewCount(null))
       .finally(() => setIsLoadingPreview(false));
   }, [tipoId, lojaId]);
+
+  const tiposList = (tipos as TipoEquipamentoDTO[] | undefined) ?? [];
+  const lojasList = (lojas as LojaDTO[] | undefined) ?? [];
 
   return (
     <div className="p-4 border rounded-lg space-y-4 bg-muted/20">
@@ -629,7 +639,7 @@ function PopulatePanel({ documentId, onPopulated }: { documentId: string; onPopu
             className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
           >
             <option value="">Selecione...</option>
-            {(tipos as TipoEquipamentoDTO[] | undefined)?.map((t) => (
+            {tiposList.map((t) => (
               <option key={t.id} value={t.id}>{t.nome}</option>
             ))}
           </select>
@@ -642,7 +652,7 @@ function PopulatePanel({ documentId, onPopulated }: { documentId: string; onPopu
             className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
           >
             <option value="">Selecione...</option>
-            {(lojas as LojaDTO[] | undefined)?.map((l) => (
+            {lojasList.map((l) => (
               <option key={l.id} value={l.id}>{l.nome}</option>
             ))}
           </select>

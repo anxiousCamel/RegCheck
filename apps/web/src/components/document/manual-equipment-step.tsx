@@ -60,21 +60,31 @@ export function ManualEquipmentStep({
   });
 
   // Generate a friendly slot name based on tipo or field labels
-  const slotName = tipoEquipamentoNome || 
-    fields.find(f => f.config?.label)?.config?.label?.split(' ')[0] || 
-    `Equipamento ${slotIndex + 1}`;
+  const slotName = tipoEquipamentoNome || `Equipamento ${slotIndex + 1}`;
 
   return (
     <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            {tipoEquipamentoNome && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                {tipoEquipamentoNome}
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground font-medium">
+              {slotIndex + 1} de {totalSlots}
+            </span>
+          </div>
           <h2 className="text-xl font-extrabold text-foreground leading-tight">
             {slotName}
           </h2>
-          <p className="text-muted-foreground text-sm font-medium">
-            {tipoEquipamentoNome ? `Tipo: ${tipoEquipamentoNome}` : 'Todos os tipos'} • {slotIndex + 1} de {totalSlots}
-          </p>
+          {!tipoEquipamentoNome && (
+            <p className="text-muted-foreground text-xs font-medium mt-0.5">
+              Todos os tipos de equipamento
+            </p>
+          )}
         </div>
         <Badge variant="outline" className="h-7 px-3 text-xs font-bold bg-muted/50 border-border">
           {slotIndex + 1}/{totalSlots}
@@ -106,8 +116,15 @@ export function ManualEquipmentStep({
       ) : (
         <>
           <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-[10px] font-black uppercase text-primary tracking-wider mb-0.5">Equipamento Selecionado</p>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-[10px] font-black uppercase text-primary tracking-wider">Equipamento Selecionado</p>
+                {tipoEquipamentoNome && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-primary/20 text-primary">
+                    {tipoEquipamentoNome}
+                  </span>
+                )}
+              </div>
               <p className="font-bold text-foreground">{assignment.numeroEquipamento}</p>
               <p className="text-xs text-muted-foreground">{assignment.setorNome}</p>
             </div>
