@@ -1,6 +1,6 @@
 /**
  * Script de teste para verificar se fillMode está sendo salvo corretamente
- * 
+ *
  * Execute com: npx tsx test-fillmode.ts
  */
 
@@ -31,7 +31,7 @@ async function testFillMode() {
 
   // 2. Testar update em um template DRAFT
   const draftTemplate = templates.find((t) => t.status === 'DRAFT');
-  
+
   if (!draftTemplate) {
     console.log('\n⚠️  Nenhum template DRAFT encontrado para testar');
     return;
@@ -42,7 +42,7 @@ async function testFillMode() {
 
   // Alternar entre AUTOMATICO e SELECAO_MANUAL
   const newFillMode = draftTemplate.fillMode === 'AUTOMATICO' ? 'SELECAO_MANUAL' : 'AUTOMATICO';
-  
+
   console.log(`   Mudando para: ${newFillMode}...`);
 
   const updated = await prisma.template.update({

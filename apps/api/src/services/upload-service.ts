@@ -12,7 +12,11 @@ export class UploadService {
   /** Upload a PDF and create the PdfFile record */
   static async uploadPdf(file: Express.Multer.File) {
     if (file.size > MAX_FILE_SIZE) {
-      throw new AppError(400, `File too large. Max: ${MAX_FILE_SIZE / 1024 / 1024}MB`, 'FILE_TOO_LARGE');
+      throw new AppError(
+        400,
+        `File too large. Max: ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+        'FILE_TOO_LARGE',
+      );
     }
 
     if (file.mimetype !== 'application/pdf') {

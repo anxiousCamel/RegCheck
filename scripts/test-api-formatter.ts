@@ -39,9 +39,18 @@ const parameters: Parameter[] = [
 
 const paramResult = formatParameters(parameters);
 console.log(paramResult);
-console.assert(paramResult.includes('| Nome | Localização | Tipo | Obrigatório | Descrição |'), 'Should have table headers');
-console.assert(paramResult.includes('| id | path | string | Sim | Template ID |'), 'Should have id parameter');
-console.assert(paramResult.includes('| page | query | number | Não | Page number |'), 'Should have page parameter');
+console.assert(
+  paramResult.includes('| Nome | Localização | Tipo | Obrigatório | Descrição |'),
+  'Should have table headers',
+);
+console.assert(
+  paramResult.includes('| id | path | string | Sim | Template ID |'),
+  'Should have id parameter',
+);
+console.assert(
+  paramResult.includes('| page | query | number | Não | Page number |'),
+  'Should have page parameter',
+);
 console.log('✓ formatParameters works\n');
 
 // Test 2: formatRequestBody
@@ -54,8 +63,14 @@ const requestBody: RequestBody = {
 
 const bodyResult = formatRequestBody(requestBody);
 console.log(bodyResult);
-console.assert(bodyResult.includes('**Content-Type:** `application/json`'), 'Should have content type');
-console.assert(bodyResult.includes('**Schema:** `createTemplateSchema`'), 'Should have schema name');
+console.assert(
+  bodyResult.includes('**Content-Type:** `application/json`'),
+  'Should have content type',
+);
+console.assert(
+  bodyResult.includes('**Schema:** `createTemplateSchema`'),
+  'Should have schema name',
+);
 console.assert(bodyResult.includes('Template creation data'), 'Should have description');
 console.log('✓ formatRequestBody works\n');
 
@@ -77,7 +92,10 @@ const responseResult = formatResponses(responses);
 console.log(responseResult);
 console.assert(responseResult.includes('**Sucesso (200):**'), 'Should have success response');
 console.assert(responseResult.includes('**Erro (404):**'), 'Should have error response');
-console.assert(responseResult.includes('Tipo de resposta: `ApiResponse`'), 'Should have response type');
+console.assert(
+  responseResult.includes('Tipo de resposta: `ApiResponse`'),
+  'Should have response type',
+);
 console.log('✓ formatResponses works\n');
 
 // Test 4: formatEndpoint
@@ -114,7 +132,10 @@ console.log(endpointResult.substring(0, 500) + '...');
 console.assert(endpointResult.includes('### POST /api/templates'), 'Should have endpoint heading');
 console.assert(endpointResult.includes('Create a new template'), 'Should have description');
 console.assert(endpointResult.includes('#### Parâmetros'), 'Should have parameters section');
-console.assert(endpointResult.includes('#### Corpo da Requisição'), 'Should have request body section');
+console.assert(
+  endpointResult.includes('#### Corpo da Requisição'),
+  'Should have request body section',
+);
 console.assert(endpointResult.includes('#### Respostas'), 'Should have responses section');
 console.log('✓ formatEndpoint works\n');
 
@@ -163,8 +184,14 @@ const exampleData = {
 
 const exampleRequestResult = formatExampleRequest(endpoint, exampleData);
 console.log(exampleRequestResult);
-console.assert(exampleRequestResult.includes('#### Exemplo de Requisição'), 'Should have example heading');
-console.assert(exampleRequestResult.includes('POST /api/templates'), 'Should have HTTP method and path');
+console.assert(
+  exampleRequestResult.includes('#### Exemplo de Requisição'),
+  'Should have example heading',
+);
+console.assert(
+  exampleRequestResult.includes('POST /api/templates'),
+  'Should have HTTP method and path',
+);
 console.assert(exampleRequestResult.includes('"name": "My Template"'), 'Should have example data');
 console.log('✓ formatExampleRequest works\n');
 
@@ -181,7 +208,10 @@ const exampleResponseData = {
 
 const exampleResponseResult = formatExampleResponse(201, exampleResponseData);
 console.log(exampleResponseResult);
-console.assert(exampleResponseResult.includes('#### Exemplo de Resposta (201)'), 'Should have response heading');
+console.assert(
+  exampleResponseResult.includes('#### Exemplo de Resposta (201)'),
+  'Should have response heading',
+);
 console.assert(exampleResponseResult.includes('"success": true'), 'Should have success field');
 console.assert(exampleResponseResult.includes('"id": "abc123"'), 'Should have id field');
 console.log('✓ formatExampleResponse works\n');
@@ -224,7 +254,10 @@ const apiDocResult = formatApiDocumentation(endpointsByResource);
 console.log(apiDocResult.substring(0, 400) + '...');
 console.assert(apiDocResult.includes('## Documents'), 'Should have Documents resource');
 console.assert(apiDocResult.includes('## Templates'), 'Should have Templates resource');
-console.assert(apiDocResult.indexOf('## Documents') < apiDocResult.indexOf('## Templates'), 'Should be sorted alphabetically');
+console.assert(
+  apiDocResult.indexOf('## Documents') < apiDocResult.indexOf('## Templates'),
+  'Should be sorted alphabetically',
+);
 console.log('✓ formatApiDocumentation works\n');
 
 console.log('✅ All tests passed!');

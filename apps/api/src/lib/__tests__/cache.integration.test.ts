@@ -5,9 +5,9 @@ import { redis } from '../redis';
 /**
  * Integration tests for CacheService with real Redis
  * These tests require Redis to be running
- * 
+ *
  * To run: ensure Redis is available at REDIS_URL or localhost:6379
- * 
+ *
  * If Redis is not available, these tests will be skipped automatically.
  */
 
@@ -29,7 +29,7 @@ beforeAll(async () => {
 describe('CacheService Integration', () => {
   beforeEach(async () => {
     if (!isRedisAvailable) return;
-    
+
     // Clean up test keys before each test
     const keys = await redis.keys('test:*');
     if (keys.length > 0) {
@@ -123,19 +123,23 @@ describe('CacheService Integration', () => {
     expect(retrieved).toEqual(complexData);
   });
 
-  it.skipIf(!isRedisAvailable)('should respect TTL expiration', async () => {
-    // Set with 1 second TTL
-    await cacheService.set('test:ttl:1', { data: 'expires' }, 1);
+  it.skipIf(!isRedisAvailable)(
+    'should respect TTL expiration',
+    async () => {
+      // Set with 1 second TTL
+      await cacheService.set('test:ttl:1', { data: 'expires' }, 1);
 
-    // Should exist immediately
-    let value = await cacheService.get('test:ttl:1');
-    expect(value).not.toBeNull();
+      // Should exist immediately
+      let value = await cacheService.get('test:ttl:1');
+      expect(value).not.toBeNull();
 
-    // Wait for expiration
-    await new Promise((resolve) => setTimeout(resolve, 1100));
+      // Wait for expiration
+      await new Promise((resolve) => setTimeout(resolve, 1100));
 
-    // Should be expired
-    value = await cacheService.get('test:ttl:1');
-    expect(value).toBeNull();
-  }, 10000); // Increase timeout for this test
+      // Should be expired
+      value = await cacheService.get('test:ttl:1');
+      expect(value).toBeNull();
+    },
+    10000,
+  ); // Increase timeout for this test
 });

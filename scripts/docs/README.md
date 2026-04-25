@@ -17,6 +17,7 @@ Each generator module is responsible for creating a specific documentation file:
 Generator modules are imported and orchestrated by `scripts/generate-docs.ts`.
 
 Each module exports functions that:
+
 1. Extract information from source files
 2. Transform data into structured format
 3. Generate Markdown content with proper formatting
@@ -24,6 +25,7 @@ Each module exports functions that:
 ## Development
 
 When adding new generator modules:
+
 1. Create a new `.ts` file in this directory
 2. Export functions with clear interfaces
 3. Add unit tests for extraction and formatting logic

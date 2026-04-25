@@ -11,6 +11,7 @@
 O RegCheck é um sistema de construção e preenchimento de templates de documentos PDF desenvolvido para automatizar a geração de documentos padronizados com dados variáveis.
 
 **Capacidades principais:**
+
 - Criar templates visuais sobre PDFs existentes via editor drag-and-drop
 - Posicionar campos interativos (texto, imagem, assinatura, checkbox) em coordenadas precisas
 - Preencher campos com dados estruturados
@@ -27,12 +28,12 @@ O RegCheck é um sistema de construção e preenchimento de templates de documen
 ## 2. REFERÊNCIA
 
 - **Repositório:** [URL do repositório Git]
-- **Ambiente de desenvolvimento:** 
+- **Ambiente de desenvolvimento:**
   - Frontend: http://localhost:3000
   - API: http://localhost:4000
   - MinIO Console: http://localhost:9001
   - Prisma Studio: http://localhost:5555
-- **Documentação adicional:** 
+- **Documentação adicional:**
   - `/docs/flows.md` - Fluxos principais do sistema
   - `/docs/architecture.md` - Arquitetura detalhada
   - `/docs/packages.md` - API dos pacotes compartilhados
@@ -42,34 +43,36 @@ O RegCheck é um sistema de construção e preenchimento de templates de documen
 
 ## 3. GLOSSÁRIO
 
-| Termo | Definição |
-|-------|-----------|
-| **Template** | Definição de documento PDF com campos posicionados, usado como base para gerar documentos preenchidos |
-| **Document** | Instância de um template com dados preenchidos, aguardando ou já processado em PDF final |
-| **TemplateField** | Campo interativo posicionado em um template (texto, imagem, assinatura, checkbox) |
-| **FilledField** | Valor preenchido para um campo específico em um documento |
-| **PdfFile** | Arquivo PDF base armazenado no MinIO, usado como fundo para templates |
-| **TemplatePaginator** | Componente que calcula quantas páginas são necessárias para N itens |
-| **BullMQ** | Biblioteca de filas de jobs baseada em Redis |
-| **MinIO** | Armazenamento de objetos S3-compatible usado para PDFs e imagens |
-| **Konva** | Biblioteca de canvas HTML5 para renderização do editor visual |
-| **pdfjs** | Biblioteca para renderização de PDFs no navegador |
-| **pdf-lib** | Biblioteca para manipulação de PDFs no backend (overlays) |
-| **Scope** | Escopo de um campo: `global` (um valor para todas as páginas) ou `item` (valor por item) |
-| **SlotIndex** | Índice da posição de um item na grade de repetição (0..N-1) |
-| **BindingKey** | Chave de vinculação automática de dados (`global.<key>` ou `eq.<key>`) |
+| Termo                 | Definição                                                                                             |
+| --------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Template**          | Definição de documento PDF com campos posicionados, usado como base para gerar documentos preenchidos |
+| **Document**          | Instância de um template com dados preenchidos, aguardando ou já processado em PDF final              |
+| **TemplateField**     | Campo interativo posicionado em um template (texto, imagem, assinatura, checkbox)                     |
+| **FilledField**       | Valor preenchido para um campo específico em um documento                                             |
+| **PdfFile**           | Arquivo PDF base armazenado no MinIO, usado como fundo para templates                                 |
+| **TemplatePaginator** | Componente que calcula quantas páginas são necessárias para N itens                                   |
+| **BullMQ**            | Biblioteca de filas de jobs baseada em Redis                                                          |
+| **MinIO**             | Armazenamento de objetos S3-compatible usado para PDFs e imagens                                      |
+| **Konva**             | Biblioteca de canvas HTML5 para renderização do editor visual                                         |
+| **pdfjs**             | Biblioteca para renderização de PDFs no navegador                                                     |
+| **pdf-lib**           | Biblioteca para manipulação de PDFs no backend (overlays)                                             |
+| **Scope**             | Escopo de um campo: `global` (um valor para todas as páginas) ou `item` (valor por item)              |
+| **SlotIndex**         | Índice da posição de um item na grade de repetição (0..N-1)                                           |
+| **BindingKey**        | Chave de vinculação automática de dados (`global.<key>` ou `eq.<key>`)                                |
 
 ---
 
 ## 4. PÚBLICO-ALVO
 
 **Desenvolvedores:**
+
 - Arquitetos de software que precisam entender a estrutura do monorepo
 - Desenvolvedores backend (Node.js/Express/Prisma)
 - Desenvolvedores frontend (Next.js/React/Konva)
 - DevOps responsáveis por deploy e infraestrutura
 
 **Usuários técnicos:**
+
 - Administradores de sistema que configuram e mantêm o ambiente
 - Analistas de TI que criam templates e geram documentos
 
@@ -89,6 +92,7 @@ O RegCheck é um sistema de construção e preenchimento de templates de documen
 **Funcionalidades implementadas:**
 
 ✅ **Editor Visual de Templates**
+
 - Upload de PDF base
 - Posicionamento de campos via drag-and-drop (Konva)
 - Tipos de campo: TEXT, IMAGE, SIGNATURE, CHECKBOX
@@ -98,6 +102,7 @@ O RegCheck é um sistema de construção e preenchimento de templates de documen
 - Publicação de templates (status: DRAFT → PUBLISHED)
 
 ✅ **Preenchimento de Documentos**
+
 - Wizard de preenchimento campo a campo
 - Upload de imagens para campos IMAGE
 - Canvas de assinatura para campos SIGNATURE
@@ -105,6 +110,7 @@ O RegCheck é um sistema de construção e preenchimento de templates de documen
 - Salvamento de rascunho local (IndexedDB)
 
 ✅ **Geração Assíncrona de PDFs**
+
 - Fila BullMQ com worker dedicado
 - Processamento paralelo de downloads de imagens
 - Aplicação de overlays com pdf-lib
@@ -112,12 +118,14 @@ O RegCheck é um sistema de construção e preenchimento de templates de documen
 - Polling de status pelo frontend (a cada 3s)
 
 ✅ **Repetição de Campos em Grade**
+
 - TemplatePaginator: cálculo de layout automático
 - Suporte a múltiplos itens por página
 - Duplicação de páginas do PDF base
 - Clonagem de campos com offsets calculados
 
 ✅ **Gestão de Equipamentos**
+
 - CRUD de Lojas, Setores, Tipos de Equipamento
 - CRUD de Equipamentos (número, série, patrimônio, modelo, IP, GLPI ID)
 - Filtros e busca
@@ -125,6 +133,7 @@ O RegCheck é um sistema de construção e preenchimento de templates de documen
 - OCR de etiquetas (Tesseract.js)
 
 ✅ **Infraestrutura**
+
 - Monorepo Turborepo + pnpm
 - PostgreSQL 16 (Prisma ORM)
 - Redis 7 (BullMQ)
@@ -154,50 +163,56 @@ O RegCheck é um sistema de construção e preenchimento de templates de documen
 **Roadmap técnico (não implementado):**
 
 🔮 **Autenticação e RBAC**
+
 - Integração com OAuth2/OIDC (Keycloak, Auth0)
 - Roles: Admin, Editor, Viewer
 - Permissões por template e documento
 
 🔮 **Versionamento de Templates**
+
 - Snapshot automático ao publicar
 - Rollback para versões anteriores
 - Documentos vinculados a versão específica do template
 
 🔮 **Validação Avançada de PDFs**
+
 - Limite de tamanho por página (ex: 10MB)
 - Detecção de PDFs corrompidos
 - Validação de campos obrigatórios no backend
 
 🔮 **Retry e Dead Letter Queue**
+
 - Configuração de retry exponencial no BullMQ
 - DLQ para jobs que falharam 3x
 - Notificações de falha (email, Slack)
 
 🔮 **Observabilidade**
+
 - Logs estruturados com Winston/Pino
 - Métricas com Prometheus (latência, taxa de erro)
 - Tracing distribuído com OpenTelemetry
 - Dashboards Grafana
 
 🔮 **Testes**
+
 - Cobertura de 80%+ com Vitest
 - Testes E2E com Playwright
 - Testes de carga com k6
 
 🔮 **Performance**
+
 - Cache de PDFs renderizados (Redis)
 - CDN para assets estáticos
 - Compressão de imagens com sharp (já implementado mas não otimizado)
 - Lazy loading de páginas no editor
 
 🔮 **Funcionalidades de Negócio**
+
 - Templates compartilhados entre usuários
 - Histórico de documentos gerados
 - Busca full-text em documentos
 - Exportação em lote (ZIP de PDFs)
 - Webhooks para integração com sistemas externos
-
-
 
 ### 6.3 ESPECIFICAÇÃO TÉCNICA E ARQUITETURA
 
@@ -238,17 +253,17 @@ graph TB
     EDITOR --> API
     WIZARD --> API
     SCANNER --> OCR
-    
+
     API --> SERVICES
     API --> REDIS
     WORKER --> REDIS
     WORKER --> SERVICES
-    
+
     SERVICES --> DB
     SERVICES --> MINIO
     WORKER --> PDF
     WORKER --> EDENG
-    
+
     DB --> PG
     PDF --> SHARED
     EDENG --> SHARED
@@ -313,6 +328,7 @@ regcheck/
 #### 6.3.3 Stack Tecnológica Detalhada
 
 **Backend:**
+
 - **Runtime:** Node.js 20+
 - **Framework:** Express 4.18
 - **ORM:** Prisma 5
@@ -323,6 +339,7 @@ regcheck/
 - **Segurança:** Helmet 7.1, CORS 2.8
 
 **Frontend:**
+
 - **Framework:** Next.js 14 (App Router)
 - **UI:** React 18, Tailwind CSS 3.4
 - **Canvas:** Konva 9.3, react-konva 18.2
@@ -332,6 +349,7 @@ regcheck/
 - **Ícones:** Lucide React 0.344
 
 **Infraestrutura:**
+
 - **Database:** PostgreSQL 16
 - **Cache/Queue:** Redis 7
 - **Storage:** MinIO (S3-compatible)
@@ -368,16 +386,16 @@ graph LR
     A2 --> B2
     A3 --> B3
     A4 --> B3
-    
+
     B1 --> C3
     B2 --> C3
     B3 --> C3
     B4 --> C3
-    
+
     B5 --> C1
     B5 --> C2
     B5 --> C3
-    
+
     B1 --> C4
     B2 --> C4
 ```
@@ -722,8 +740,6 @@ erDiagram
     }
 ```
 
-
-
 ### 6.4 DOCUMENTAÇÃO DA API
 
 #### 6.4.1 Endpoints REST
@@ -731,6 +747,7 @@ erDiagram
 **Base URL:** `http://localhost:4000/api`
 
 **Health Check:**
+
 ```http
 GET /health
 Response: { "status": "ok", "timestamp": "2025-01-XX..." }
@@ -874,15 +891,15 @@ DELETE /api/tipos-equipamento/:id
 
 #### 6.4.2 Códigos de Status HTTP
 
-| Código | Significado | Uso |
-|--------|-------------|-----|
-| 200 | OK | Requisição bem-sucedida (GET, PATCH) |
-| 201 | Created | Recurso criado (POST) |
-| 202 | Accepted | Job enfileirado (POST /generate) |
-| 204 | No Content | Recurso deletado (DELETE) |
-| 400 | Bad Request | Validação falhou (Zod) |
-| 404 | Not Found | Recurso não encontrado |
-| 500 | Internal Server Error | Erro não tratado |
+| Código | Significado           | Uso                                  |
+| ------ | --------------------- | ------------------------------------ |
+| 200    | OK                    | Requisição bem-sucedida (GET, PATCH) |
+| 201    | Created               | Recurso criado (POST)                |
+| 202    | Accepted              | Job enfileirado (POST /generate)     |
+| 204    | No Content            | Recurso deletado (DELETE)            |
+| 400    | Bad Request           | Validação falhou (Zod)               |
+| 404    | Not Found             | Recurso não encontrado               |
+| 500    | Internal Server Error | Erro não tratado                     |
 
 #### 6.4.3 Exemplos de Uso
 
@@ -895,7 +912,7 @@ formData.append('file', pdfFile);
 const { pdfFileId, pageCount } = await fetch('/api/uploads', {
   method: 'POST',
   body: formData,
-}).then(r => r.json());
+}).then((r) => r.json());
 
 // 2. Criar template
 const template = await fetch('/api/templates', {
@@ -905,7 +922,7 @@ const template = await fetch('/api/templates', {
     name: 'Etiqueta de Equipamento',
     pdfFileId,
   }),
-}).then(r => r.json());
+}).then((r) => r.json());
 
 // 3. Posicionar campos
 const fields = [
@@ -946,7 +963,7 @@ const doc = await fetch('/api/documents', {
     templateId: template.id,
     totalItems: 10,
   }),
-}).then(r => r.json());
+}).then((r) => r.json());
 
 // 2. Preencher campos
 const filledFields = [
@@ -966,7 +983,7 @@ await fetch(`/api/documents/${doc.id}/generate`, { method: 'POST' });
 
 // 4. Polling de status
 const interval = setInterval(async () => {
-  const { status } = await fetch(`/api/documents/${doc.id}/status`).then(r => r.json());
+  const { status } = await fetch(`/api/documents/${doc.id}/status`).then((r) => r.json());
   if (status === 'GENERATED') {
     clearInterval(interval);
     window.location.href = `/api/documents/${doc.id}/download`;
@@ -1014,6 +1031,7 @@ pnpm dev:all
 ```
 
 **Acesse:**
+
 - Frontend: http://localhost:3000
 - API: http://localhost:4000
 - MinIO Console: http://localhost:9001 (minioadmin / minioadmin)
@@ -1050,6 +1068,7 @@ JWT_SECRET="change-me-in-production"
 ```
 
 **Produção:**
+
 - Trocar `S3_ENDPOINT` para AWS S3 real
 - Configurar `DATABASE_URL` para RDS/PostgreSQL gerenciado
 - Configurar `REDIS_URL` para ElastiCache/Redis gerenciado
@@ -1160,6 +1179,7 @@ pnpm start:restore      # Restaura backup e inicia
 #### 6.6.1 Convenções de Código
 
 **TypeScript:**
+
 - Strict mode habilitado
 - ESLint + Prettier configurados
 - Imports organizados: externos → internos → relativos
@@ -1167,6 +1187,7 @@ pnpm start:restore      # Restaura backup e inicia
 - Evitar `any`, usar `unknown` quando necessário
 
 **Nomenclatura:**
+
 - Componentes React: PascalCase (`EditorCanvas.tsx`)
 - Funções/variáveis: camelCase (`processPdfGeneration`)
 - Constantes: UPPER_SNAKE_CASE (`MAX_FILE_SIZE_MB`)
@@ -1174,12 +1195,14 @@ pnpm start:restore      # Restaura backup e inicia
 - Tipos/Interfaces: PascalCase (`TemplateField`)
 
 **Estrutura de Arquivos:**
+
 - Componentes React: um por arquivo
 - Services: um service por entidade
 - Routes: um router por domínio
 - Testes: `*.test.ts` ou `*.spec.ts` ao lado do arquivo
 
 **Comentários:**
+
 - JSDoc para funções públicas de pacotes
 - Comentários inline apenas quando lógica não é óbvia
 - TODO/FIXME com contexto e responsável
@@ -1187,6 +1210,7 @@ pnpm start:restore      # Restaura backup e inicia
 #### 6.6.2 Git Workflow
 
 **Branches:**
+
 - `main`: produção (protegida)
 - `develop`: desenvolvimento (protegida)
 - `feature/<nome>`: novas funcionalidades
@@ -1194,12 +1218,14 @@ pnpm start:restore      # Restaura backup e inicia
 - `hotfix/<nome>`: correções urgentes em produção
 
 **Commits:**
+
 - Mensagens em inglês
 - Formato: `<type>(<scope>): <subject>`
 - Tipos: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 - Exemplo: `feat(editor): add undo/redo support`
 
 **Pull Requests:**
+
 - Título descritivo
 - Descrição com contexto e screenshots (se UI)
 - Checklist: testes, lint, type-check
@@ -1218,6 +1244,7 @@ Exemplo: `1.2.3` → `1.3.0` (nova funcionalidade)
 **Status:** Não implementado no MVP.
 
 **Possibilidades futuras:**
+
 - OCR avançado com modelos de ML (substituir Tesseract.js)
 - Extração automática de campos de PDFs existentes
 - Sugestão de posicionamento de campos baseado em layout
@@ -1231,11 +1258,13 @@ Exemplo: `1.2.3` → `1.3.0` (nova funcionalidade)
 **Status atual:** Cobertura mínima.
 
 **Testes existentes:**
+
 - `packages/editor-engine`: Testes unitários com Vitest
   - `TemplatePaginator.test.ts`
   - `FieldBindingResolver.test.ts`
 
 **Executar testes:**
+
 ```bash
 pnpm test                # Todos os pacotes
 pnpm test:watch          # Watch mode
@@ -1243,6 +1272,7 @@ pnpm test:coverage       # Com cobertura
 ```
 
 **Roadmap de testes:**
+
 - [ ] Testes unitários para services (80%+ cobertura)
 - [ ] Testes de integração para API (endpoints críticos)
 - [ ] Testes E2E com Playwright (fluxos principais)
@@ -1253,27 +1283,29 @@ pnpm test:coverage       # Com cobertura
 **Não implementado.** Sugestões para produção:
 
 **Backend (apps/api):**
+
 - **Plataforma:** AWS ECS Fargate, Google Cloud Run, ou Kubernetes
 - **Build:** `pnpm build` → `node dist/server.js`
 - **Variáveis:** Configurar via secrets manager
 - **Worker:** Deploy separado do servidor HTTP (mesma imagem, comando diferente)
 
 **Frontend (apps/web):**
+
 - **Plataforma:** Vercel, Netlify, ou AWS Amplify
 - **Build:** `pnpm build` → `pnpm start`
 - **Variáveis:** `NEXT_PUBLIC_API_URL` apontando para API de produção
 
 **Infraestrutura:**
+
 - **PostgreSQL:** AWS RDS, Google Cloud SQL, ou Supabase
 - **Redis:** AWS ElastiCache, Google Memorystore, ou Upstash
 - **S3:** AWS S3, Google Cloud Storage, ou Cloudflare R2
 
 **CI/CD:**
+
 - GitHub Actions ou GitLab CI
 - Pipeline: lint → type-check → test → build → deploy
 - Deploy automático em `main` (produção) e `develop` (staging)
-
-
 
 ---
 
@@ -1533,7 +1565,7 @@ sequenceDiagram
         Web->>Web: 4. Captura frame do vídeo
         Web->>ZXing: 5. Tenta decodificar QR/barcode
         ZXing-->>Web: 6. Resultado (sucesso ou falha)
-        
+
         alt QR/Barcode detectado
             Web->>Web: 7. Exibe resultado
             Web->>API: 8. GET /api/equipamentos?search=<código>
@@ -1580,6 +1612,7 @@ sequenceDiagram
 ### 8.2 Documentação Externa
 
 **Frameworks e Bibliotecas:**
+
 - [Next.js 14 Documentation](https://nextjs.org/docs)
 - [Express.js Documentation](https://expressjs.com/)
 - [Prisma Documentation](https://www.prisma.io/docs)
@@ -1592,6 +1625,7 @@ sequenceDiagram
 - [Zod Documentation](https://zod.dev/)
 
 **Infraestrutura:**
+
 - [PostgreSQL 16 Documentation](https://www.postgresql.org/docs/16/)
 - [Redis 7 Documentation](https://redis.io/docs/)
 - [MinIO Documentation](https://min.io/docs/minio/linux/index.html)
@@ -1599,6 +1633,7 @@ sequenceDiagram
 - [Turborepo Documentation](https://turbo.build/repo/docs)
 
 **Ferramentas:**
+
 - [pnpm Documentation](https://pnpm.io/)
 - [TypeScript Documentation](https://www.typescriptlang.org/docs/)
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
@@ -1619,21 +1654,25 @@ sequenceDiagram
 ### A.1 Gargalos de Performance
 
 **1. Geração de PDFs com muitas imagens**
+
 - **Problema:** Downloads paralelos de imagens do MinIO podem sobrecarregar a rede
 - **Impacto:** Latência de 5-10s para documentos com 50+ imagens
 - **Mitigação:** Implementar cache de imagens no Redis, compressão com sharp
 
 **2. Renderização de PDFs grandes no frontend**
+
 - **Problema:** pdfjs renderiza todas as páginas em memória
 - **Impacto:** Consumo de 500MB+ RAM para PDFs com 100+ páginas
 - **Mitigação:** Lazy loading de páginas, virtualização de canvas
 
 **3. Autosave a cada 5 segundos**
+
 - **Problema:** Requisições frequentes ao backend durante edição
 - **Impacto:** Carga desnecessária no banco de dados
 - **Mitigação:** Debounce inteligente (salvar apenas quando há mudanças), batch de updates
 
 **4. Polling de status a cada 3 segundos**
+
 - **Problema:** Requisições contínuas durante geração de PDF
 - **Impacto:** Carga no banco de dados e API
 - **Mitigação:** WebSockets ou Server-Sent Events para notificações em tempo real
@@ -1641,26 +1680,31 @@ sequenceDiagram
 ### A.2 Riscos de Segurança
 
 **1. Ausência de autenticação**
+
 - **Risco:** Qualquer pessoa pode acessar e modificar templates/documentos
 - **Severidade:** CRÍTICA
 - **Mitigação:** Implementar OAuth2/OIDC + RBAC
 
 **2. Upload de arquivos sem validação**
+
 - **Risco:** Upload de arquivos maliciosos (executáveis, scripts)
 - **Severidade:** ALTA
 - **Mitigação:** Validar MIME type, escanear com antivírus, limitar tamanho
 
 **3. Injeção de SQL via Prisma**
+
 - **Risco:** Baixo (Prisma usa prepared statements)
 - **Severidade:** MÉDIA
 - **Mitigação:** Validar inputs com Zod, evitar raw queries
 
 **4. CORS aberto em desenvolvimento**
+
 - **Risco:** Qualquer origem pode fazer requisições à API
 - **Severidade:** MÉDIA
 - **Mitigação:** Configurar CORS_ORIGIN em produção
 
 **5. Secrets em variáveis de ambiente**
+
 - **Risco:** Vazamento de credenciais (S3, Redis, DB)
 - **Severidade:** ALTA
 - **Mitigação:** Usar secrets manager (AWS Secrets Manager, HashiCorp Vault)
@@ -1668,26 +1712,31 @@ sequenceDiagram
 ### A.3 Problemas de Arquitetura
 
 **1. Worker e API no mesmo processo**
+
 - **Problema:** Worker bloqueia event loop do Express
 - **Impacto:** Latência em requisições HTTP durante geração de PDFs
 - **Solução:** Separar worker em processo/container dedicado
 
 **2. Falta de versionamento de templates**
+
 - **Problema:** Alterações em templates publicados afetam documentos existentes
 - **Impacto:** Documentos gerados podem ter layout diferente do esperado
 - **Solução:** Implementar snapshot de templates ao criar documento
 
 **3. Falta de retry automático em jobs**
+
 - **Problema:** Jobs que falham ficam em estado ERROR permanentemente
 - **Impacto:** Usuário precisa retentar manualmente
 - **Solução:** Configurar retry exponencial no BullMQ (3 tentativas)
 
 **4. Falta de observabilidade**
+
 - **Problema:** Difícil diagnosticar falhas em produção
 - **Impacto:** Tempo de resolução de incidentes elevado
 - **Solução:** Logs estruturados (Winston/Pino), métricas (Prometheus), tracing (OpenTelemetry)
 
 **5. Monorepo sem cache de build**
+
 - **Problema:** Builds lentos em CI/CD
 - **Impacto:** Deploy demorado (5-10 minutos)
 - **Solução:** Configurar Turborepo remote cache (Vercel, S3)
@@ -1695,21 +1744,25 @@ sequenceDiagram
 ### A.4 Limitações Técnicas
 
 **1. Coordenadas relativas (0-1) podem perder precisão**
+
 - **Problema:** Conversão px → relativo → px pode causar desalinhamento de 1-2px
 - **Impacto:** Campos podem ficar ligeiramente desalinhados em PDFs gerados
 - **Solução:** Usar coordenadas absolutas em pontos (1pt = 1/72 inch)
 
 **2. pdf-lib não suporta fontes customizadas facilmente**
+
 - **Problema:** Apenas fontes padrão (Helvetica, Times, Courier)
 - **Impacto:** Limitação de design
 - **Solução:** Embed de fontes TrueType (complexo)
 
 **3. Tesseract.js tem baixa precisão em imagens de baixa qualidade**
+
 - **Problema:** OCR falha em etiquetas com texto pequeno ou borrado
 - **Impacto:** Usuário precisa digitar manualmente
 - **Solução:** Pré-processamento de imagem (sharp: contraste, nitidez)
 
 **4. MinIO local não tem CDN**
+
 - **Problema:** Downloads de PDFs/imagens são lentos
 - **Impacto:** Latência de 500ms-1s para arquivos grandes
 - **Solução:** Usar CloudFront (AWS) ou Cloudflare R2 em produção
@@ -1792,25 +1845,25 @@ sequenceDiagram
 
 ## APÊNDICE C: GLOSSÁRIO TÉCNICO EXPANDIDO
 
-| Termo | Definição Técnica |
-|-------|-------------------|
-| **Overlay** | Camada de conteúdo (texto, imagem) aplicada sobre um PDF existente usando pdf-lib |
-| **Field Position** | Objeto JSON `{ x, y, width, height }` com coordenadas relativas (0-1) |
-| **Field Config** | Objeto JSON com configurações do campo: `{ label, required, placeholder, fontSize, fontColor }` |
-| **Slot** | Posição fixa em uma página onde um item será renderizado (ex: slot 0 = canto superior esquerdo) |
-| **Item** | Unidade de dados a ser renderizada (ex: um equipamento em uma etiqueta) |
-| **Page Ordinal** | Índice da página no PDF expandido (0-based) |
-| **Template Page Index** | Índice da página no PDF base (0-based) |
-| **Expanded Page Index** | `pageOrdinal * originalPageCount + templatePageIndex` |
-| **Assignment** | Mapeamento de um item para um slot em uma página: `{ pageOrdinal, slotIndex, itemIndex }` |
-| **Pagination Layout** | Resultado do TemplatePaginator: `{ itemsPerPage, totalPages, assignments[] }` |
-| **Binding Context** | Dados disponíveis para resolução de bindingKey: `{ globals, items[] }` |
-| **Binding Scope** | Namespace da bindingKey: `global` ou `eq` |
-| **Draft** | Rascunho de documento salvo localmente no IndexedDB do navegador |
-| **Presigned URL** | URL temporária gerada pelo MinIO para download direto de arquivos |
-| **Job** | Tarefa enfileirada no BullMQ para processamento assíncrono |
-| **Worker** | Processo que consome jobs da fila e executa o processamento |
-| **Concurrency** | Número de jobs processados simultaneamente pelo worker (padrão: 2) |
+| Termo                   | Definição Técnica                                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------------- |
+| **Overlay**             | Camada de conteúdo (texto, imagem) aplicada sobre um PDF existente usando pdf-lib               |
+| **Field Position**      | Objeto JSON `{ x, y, width, height }` com coordenadas relativas (0-1)                           |
+| **Field Config**        | Objeto JSON com configurações do campo: `{ label, required, placeholder, fontSize, fontColor }` |
+| **Slot**                | Posição fixa em uma página onde um item será renderizado (ex: slot 0 = canto superior esquerdo) |
+| **Item**                | Unidade de dados a ser renderizada (ex: um equipamento em uma etiqueta)                         |
+| **Page Ordinal**        | Índice da página no PDF expandido (0-based)                                                     |
+| **Template Page Index** | Índice da página no PDF base (0-based)                                                          |
+| **Expanded Page Index** | `pageOrdinal * originalPageCount + templatePageIndex`                                           |
+| **Assignment**          | Mapeamento de um item para um slot em uma página: `{ pageOrdinal, slotIndex, itemIndex }`       |
+| **Pagination Layout**   | Resultado do TemplatePaginator: `{ itemsPerPage, totalPages, assignments[] }`                   |
+| **Binding Context**     | Dados disponíveis para resolução de bindingKey: `{ globals, items[] }`                          |
+| **Binding Scope**       | Namespace da bindingKey: `global` ou `eq`                                                       |
+| **Draft**               | Rascunho de documento salvo localmente no IndexedDB do navegador                                |
+| **Presigned URL**       | URL temporária gerada pelo MinIO para download direto de arquivos                               |
+| **Job**                 | Tarefa enfileirada no BullMQ para processamento assíncrono                                      |
+| **Worker**              | Processo que consome jobs da fila e executa o processamento                                     |
+| **Concurrency**         | Número de jobs processados simultaneamente pelo worker (padrão: 2)                              |
 
 ---
 
@@ -1819,6 +1872,7 @@ sequenceDiagram
 ---
 
 **Notas finais:**
+
 - Este documento deve ser atualizado a cada release
 - Diagramas Mermaid podem ser visualizados em editores compatíveis (GitHub, GitLab, VS Code com extensão)
 - Para dúvidas técnicas, consultar o código-fonte ou abrir issue no repositório

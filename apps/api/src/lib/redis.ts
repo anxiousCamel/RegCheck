@@ -23,7 +23,9 @@ export async function cachedGet<T>(
 ): Promise<T> {
   const cached = await redis.get(key);
   if (cached) {
-    return JSON.parse(cached) as T;
+    // JSON.parse returns unknown; caller is responsible for validating the shape
+    const parsed: unknown = JSON.parse(cached);
+    return parsed as T;
   }
 
   const data = await fetcher();

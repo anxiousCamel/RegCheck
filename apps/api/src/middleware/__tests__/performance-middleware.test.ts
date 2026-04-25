@@ -19,7 +19,7 @@ describe('Performance Middleware', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     mockReq = {
       method: 'GET',
       path: '/api/lojas',
@@ -40,11 +40,7 @@ describe('Performance Middleware', () => {
   });
 
   it('should add requestId and startTime to request', () => {
-    performanceMiddleware(
-      mockReq as Request,
-      mockRes as Response,
-      mockNext
-    );
+    performanceMiddleware(mockReq as Request, mockRes as Response, mockNext);
 
     const req = mockReq as RequestWithPerformance;
     expect(req.requestId).toBeDefined();
@@ -54,53 +50,37 @@ describe('Performance Middleware', () => {
   });
 
   it('should call performanceMonitor.startRequest', () => {
-    performanceMiddleware(
-      mockReq as Request,
-      mockRes as Response,
-      mockNext
-    );
+    performanceMiddleware(mockReq as Request, mockRes as Response, mockNext);
 
     expect(performanceMonitor.startRequest).toHaveBeenCalledWith(
       expect.any(String),
       'GET',
-      '/api/lojas'
+      '/api/lojas',
     );
   });
 
   it('should call next middleware', () => {
-    performanceMiddleware(
-      mockReq as Request,
-      mockRes as Response,
-      mockNext
-    );
+    performanceMiddleware(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockNext).toHaveBeenCalled();
   });
 
   it('should add X-Response-Time header on response finish', () => {
-    performanceMiddleware(
-      mockReq as Request,
-      mockRes as Response,
-      mockNext
-    );
+    performanceMiddleware(mockReq as Request, mockRes as Response, mockNext);
 
     // Simulate response finish
     finishCallback();
 
     expect(mockRes.setHeader).toHaveBeenCalledWith(
       'X-Response-Time',
-      expect.stringMatching(/^\d+ms$/)
+      expect.stringMatching(/^\d+ms$/),
     );
   });
 
   it('should call performanceMonitor.endRequest on finish', () => {
     const req = mockReq as RequestWithPerformance;
-    
-    performanceMiddleware(
-      mockReq as Request,
-      mockRes as Response,
-      mockNext
-    );
+
+    performanceMiddleware(mockReq as Request, mockRes as Response, mockNext);
 
     const requestId = req.requestId;
 
@@ -112,18 +92,14 @@ describe('Performance Middleware', () => {
 
   it('should log request details with cache status', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    
+
     (mockRes.getHeader as ReturnType<typeof vi.fn>).mockReturnValue('HIT');
     (performanceMonitor.endRequest as ReturnType<typeof vi.fn>).mockReturnValue({
       queryCount: 2,
       slowQueries: [],
     });
 
-    performanceMiddleware(
-      mockReq as Request,
-      mockRes as Response,
-      mockNext
-    );
+    performanceMiddleware(mockReq as Request, mockRes as Response, mockNext);
 
     // Simulate response finish
     finishCallback();
@@ -136,7 +112,7 @@ describe('Performance Middleware', () => {
         cacheStatus: 'HIT',
         queryCount: 2,
         slowQueries: 0,
-      })
+      }),
     );
 
     consoleSpy.mockRestore();
@@ -144,18 +120,14 @@ describe('Performance Middleware', () => {
 
   it('should default cache status to MISS if not set', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    
+
     (mockRes.getHeader as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
     (performanceMonitor.endRequest as ReturnType<typeof vi.fn>).mockReturnValue({
       queryCount: 0,
       slowQueries: [],
     });
 
-    performanceMiddleware(
-      mockReq as Request,
-      mockRes as Response,
-      mockNext
-    );
+    performanceMiddleware(mockReq as Request, mockRes as Response, mockNext);
 
     // Simulate response finish
     finishCallback();
@@ -164,7 +136,7 @@ describe('Performance Middleware', () => {
       '[Request]',
       expect.objectContaining({
         cacheStatus: 'MISS',
-      })
+      }),
     );
 
     consoleSpy.mockRestore();
@@ -172,20 +144,16 @@ describe('Performance Middleware', () => {
 
   it('should log warning for slow requests (> 500ms)', async () => {
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    
+
     (performanceMonitor.endRequest as ReturnType<typeof vi.fn>).mockReturnValue({
       queryCount: 5,
       slowQueries: [{ query: 'SELECT * FROM lojas', duration: 150 }],
     });
 
-    performanceMiddleware(
-      mockReq as Request,
-      mockRes as Response,
-      mockNext
-    );
+    performanceMiddleware(mockReq as Request, mockRes as Response, mockNext);
 
     // Wait to ensure duration > 500ms
-    await new Promise(resolve => setTimeout(resolve, 550));
+    await new Promise((resolve) => setTimeout(resolve, 550));
 
     // Simulate response finish
     finishCallback();
@@ -196,7 +164,7 @@ describe('Performance Middleware', () => {
         method: 'GET',
         path: '/api/lojas',
         queryCount: 5,
-      })
+      }),
     );
 
     consoleSpy.mockRestore();
@@ -204,14 +172,10 @@ describe('Performance Middleware', () => {
 
   it('should handle missing performance metrics gracefully', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    
+
     (performanceMonitor.endRequest as ReturnType<typeof vi.fn>).mockReturnValue(null);
 
-    performanceMiddleware(
-      mockReq as Request,
-      mockRes as Response,
-      mockNext
-    );
+    performanceMiddleware(mockReq as Request, mockRes as Response, mockNext);
 
     // Simulate response finish
     finishCallback();
@@ -221,7 +185,7 @@ describe('Performance Middleware', () => {
       expect.objectContaining({
         queryCount: 0,
         slowQueries: 0,
-      })
+      }),
     );
 
     consoleSpy.mockRestore();

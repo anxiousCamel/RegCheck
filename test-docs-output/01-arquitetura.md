@@ -2,7 +2,7 @@
 
 Este documento descreve a arquitetura do sistema RegCheck, incluindo estrutura, camadas e responsabilidades dos componentes.
 
-**Gerado em:** 23/04/2026, 12:20:17
+**Gerado em:** 25/04/2026, 12:16:41
 
 ## Tipo de Arquitetura
 

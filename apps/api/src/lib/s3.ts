@@ -1,4 +1,9 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const s3Client = new S3Client({
@@ -14,11 +19,7 @@ const s3Client = new S3Client({
 const BUCKET = process.env.S3_BUCKET ?? 'regcheck';
 
 /** Upload a file to S3/MinIO */
-export async function uploadFile(
-  key: string,
-  body: Buffer,
-  contentType: string,
-): Promise<void> {
+export async function uploadFile(key: string, body: Buffer, contentType: string): Promise<void> {
   await s3Client.send(
     new PutObjectCommand({
       Bucket: BUCKET,

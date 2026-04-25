@@ -3,14 +3,14 @@ import { prisma } from '@regcheck/database';
 
 /**
  * Database Query Performance Tests
- * 
+ *
  * These tests verify that database queries execute within performance targets:
  * - All queries should execute in < 50ms
  * - Queries should use proper indexes
  * - No N+1 query patterns
- * 
+ *
  * **Validates: Requirement 5.5**
- * 
+ *
  * Note: These tests use mocked Prisma to measure query construction overhead.
  * In a real integration test environment with a database, you would measure
  * actual query execution time using Prisma query events.
@@ -20,15 +20,18 @@ import { prisma } from '@regcheck/database';
 vi.mock('@regcheck/database', () => {
   const createMockPrisma = () => {
     const queryTimes: number[] = [];
-    
-    const simulateQuery = async <T>(result: T, complexity: 'simple' | 'complex' = 'simple'): Promise<T> => {
+
+    const simulateQuery = async <T>(
+      result: T,
+      complexity: 'simple' | 'complex' = 'simple',
+    ): Promise<T> => {
       // Simulate query execution time
       const queryTime = complexity === 'simple' ? Math.random() * 30 : Math.random() * 45;
       queryTimes.push(queryTime);
-      
+
       // Simulate async database operation
-      await new Promise(resolve => setTimeout(resolve, 1));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1));
+
       return result;
     };
 
@@ -82,7 +85,9 @@ vi.mock('@regcheck/database', () => {
         $on: vi.fn(),
       },
       getQueryTimes: () => queryTimes,
-      clearQueryTimes: () => { queryTimes.length = 0; },
+      clearQueryTimes: () => {
+        queryTimes.length = 0;
+      },
     };
   };
 
@@ -111,24 +116,24 @@ describe('Database Query Performance', () => {
   describe('Query Execution Time < 50ms (Requirement 5.5)', () => {
     it('EquipamentoService.list() should execute queries in < 50ms', async () => {
       const start = Date.now();
-      
+
       await EquipamentoService.list(1, 50, {});
-      
+
       const duration = Date.now() - start;
 
       // Verify the query was executed
       expect(prisma.equipamento.findMany).toHaveBeenCalled();
       expect(prisma.equipamento.count).toHaveBeenCalled();
-      
+
       // Total query execution time should be < 50ms
       expect(duration).toBeLessThan(50);
     });
 
     it('EquipamentoService.getById() should execute query in < 50ms', async () => {
       const start = Date.now();
-      
+
       await EquipamentoService.getById('test-id');
-      
+
       const duration = Date.now() - start;
 
       expect(prisma.equipamento.findUnique).toHaveBeenCalled();
@@ -137,9 +142,9 @@ describe('Database Query Performance', () => {
 
     it('DocumentService.list() should execute queries in < 50ms', async () => {
       const start = Date.now();
-      
+
       await DocumentService.list(1, 50);
-      
+
       const duration = Date.now() - start;
 
       expect(prisma.document.findMany).toHaveBeenCalled();
@@ -149,9 +154,9 @@ describe('Database Query Performance', () => {
 
     it('DocumentService.getById() should execute query in < 50ms', async () => {
       const start = Date.now();
-      
+
       await DocumentService.getById('test-id');
-      
+
       const duration = Date.now() - start;
 
       expect(prisma.document.findUnique).toHaveBeenCalled();
@@ -160,9 +165,9 @@ describe('Database Query Performance', () => {
 
     it('TemplateService.list() should execute queries in < 50ms', async () => {
       const start = Date.now();
-      
+
       await TemplateService.list(1, 50);
-      
+
       const duration = Date.now() - start;
 
       expect(prisma.template.findMany).toHaveBeenCalled();
@@ -172,9 +177,9 @@ describe('Database Query Performance', () => {
 
     it('TemplateService.getById() should execute query in < 50ms', async () => {
       const start = Date.now();
-      
+
       await TemplateService.getById('test-id');
-      
+
       const duration = Date.now() - start;
 
       expect(prisma.template.findUnique).toHaveBeenCalled();
@@ -183,9 +188,9 @@ describe('Database Query Performance', () => {
 
     it('LojaService.list() should execute queries in < 50ms', async () => {
       const start = Date.now();
-      
+
       await LojaService.list(1, 50);
-      
+
       const duration = Date.now() - start;
 
       expect(prisma.loja.findMany).toHaveBeenCalled();
@@ -195,9 +200,9 @@ describe('Database Query Performance', () => {
 
     it('LojaService.getById() should execute query in < 50ms', async () => {
       const start = Date.now();
-      
+
       await LojaService.getById('test-id');
-      
+
       const duration = Date.now() - start;
 
       expect(prisma.loja.findUnique).toHaveBeenCalled();
@@ -210,7 +215,7 @@ describe('Database Query Performance', () => {
       await EquipamentoService.list(1, 10, {});
 
       const call = vi.mocked(prisma.equipamento.findMany).mock.calls[0][0];
-      
+
       // Verify select is used instead of include
       expect(call).toHaveProperty('select');
       expect(call).not.toHaveProperty('include');
@@ -221,9 +226,9 @@ describe('Database Query Performance', () => {
 
       // Should only call findMany once, not separate queries for relations
       expect(prisma.equipamento.findMany).toHaveBeenCalledTimes(1);
-      
+
       const call = vi.mocked(prisma.equipamento.findMany).mock.calls[0][0];
-      
+
       // Relations should be included in the select
       expect(call.select).toHaveProperty('loja');
       expect(call.select).toHaveProperty('setor');
@@ -234,7 +239,7 @@ describe('Database Query Performance', () => {
       await EquipamentoService.list(1, 50, {});
 
       const call = vi.mocked(prisma.equipamento.findMany).mock.calls[0][0];
-      
+
       // Verify pagination parameters
       expect(call).toHaveProperty('take');
       expect(call).toHaveProperty('skip');
@@ -245,7 +250,7 @@ describe('Database Query Performance', () => {
       await EquipamentoService.list(1, 200, {}); // Request 200 items
 
       const call = vi.mocked(prisma.equipamento.findMany).mock.calls[0][0];
-      
+
       // Should be capped at 100
       expect(call.take).toBe(100);
     });
@@ -269,14 +274,14 @@ describe('Database Query Performance', () => {
 
     it('should handle mixed query types concurrently', async () => {
       const start = Date.now();
-      
+
       await Promise.all([
         LojaService.list(1, 50),
         EquipamentoService.list(1, 50, {}),
         DocumentService.list(1, 50),
         TemplateService.list(1, 50),
       ]);
-      
+
       const duration = Date.now() - start;
 
       // All queries should complete in parallel, not sequentially
@@ -292,11 +297,11 @@ describe('Database Query Performance', () => {
         lojaId: 'loja-1',
         tipoId: 'tipo-1',
       };
-      
+
       await EquipamentoService.list(1, 50, filters);
 
       const call = vi.mocked(prisma.equipamento.findMany).mock.calls[0][0];
-      
+
       // Verify WHERE clause uses indexed columns
       expect(call.where).toHaveProperty('lojaId');
       expect(call.where).toHaveProperty('tipoId');
@@ -306,7 +311,7 @@ describe('Database Query Performance', () => {
       await DocumentService.list(1, 50);
 
       const call = vi.mocked(prisma.document.findMany).mock.calls[0][0];
-      
+
       // Verify ORDER BY uses indexed column (createdAt)
       expect(call.orderBy).toBeDefined();
     });
@@ -317,7 +322,7 @@ describe('Database Query Performance', () => {
       await DocumentService.list(1, 50);
 
       const call = vi.mocked(prisma.document.findMany).mock.calls[0][0];
-      
+
       // Should not select heavy fields in list view
       expect(call.select).toBeDefined();
       expect(call.select).not.toHaveProperty('metadata');
@@ -328,7 +333,7 @@ describe('Database Query Performance', () => {
       await DocumentService.getById('test-id');
 
       const call = vi.mocked(prisma.document.findUnique).mock.calls[0][0];
-      
+
       // Should select all fields for detail view
       expect(call.select).toBeDefined();
       expect(call.select).toHaveProperty('id');

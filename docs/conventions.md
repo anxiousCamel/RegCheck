@@ -8,21 +8,21 @@ Este documento descreve os padrões de código adotados no RegCheck. Seguir esta
 
 ### Arquivos e Pastas
 
-| Tipo | Convenção | Exemplos |
-|---|---|---|
-| Arquivos TypeScript/TSX | `kebab-case` | `template-service.ts`, `editor-canvas.tsx` |
-| Pastas | `kebab-case` | `editor-engine/`, `pdf-engine/` |
-| Componentes React | `kebab-case` no arquivo, `PascalCase` no export | `editor-toolbar.tsx` → `EditorToolbar` |
+| Tipo                    | Convenção                                       | Exemplos                                   |
+| ----------------------- | ----------------------------------------------- | ------------------------------------------ |
+| Arquivos TypeScript/TSX | `kebab-case`                                    | `template-service.ts`, `editor-canvas.tsx` |
+| Pastas                  | `kebab-case`                                    | `editor-engine/`, `pdf-engine/`            |
+| Componentes React       | `kebab-case` no arquivo, `PascalCase` no export | `editor-toolbar.tsx` → `EditorToolbar`     |
 
 ### Identificadores no Código
 
-| Tipo | Convenção | Exemplos |
-|---|---|---|
-| Funções e variáveis | `camelCase` | `getTemplate`, `isDirty`, `totalPages` |
-| Componentes React | `PascalCase` | `EditorCanvas`, `FieldProperties` |
-| Tipos e interfaces | `PascalCase` | `TemplateField`, `FieldPosition`, `ApiResponse<T>` |
-| Enums e constantes | `UPPER_SNAKE_CASE` | `TEMPLATE_STATUS`, `MAX_ZOOM` |
-| Hooks customizados | `camelCase` com prefixo `use` | `useAutosave`, `usePdfRenderer` |
+| Tipo                | Convenção                     | Exemplos                                           |
+| ------------------- | ----------------------------- | -------------------------------------------------- |
+| Funções e variáveis | `camelCase`                   | `getTemplate`, `isDirty`, `totalPages`             |
+| Componentes React   | `PascalCase`                  | `EditorCanvas`, `FieldProperties`                  |
+| Tipos e interfaces  | `PascalCase`                  | `TemplateField`, `FieldPosition`, `ApiResponse<T>` |
+| Enums e constantes  | `UPPER_SNAKE_CASE`            | `TEMPLATE_STATUS`, `MAX_ZOOM`                      |
+| Hooks customizados  | `camelCase` com prefixo `use` | `useAutosave`, `usePdfRenderer`                    |
 
 ### Exemplos Reais do Projeto
 
@@ -179,13 +179,13 @@ templateRouter.post('/', async (req, res, next) => {
 
 ### Regra Geral
 
-| Situação | Use |
-|---|---|
-| Buscar dados do servidor (GET) | React Query (`useQuery`) |
+| Situação                                                | Use                         |
+| ------------------------------------------------------- | --------------------------- |
+| Buscar dados do servidor (GET)                          | React Query (`useQuery`)    |
 | Criar/atualizar/deletar no servidor (POST/PATCH/DELETE) | React Query (`useMutation`) |
-| Estado local da UI (seleção, zoom, histórico) | Zustand |
-| Cache e invalidação de dados remotos | React Query |
-| Estado do editor visual (campos, página atual) | Zustand (`editor-store.ts`) |
+| Estado local da UI (seleção, zoom, histórico)           | Zustand                     |
+| Cache e invalidação de dados remotos                    | React Query                 |
+| Estado do editor visual (campos, página atual)          | Zustand (`editor-store.ts`) |
 
 ### React Query — Dados do Servidor
 
@@ -281,11 +281,13 @@ export interface ApiError {
 ```
 
 **Resposta de sucesso:**
+
 ```json
 { "success": true, "data": { "id": "...", "name": "Meu Template" } }
 ```
 
 **Resposta de erro:**
+
 ```json
 { "success": false, "error": { "code": "NOT_FOUND", "message": "Template não encontrado" } }
 ```
@@ -348,9 +350,9 @@ templateRouter.get('/:id', async (req, res, next) => {
 ```typescript
 // packages/shared/src/types/field.ts
 export interface FieldPosition {
-  x: number;      // 0 = esquerda, 1 = direita
-  y: number;      // 0 = topo, 1 = base
-  width: number;  // fração da largura da página
+  x: number; // 0 = esquerda, 1 = direita
+  y: number; // 0 = topo, 1 = base
+  width: number; // fração da largura da página
   height: number; // fração da altura da página
 }
 ```
@@ -366,7 +368,7 @@ A conversão de relativo para absoluto acontece **exclusivamente** no `@regcheck
 ```typescript
 // Conversão relativo → absoluto (sistema de coordenadas pdf-lib: origem no canto inferior esquerdo)
 const absX = position.x * pageWidth;
-const absY = pageHeight - (position.y * pageHeight) - (position.height * pageHeight);
+const absY = pageHeight - position.y * pageHeight - position.height * pageHeight;
 const absWidth = position.width * pageWidth;
 const absHeight = position.height * pageHeight;
 ```

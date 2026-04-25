@@ -14,15 +14,15 @@ O projeto utiliza Docker Compose para gerenciar serviços locais:
 
 ## Portas dos Serviços
 
-| Serviço | Porta | Descrição |
-|---|---|---|
-| PostgreSQL | 5432 | Banco de dados |
-| Redis | 6379 | Cache e filas |
-| MinIO API | 9000 | S3 API |
-| MinIO Console | 9001 | Interface web |
-| API Backend | 4000 | REST API |
-| Web Frontend | 3000 | Aplicação web |
-| Prisma Studio | 5555 | Database GUI |
+| Serviço       | Porta | Descrição      |
+| ------------- | ----- | -------------- |
+| PostgreSQL    | 5432  | Banco de dados |
+| Redis         | 6379  | Cache e filas  |
+| MinIO API     | 9000  | S3 API         |
+| MinIO Console | 9001  | Interface web  |
+| API Backend   | 4000  | REST API       |
+| Web Frontend  | 3000  | Aplicação web  |
+| Prisma Studio | 5555  | Database GUI   |
 
 ## Variáveis de Ambiente
 
@@ -63,16 +63,16 @@ NEXT_PUBLIC_API_URL=http://localhost:4000/api
 
 ## Scripts Disponíveis
 
-| Comando | Descrição |
-|---|---|
-| pnpm dev | Inicia API e Web em modo desenvolvimento |
-| pnpm dev:api | Inicia apenas API |
-| pnpm dev:web | Inicia apenas Web |
-| pnpm build | Build de produção |
-| pnpm test | Executa testes |
-| pnpm db:migrate | Executa migrações Prisma |
-| pnpm db:studio | Abre Prisma Studio |
-| pnpm generate:docs | Gera documentação |
+| Comando            | Descrição                                |
+| ------------------ | ---------------------------------------- |
+| pnpm dev           | Inicia API e Web em modo desenvolvimento |
+| pnpm dev:api       | Inicia apenas API                        |
+| pnpm dev:web       | Inicia apenas Web                        |
+| pnpm build         | Build de produção                        |
+| pnpm test          | Executa testes                           |
+| pnpm db:migrate    | Executa migrações Prisma                 |
+| pnpm db:studio     | Abre Prisma Studio                       |
+| pnpm generate:docs | Gera documentação                        |
 
 ## Troubleshooting
 
@@ -96,4 +96,3 @@ Reset do banco: `pnpm db:reset` (⚠️ apaga todos os dados)
 
 - Docker Compose: `infra/docker-compose.yml`
 - Variáveis de ambiente: `.env.example`
-

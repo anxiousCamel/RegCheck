@@ -26,13 +26,10 @@ export const AnalyticsService = {
     const scans = events.filter((e) => e.type === 'success' || e.type === 'failure');
     const successes = events.filter((e) => e.type === 'success');
     const cacheHits = events.filter((e) => e.type === 'cache_hit');
-    const barcodeSuccesses = successes.filter(
-      (e) => e.metadata?.method === 'barcode',
-    );
+    const barcodeSuccesses = successes.filter((e) => e.metadata?.method === 'barcode');
 
     const total = scans.length || 1;
-    const avgDuration =
-      successes.reduce((sum, e) => sum + e.duration, 0) / (successes.length || 1);
+    const avgDuration = successes.reduce((sum, e) => sum + e.duration, 0) / (successes.length || 1);
 
     return {
       totalScans: scans.length,

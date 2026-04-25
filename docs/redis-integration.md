@@ -7,12 +7,14 @@ The integration tests for cache functionality have been updated to gracefully ha
 ## Changes Made
 
 ### 1. `src/lib/__tests__/cache.integration.test.ts`
+
 - Added `beforeAll` hook to check Redis availability
 - All tests now use `it.skipIf(!isRedisAvailable)` to skip when Redis is not running
 - Tests will automatically skip with a clear message when Redis is unavailable
 - Tests will run normally when Redis is available
 
 ### 2. `src/middleware/__tests__/cache-middleware.integration.test.ts`
+
 - Added `beforeAll` hook to check Redis availability
 - All tests now use `it.skipIf(!isRedisAvailable)` to skip when Redis is not running
 - Tests will automatically skip with a clear message when Redis is unavailable
@@ -21,6 +23,7 @@ The integration tests for cache functionality have been updated to gracefully ha
 ## How It Works
 
 ### Redis Availability Check
+
 ```typescript
 let isRedisAvailable = false;
 
@@ -38,6 +41,7 @@ beforeAll(async () => {
 ```
 
 ### Test Skipping
+
 ```typescript
 it.skipIf(!isRedisAvailable)('should cache GET responses', async () => {
   // Test implementation
@@ -47,6 +51,7 @@ it.skipIf(!isRedisAvailable)('should cache GET responses', async () => {
 ## Running the Tests
 
 ### With Redis Available
+
 ```bash
 # Start Redis (if not already running)
 redis-server
@@ -59,6 +64,7 @@ pnpm test src/middleware/__tests__/cache-middleware.integration.test.ts
 **Expected Output**: All tests run and pass ✅
 
 ### Without Redis Available
+
 ```bash
 # Stop Redis
 redis-cli shutdown

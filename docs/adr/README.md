@@ -4,13 +4,13 @@ Este diretório contém os registros de decisões arquiteturais (ADRs) do RegChe
 
 ## Índice de ADRs
 
-| # | Título | Status | Link |
-|---|--------|--------|------|
-| 001 | Uso de Konva.js em vez de Fabric.js no Editor Visual | Aceito | [001-konva-vs-fabricjs.md](./001-konva-vs-fabricjs.md) |
-| 002 | Armazenamento de coordenadas relativas (0–1) | Aceito | [002-coordenadas-relativas.md](./002-coordenadas-relativas.md) |
-| 003 | BullMQ + Redis para geração assíncrona de PDF | Aceito | [003-bullmq-redis-pdf.md](./003-bullmq-redis-pdf.md) |
-| 004 | Zustand para estado do editor + React Query para dados do servidor | Aceito | [004-zustand-react-query.md](./004-zustand-react-query.md) |
-| 005 | MinIO/S3 para armazenamento de arquivos | Aceito | [005-minio-s3-storage.md](./005-minio-s3-storage.md) |
+| #   | Título                                                             | Status | Link                                                           |
+| --- | ------------------------------------------------------------------ | ------ | -------------------------------------------------------------- |
+| 001 | Uso de Konva.js em vez de Fabric.js no Editor Visual               | Aceito | [001-konva-vs-fabricjs.md](./001-konva-vs-fabricjs.md)         |
+| 002 | Armazenamento de coordenadas relativas (0–1)                       | Aceito | [002-coordenadas-relativas.md](./002-coordenadas-relativas.md) |
+| 003 | BullMQ + Redis para geração assíncrona de PDF                      | Aceito | [003-bullmq-redis-pdf.md](./003-bullmq-redis-pdf.md)           |
+| 004 | Zustand para estado do editor + React Query para dados do servidor | Aceito | [004-zustand-react-query.md](./004-zustand-react-query.md)     |
+| 005 | MinIO/S3 para armazenamento de arquivos                            | Aceito | [005-minio-s3-storage.md](./005-minio-s3-storage.md)           |
 
 ---
 
@@ -74,9 +74,9 @@ Descreva os efeitos da decisão — tanto positivos quanto negativos:
 
 ## Status possíveis
 
-| Status | Significado |
-|--------|-------------|
-| **Proposto** | A decisão está sendo discutida e ainda não foi implementada |
-| **Aceito** | A decisão foi tomada e está em vigor no projeto |
-| **Depreciado** | A decisão ainda está em vigor mas não é mais recomendada para novos casos |
-| **Substituído** | A decisão foi substituída por outro ADR (incluir link) |
+| Status          | Significado                                                               |
+| --------------- | ------------------------------------------------------------------------- |
+| **Proposto**    | A decisão está sendo discutida e ainda não foi implementada               |
+| **Aceito**      | A decisão foi tomada e está em vigor no projeto                           |
+| **Depreciado**  | A decisão ainda está em vigor mas não é mais recomendada para novos casos |
+| **Substituído** | A decisão foi substituída por outro ADR (incluir link)                    |

@@ -39,9 +39,7 @@ describe('deduplicateCandidates', () => {
   });
 
   it('handles single candidate', () => {
-    const candidates: OCRCandidate[] = [
-      { type: 'patrimonio', value: '999888', confidence: 0.85 },
-    ];
+    const candidates: OCRCandidate[] = [{ type: 'patrimonio', value: '999888', confidence: 0.85 }];
     expect(deduplicateCandidates(candidates)).toHaveLength(1);
   });
 });

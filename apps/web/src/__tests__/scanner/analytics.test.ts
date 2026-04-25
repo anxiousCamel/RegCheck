@@ -37,8 +37,18 @@ describe('AnalyticsService', () => {
   });
 
   it('calculates barcode success rate', () => {
-    AnalyticsService.track({ type: 'success', stage: 'complete', duration: 200, metadata: { method: 'barcode' } });
-    AnalyticsService.track({ type: 'success', stage: 'complete', duration: 1500, metadata: { method: 'ocr' } });
+    AnalyticsService.track({
+      type: 'success',
+      stage: 'complete',
+      duration: 200,
+      metadata: { method: 'barcode' },
+    });
+    AnalyticsService.track({
+      type: 'success',
+      stage: 'complete',
+      duration: 1500,
+      metadata: { method: 'ocr' },
+    });
     const stats = AnalyticsService.getStats();
     expect(stats.barcodeSuccessRate).toBeCloseTo(0.5);
   });

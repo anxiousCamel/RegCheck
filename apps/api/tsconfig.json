@@ -4,7 +4,12 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "module": "ESNext",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    // skipLibCheck: ioredis 5.x e bullmq possuem tipos internos incompatíveis
+    // com exactOptionalPropertyTypes habilitado no tsconfig raiz.
+    // Habilitado localmente para evitar erros TS2375/TS2412 em node_modules.
+    "skipLibCheck": true,
+    "types": ["vitest/globals"]
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]

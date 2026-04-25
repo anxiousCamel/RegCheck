@@ -752,31 +752,15 @@
   "enums": [
     {
       "name": "TemplateStatus",
-      "values": [
-        "DRAFT",
-        "PUBLISHED",
-        "ARCHIVED"
-      ]
+      "values": ["DRAFT", "PUBLISHED", "ARCHIVED"]
     },
     {
       "name": "FieldType",
-      "values": [
-        "TEXT",
-        "IMAGE",
-        "SIGNATURE",
-        "CHECKBOX"
-      ]
+      "values": ["TEXT", "IMAGE", "SIGNATURE", "CHECKBOX"]
     },
     {
       "name": "DocumentStatus",
-      "values": [
-        "DRAFT",
-        "IN_PROGRESS",
-        "COMPLETED",
-        "GENERATING",
-        "GENERATED",
-        "ERROR"
-      ]
+      "values": ["DRAFT", "IN_PROGRESS", "COMPLETED", "GENERATING", "GENERATED", "ERROR"]
     }
   ],
   "relationships": [

@@ -2,7 +2,7 @@
 
 Documentação da infraestrutura local e serviços do RegCheck.
 
-**Gerado em:** 23/04/2026, 12:20:17
+**Gerado em:** 25/04/2026, 12:16:41
 
 ## Docker Compose
 

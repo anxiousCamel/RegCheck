@@ -12,9 +12,9 @@ vi.mock('../lib/queue', () => ({
 }));
 
 vi.mock('../lib/redis', () => ({
-  redis: { 
-    get: vi.fn().mockResolvedValue(null), 
-    set: vi.fn().mockResolvedValue('OK'), 
+  redis: {
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue('OK'),
     del: vi.fn().mockResolvedValue(1),
     keys: vi.fn().mockResolvedValue([]),
   },
@@ -202,12 +202,12 @@ import { app } from '../server';
 
 /**
  * Performance Benchmark Tests
- * 
+ *
  * These tests verify that the API meets performance targets:
  * - Listing endpoints: < 200ms response time
  * - Detail endpoints: < 150ms response time
  * - Database queries: < 50ms execution time
- * 
+ *
  * **Validates: Requirements 1.1, 1.2, 5.5**
  */
 describe('Performance Benchmarks', () => {

@@ -1,36 +1,15 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button, Spinner, Badge, cn } from '@regcheck/ui';
+import { Button, Spinner, cn } from '@regcheck/ui';
 import { api } from '@/lib/api';
-import { SignatureCanvas } from '@/components/document/signature-canvas';
 import { useDocumentDraft } from '@/hooks/use-document-draft';
-import type { FieldType, FieldPosition, FieldConfig } from '@regcheck/shared';
-import type { LojaDTO, TipoEquipamentoDTO, ItemAssignment } from '@regcheck/shared';
+import type { FieldType, TemplateField, ItemAssignment, LojaDTO, TipoEquipamentoDTO } from '@regcheck/shared';
 import { Wizard, GlobalForm, EquipmentStep } from '@/components/document/fill-wizard';
 import { ManualEquipmentStep } from '@/components/document/manual-equipment-step';
-import { IconCheck, IconX, IconList } from '@/components/ui/icons';
-
-interface TemplateField {
-  id: string;
-  type: string;
-  pageIndex: number;
-  position: FieldPosition;
-  config: FieldConfig;
-  scope: string;
-  slotIndex: number | null;
-  bindingKey: string | null;
-}
-
-interface ItemAssignment {
-  itemIndex: number;
-  setorId: string;
-  setorNome: string;
-  equipamentoId: string;
-  numeroEquipamento: string;
-}
+import { IconCheck, IconList } from '@/components/ui/icons';
 
 const FIELD_TYPE_ORDER: Record<string, number> = {
   text: 0,
@@ -50,26 +29,36 @@ export default function FillDocumentPage() {
   const [step, setStep] = useState(0); // 0 = Global, 1..N = Equipment
   const [selectedSetorId, setSelectedSetorId] = useState<string | null>(null);
 
-  const touchStartX = useRef<number | null>(null);
-
   const { data: doc, isLoading } = useQuery({
     queryKey: ['document', documentId],
     queryFn: () => api.getDocument(documentId),
   });
 
-  const docData = doc as {
-    id: string;
-    name: string;
-    totalItems: number;
-    status: string;
-    metadata?: { assignments?: ItemAssignment[]; itemsPerPage?: number; totalPages?: number; fillMode?: 'AUTOMATICO' | 'SELECAO_MANUAL' } | null;
-    template: {
-      fillMode: 'AUTOMATICO' | 'SELECAO_MANUAL';
-      fields: TemplateField[];
-      pdfFile: { pageCount: number };
-    };
-    filledFields: Array<{ fieldId: string; itemIndex: number; value: string; fileKey?: string }>;
-  } | undefined;
+  const docData = doc as
+    | {
+        id: string;
+        name: string;
+        totalItems: number;
+        status: string;
+        metadata?: {
+          assignments?: ItemAssignment[];
+          itemsPerPage?: number;
+          totalPages?: number;
+          fillMode?: 'AUTOMATICO' | 'SELECAO_MANUAL';
+        } | null;
+        template: {
+          fillMode: 'AUTOMATICO' | 'SELECAO_MANUAL';
+          fields: TemplateField[];
+          pdfFile: { pageCount: number };
+        };
+        filledFields: Array<{
+          fieldId: string;
+          itemIndex: number;
+          value: string;
+          fileKey?: string;
+        }>;
+      }
+    | undefined;
 
   // ── Offline-first draft ────────────────────────────────────────────────────
   const {
@@ -148,7 +137,10 @@ export default function FillDocumentPage() {
   }, [allAssignments]);
 
   const filteredAssignments = useMemo(
-    () => (selectedSetorId ? allAssignments.filter((a) => a.setorId === selectedSetorId) : allAssignments),
+    () =>
+      selectedSetorId
+        ? allAssignments.filter((a) => a.setorId === selectedSetorId)
+        : allAssignments,
     [allAssignments, selectedSetorId],
   );
 
@@ -158,25 +150,25 @@ export default function FillDocumentPage() {
   // Calculate actual progress based on filled fields
   const completionPercentage = useMemo(() => {
     // fields per item (all slots) + global fields
-    const totalFieldsInDoc = (totalSlots * itemFields.length) + globalFields.length;
-    
+    const totalFieldsInDoc = totalSlots * itemFields.length + globalFields.length;
+
     if (totalFieldsInDoc === 0) return 0;
-    
+
     // Count non-empty values in the current draft Map
     let filledCount = 0;
-    fields.forEach(f => {
+    fields.forEach((f) => {
       if (f.value !== '' && f.value !== null && f.value !== false) {
         filledCount++;
       }
     });
-    
+
     return Math.min(100, Math.round((filledCount / totalFieldsInDoc) * 100));
   }, [fields, totalSlots, itemFields.length, globalFields.length]);
 
-  useEffect(() => { 
+  useEffect(() => {
     // If we are already in the equipment steps, jump to the first one of the new filter
     // If we are in global info (0), stay there.
-    if (step > 0) setStep(1); 
+    if (step > 0) setStep(1);
   }, [selectedSetorId]);
 
   // Derive how many SX slots per page from the slotMap.
@@ -202,7 +194,10 @@ export default function FillDocumentPage() {
 
   const { data: statusData } = useQuery({
     queryKey: ['document-status', documentId],
-    queryFn: () => { setPollCount((c) => c + 1); return api.getDocumentStatus(documentId); },
+    queryFn: () => {
+      setPollCount((c) => c + 1);
+      return api.getDocumentStatus(documentId);
+    },
     enabled: generationState === 'generating' && pollCount < MAX_POLL_COUNT,
     refetchInterval: 3000,
   });
@@ -228,18 +223,21 @@ export default function FillDocumentPage() {
   }, [pollCount, generationState]);
 
   const generateMutation = useMutation({
-    mutationFn: async () => { await syncToServer(); return api.generatePdf(documentId); },
-    onMutate: () => { setGenerationState('queuing'); setPollCount(0); },
+    mutationFn: async () => {
+      await syncToServer();
+      return api.generatePdf(documentId);
+    },
+    onMutate: () => {
+      setGenerationState('queuing');
+      setPollCount(0);
+    },
     onSuccess: () => setGenerationState('generating'),
     onError: () => setGenerationState('error'),
   });
 
   // ── Navigation ─────────────────────────────────────────────────────────────
   const goPrev = useCallback(() => setStep((s) => Math.max(0, s - 1)), []);
-  const goNext = useCallback(
-    () => setStep((s) => Math.min(totalSlots, s + 1)),
-    [totalSlots],
-  );
+  const goNext = useCallback(() => setStep((s) => Math.min(totalSlots, s + 1)), [totalSlots]);
 
   const hasAssignments = allAssignments.length > 0;
   const isGlobalStep = step === 0;
@@ -249,7 +247,11 @@ export default function FillDocumentPage() {
   const [showIndex, setShowIndex] = useState(false);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center py-24"><Spinner /></div>;
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Spinner />
+      </div>
+    );
   }
 
   return (
@@ -264,7 +266,7 @@ export default function FillDocumentPage() {
             {isGlobalStep ? 'Informações Gerais' : `Equipamento ${step} de ${totalSlots}`}
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2 bg-muted/30 p-1.5 rounded-2xl sm:bg-transparent sm:p-0">
           <StatusBar
             isOnline={isOnline}
@@ -282,7 +284,7 @@ export default function FillDocumentPage() {
             disabled={generationState === 'queuing' || generationState === 'generating'}
             className="font-bold border-2 h-9 sm:h-8"
           >
-            {(generationState === 'queuing' || generationState === 'generating') ? (
+            {generationState === 'queuing' || generationState === 'generating' ? (
               <Spinner className="mr-2 h-4 w-4" />
             ) : null}
             Gerar PDF
@@ -325,7 +327,9 @@ export default function FillDocumentPage() {
 
       {generationState === 'done' && (
         <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm flex items-center justify-between gap-2 shadow-sm">
-          <span className="font-bold flex items-center gap-2"><IconCheck className="h-4 w-4" /> PDF Pronto</span>
+          <span className="font-bold flex items-center gap-2">
+            <IconCheck className="h-4 w-4" /> PDF Pronto
+          </span>
           <DownloadButton documentId={documentId} />
         </div>
       )}
@@ -333,7 +337,9 @@ export default function FillDocumentPage() {
       {generationState === 'error' && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center justify-between gap-2 shadow-sm">
           <span className="font-bold">Erro na geração</span>
-          <Button size="sm" variant="outline" onClick={() => generateMutation.mutate()}>Tentar novamente</Button>
+          <Button size="sm" variant="outline" onClick={() => generateMutation.mutate()}>
+            Tentar novamente
+          </Button>
         </div>
       )}
 
@@ -343,17 +349,17 @@ export default function FillDocumentPage() {
           onPopulated={() => queryClient.invalidateQueries({ queryKey: ['document', documentId] })}
         />
       ) : (
-        <Wizard 
-          step={step} 
-          totalSteps={1 + totalSlots} 
+        <Wizard
+          step={step}
+          totalSteps={1 + totalSlots}
           progress={completionPercentage} // Pass the real progress here
-          onNext={goNext} 
-          onPrev={goPrev} 
+          onNext={goNext}
+          onPrev={goPrev}
           onFinish={() => generateMutation.mutate()}
         >
           {isGlobalStep ? (
             <div className="space-y-6">
-              <GlobalForm 
+              <GlobalForm
                 fields={globalFields}
                 getValue={getValue}
                 updateField={updateField}
@@ -362,13 +368,14 @@ export default function FillDocumentPage() {
                 getPendingBlobForField={getPendingBlobForField}
                 onNext={goNext}
               />
-              
-              
+
               {fillMode === 'AUTOMATICO' && (
                 <div className="pt-4 opacity-50">
                   <RePopulatePanel
                     documentId={documentId}
-                    onPopulated={() => queryClient.invalidateQueries({ queryKey: ['document', documentId] })}
+                    onPopulated={() =>
+                      queryClient.invalidateQueries({ queryKey: ['document', documentId] })
+                    }
                   />
                 </div>
               )}
@@ -377,7 +384,7 @@ export default function FillDocumentPage() {
             <div className="space-y-4">
               {/* Quick Jump Index */}
               <div className="flex justify-center -mt-2">
-                <button 
+                <button
                   onClick={() => setShowIndex(!showIndex)}
                   className="text-xs font-bold text-primary bg-primary/5 px-4 py-1.5 rounded-full hover:bg-primary/10 transition-colors flex items-center gap-2"
                 >
@@ -388,53 +395,70 @@ export default function FillDocumentPage() {
 
               {showIndex && fillMode === 'AUTOMATICO' && (
                 <div className="bg-muted/30 border rounded-xl p-3 grid grid-cols-2 sm:grid-cols-3 gap-3 animate-in fade-in slide-in-from-top-2 duration-300 max-h-[400px] overflow-y-auto shadow-inner">
-                    {filteredAssignments.map((a, i) => {
-                      // Determine which slot this item occupies on the page (SX0, SX1, etc.)
-                      const itemsPerPage = slotMap.size;
-                      const currentSlot = itemsPerPage > 0 ? a.itemIndex % itemsPerPage : 0;
-                      const slotFields = slotMap.get(currentSlot) ?? [];
+                  {filteredAssignments.map((a, i) => {
+                    // Determine which slot this item occupies on the page (SX0, SX1, etc.)
+                    const itemsPerPage = slotMap.size;
+                    const currentSlot = itemsPerPage > 0 ? a.itemIndex % itemsPerPage : 0;
+                    const slotFields = slotMap.get(currentSlot) ?? [];
 
-                      // 1. Try to find an ID field within THIS specific slot with strict priority
-                      const idField = slotFields.find(f => (f.bindingKey || '').toLowerCase().includes('numero')) ||
-                                      slotFields.find(f => (f.bindingKey || '').toLowerCase().includes('tag')) ||
-                                      slotFields.find(f => (f.bindingKey || '').toLowerCase().includes('patri')) ||
-                                      slotFields.find(f => (f.bindingKey || '').toLowerCase().includes('serie'));
-                      
-                      const displayId = idField ? String(getValue(idField.id, a.itemIndex) || '') : '';
-                      
-                      // 2. Fallback to properties with same priority
-                      const finalLabel = displayId || 
-                                         (a as any).numeroEquipamento || 
-                                         (a as any).numero || 
-                                         (a as any).patrimonio || 
-                                         (a as any).serie || 
-                                         `Item ${a.itemIndex + 1}`;
-                      
-                      return (
-                        <button
-                          key={a.itemIndex}
-                          onClick={() => { setStep(i + 1); setShowIndex(false); }}
-                          className={`min-h-[60px] text-left p-3 rounded-xl border-2 transition-all flex flex-col justify-between h-full ${
-                            step === i + 1 
-                              ? 'bg-primary text-white border-primary shadow-lg ring-2 ring-primary/20 scale-[0.98]' 
-                              : 'bg-white hover:border-primary/50 text-foreground'
-                          }`}
+                    // 1. Try to find an ID field within THIS specific slot with strict priority
+                    const idField =
+                      slotFields.find((f) =>
+                        (f.bindingKey || '').toLowerCase().includes('numero'),
+                      ) ||
+                      slotFields.find((f) => (f.bindingKey || '').toLowerCase().includes('tag')) ||
+                      slotFields.find((f) =>
+                        (f.bindingKey || '').toLowerCase().includes('patri'),
+                      ) ||
+                      slotFields.find((f) => (f.bindingKey || '').toLowerCase().includes('serie'));
+
+                    const displayId = idField
+                      ? String(getValue(idField.id, a.itemIndex) || '')
+                      : '';
+
+                    // 2. Fallback to assignment properties
+                    // Safe cast: API may include extra equipment properties beyond ItemAssignment
+                    const assignmentRecord = a as ItemAssignment & Record<string, unknown>;
+                    const finalLabel =
+                      displayId ||
+                      a.numeroEquipamento ||
+                      String(assignmentRecord['numero'] ?? '') ||
+                      String(assignmentRecord['patrimonio'] ?? '') ||
+                      String(assignmentRecord['serie'] ?? '') ||
+                      `Item ${a.itemIndex + 1}`;
+
+                    return (
+                      <button
+                        key={a.itemIndex}
+                        onClick={() => {
+                          setStep(i + 1);
+                          setShowIndex(false);
+                        }}
+                        className={`min-h-[60px] text-left p-3 rounded-xl border-2 transition-all flex flex-col justify-between h-full ${
+                          step === i + 1
+                            ? 'bg-primary text-white border-primary shadow-lg ring-2 ring-primary/20 scale-[0.98]'
+                            : 'bg-white hover:border-primary/50 text-foreground'
+                        }`}
+                      >
+                        <div
+                          className={`font-black text-[11px] mb-1 uppercase tracking-tight ${step === i + 1 ? 'text-white' : 'text-primary'}`}
                         >
-                          <div className={`font-black text-[11px] mb-1 uppercase tracking-tight ${step === i + 1 ? 'text-white' : 'text-primary'}`}>
-                            #{finalLabel}
-                          </div>
-                          <div className={`truncate text-[10px] font-bold ${step === i + 1 ? 'text-white/80' : 'text-muted-foreground'}`}>
-                            {a.setorNome}
-                          </div>
-                        </button>
-                      );
-                    })}
+                          #{finalLabel}
+                        </div>
+                        <div
+                          className={`truncate text-[10px] font-bold ${step === i + 1 ? 'text-white/80' : 'text-muted-foreground'}`}
+                        >
+                          {a.setorNome}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 
               {fillMode === 'AUTOMATICO' ? (
-                <EquipmentStep 
-                  assignment={filteredAssignments[step - 1]}
+                <EquipmentStep
+                  assignment={filteredAssignments[step - 1]!}
                   index={step - 1}
                   total={filteredAssignments.length}
                   fields={currentSlotFields}
@@ -443,17 +467,22 @@ export default function FillDocumentPage() {
                   onImageChange={updateImageField}
                   getFileKey={getFileKey}
                   getPendingBlobForField={getPendingBlobForField}
-                  onNext={step === filteredAssignments.length ? () => generateMutation.mutate() : goNext}
+                  onNext={
+                    step === filteredAssignments.length ? () => generateMutation.mutate() : goNext
+                  }
                   onPrev={goPrev}
                   isLast={step === filteredAssignments.length}
                 />
               ) : (
                 (() => {
                   const sIndex = step - 1;
-                  const manualAssignment = allAssignments.find(a => a.itemIndex === sIndex) || null;
+                  const manualAssignment =
+                    allAssignments.find((a) => a.itemIndex === sIndex) || null;
                   const sFields = slotMap.get(sIndex) || [];
-                  const tipoEqId = sFields.find((f: any) => f.config?.tipoEquipamentoId)?.config?.tipoEquipamentoId as string | undefined;
-                  const tipoEqNome = sFields.find((f: any) => f.config?.tipoEquipamentoNome)?.config?.tipoEquipamentoNome as string | undefined;
+                  const tipoEqId = sFields.find((f) => f.config?.tipoEquipamentoId)?.config
+                    ?.tipoEquipamentoId as string | undefined;
+                  const tipoEqNome = sFields.find((f) => f.config?.tipoEquipamentoNome)?.config
+                    ?.tipoEquipamentoNome as string | undefined;
 
                   return (
                     <ManualEquipmentStep
@@ -514,7 +543,12 @@ function DownloadButton({ documentId }: { documentId: string }) {
 // ─── StatusBar ────────────────────────────────────────────────────────────────
 
 function StatusBar({
-  isOnline, syncStatus, pendingUploads, hasPendingChanges, onSyncNow, compact = false,
+  isOnline,
+  syncStatus,
+  pendingUploads,
+  hasPendingChanges,
+  onSyncNow,
+  compact = false,
 }: {
   isOnline: boolean;
   syncStatus: 'idle' | 'syncing' | 'error';
@@ -526,10 +560,14 @@ function StatusBar({
   if (isOnline && syncStatus === 'idle' && !hasPendingChanges && pendingUploads === 0) return null;
 
   const getStatusConfig = () => {
-    if (!isOnline) return { label: 'Offline', color: 'bg-amber-100 text-amber-700 border-amber-200' };
-    if (syncStatus === 'syncing') return { label: 'Sincronizando', color: 'bg-blue-100 text-blue-700 border-blue-200' };
-    if (syncStatus === 'error') return { label: 'Erro Sinc.', color: 'bg-red-100 text-red-700 border-red-200' };
-    if (hasPendingChanges) return { label: 'Pendente', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' };
+    if (!isOnline)
+      return { label: 'Offline', color: 'bg-amber-100 text-amber-700 border-amber-200' };
+    if (syncStatus === 'syncing')
+      return { label: 'Sincronizando', color: 'bg-blue-100 text-blue-700 border-blue-200' };
+    if (syncStatus === 'error')
+      return { label: 'Erro Sinc.', color: 'bg-red-100 text-red-700 border-red-200' };
+    if (hasPendingChanges)
+      return { label: 'Pendente', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' };
     return { label: 'Salvo', color: 'bg-green-100 text-green-700 border-green-200' };
   };
 
@@ -537,14 +575,22 @@ function StatusBar({
 
   if (compact) {
     return (
-      <div className={cn(
-        "flex items-center gap-2 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-widest border shadow-sm transition-colors",
-        config.color
-      )}>
-        <span className={cn(
-          "w-1.5 h-1.5 rounded-full",
-          !isOnline ? "bg-amber-500" : syncStatus === 'syncing' ? "bg-blue-500 animate-pulse" : "bg-current"
-        )} />
+      <div
+        className={cn(
+          'flex items-center gap-2 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-widest border shadow-sm transition-colors',
+          config.color,
+        )}
+      >
+        <span
+          className={cn(
+            'w-1.5 h-1.5 rounded-full',
+            !isOnline
+              ? 'bg-amber-500'
+              : syncStatus === 'syncing'
+                ? 'bg-blue-500 animate-pulse'
+                : 'bg-current',
+          )}
+        />
         {config.label}
         {pendingUploads > 0 && <span className="opacity-50">· {pendingUploads}↑</span>}
       </div>
@@ -552,30 +598,38 @@ function StatusBar({
   }
 
   return (
-    <div className={cn(
-      "flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border p-3 text-sm shadow-sm transition-colors",
-      config.color
-    )}>
+    <div
+      className={cn(
+        'flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border p-3 text-sm shadow-sm transition-colors',
+        config.color,
+      )}
+    >
       <div className="flex items-center gap-3">
-        <div className={cn(
-          "flex items-center justify-center w-8 h-8 rounded-full bg-white/50",
-          syncStatus === 'syncing' && "animate-spin"
-        )}>
+        <div
+          className={cn(
+            'flex items-center justify-center w-8 h-8 rounded-full bg-white/50',
+            syncStatus === 'syncing' && 'animate-spin',
+          )}
+        >
           {!isOnline ? '📡' : syncStatus === 'syncing' ? '🔄' : '✅'}
         </div>
         <div className="flex flex-col">
           <span className="font-bold leading-tight">{config.label}</span>
           <span className="text-[11px] opacity-80">
-            {!isOnline ? 'Alterações salvas localmente' : syncStatus === 'syncing' ? 'Enviando dados...' : 'Tudo em dia'}
+            {!isOnline
+              ? 'Alterações salvas localmente'
+              : syncStatus === 'syncing'
+                ? 'Enviando dados...'
+                : 'Tudo em dia'}
             {pendingUploads > 0 && ` · ${pendingUploads} foto(s) pendente(s)`}
           </span>
         </div>
       </div>
       {isOnline && (hasPendingChanges || pendingUploads > 0) && syncStatus !== 'syncing' && (
-        <Button 
-          variant="secondary" 
-          size="sm" 
-          onClick={onSyncNow} 
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={onSyncNow}
           className="h-8 text-xs font-bold w-full sm:w-auto"
         >
           Sincronizar agora
@@ -587,20 +641,26 @@ function StatusBar({
 
 // ─── PopulatePanel ────────────────────────────────────────────────────────────
 
-function PopulatePanel({ documentId, onPopulated }: { documentId: string; onPopulated: () => void }) {
+function PopulatePanel({
+  documentId,
+  onPopulated,
+}: {
+  documentId: string;
+  onPopulated: () => void;
+}) {
   const [tipoId, setTipoId] = useState('');
   const [lojaId, setLojaId] = useState('');
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
-  const { data: tipos } = useQuery({ 
-    queryKey: ['tipos-active'], 
-    queryFn: () => api.listActiveTipos() 
+  const { data: tipos } = useQuery({
+    queryKey: ['tipos-active'],
+    queryFn: () => api.listActiveTipos(),
   });
-  
-  const { data: lojas } = useQuery({ 
-    queryKey: ['lojas-active'], 
-    queryFn: () => api.listActiveLojas() 
+
+  const { data: lojas } = useQuery({
+    queryKey: ['lojas-active'],
+    queryFn: () => api.listActiveLojas(),
   });
 
   const populateMutation = useMutation({
@@ -609,7 +669,10 @@ function PopulatePanel({ documentId, onPopulated }: { documentId: string; onPopu
   });
 
   useEffect(() => {
-    if (!tipoId || !lojaId) { setPreviewCount(null); return; }
+    if (!tipoId || !lojaId) {
+      setPreviewCount(null);
+      return;
+    }
     setIsLoadingPreview(true);
     api
       .listEquipamentos(1, 1, { tipoId, lojaId })
@@ -640,7 +703,9 @@ function PopulatePanel({ documentId, onPopulated }: { documentId: string; onPopu
           >
             <option value="">Selecione...</option>
             {tiposList.map((t) => (
-              <option key={t.id} value={t.id}>{t.nome}</option>
+              <option key={t.id} value={t.id}>
+                {t.nome}
+              </option>
             ))}
           </select>
         </div>
@@ -653,7 +718,9 @@ function PopulatePanel({ documentId, onPopulated }: { documentId: string; onPopu
           >
             <option value="">Selecione...</option>
             {lojasList.map((l) => (
-              <option key={l.id} value={l.id}>{l.nome}</option>
+              <option key={l.id} value={l.id}>
+                {l.nome}
+              </option>
             ))}
           </select>
         </div>
@@ -683,7 +750,14 @@ function PopulatePanel({ documentId, onPopulated }: { documentId: string; onPopu
         onClick={() => populateMutation.mutate()}
         disabled={!tipoId || !lojaId || previewCount === 0 || populateMutation.isPending}
       >
-        {populateMutation.isPending ? <><Spinner className="mr-2 h-4 w-4" />Carregando...</> : 'Carregar Equipamentos'}
+        {populateMutation.isPending ? (
+          <>
+            <Spinner className="mr-2 h-4 w-4" />
+            Carregando...
+          </>
+        ) : (
+          'Carregar Equipamentos'
+        )}
       </Button>
     </div>
   );
@@ -691,7 +765,13 @@ function PopulatePanel({ documentId, onPopulated }: { documentId: string; onPopu
 
 // ─── RePopulatePanel ──────────────────────────────────────────────────────────
 
-function RePopulatePanel({ documentId, onPopulated }: { documentId: string; onPopulated: () => void }) {
+function RePopulatePanel({
+  documentId,
+  onPopulated,
+}: {
+  documentId: string;
+  onPopulated: () => void;
+}) {
   const [open, setOpen] = useState(false);
 
   if (!open) {
@@ -706,9 +786,19 @@ function RePopulatePanel({ documentId, onPopulated }: { documentId: string; onPo
 
   return (
     <div className="border-t pt-4 space-y-3">
-      <p className="text-sm text-amber-700">⚠️ Recarregar substituirá os dados pré-preenchidos atuais.</p>
-      <PopulatePanel documentId={documentId} onPopulated={() => { setOpen(false); onPopulated(); }} />
-      <button onClick={() => setOpen(false)} className="text-xs text-muted-foreground underline">Cancelar</button>
+      <p className="text-sm text-amber-700">
+        ⚠️ Recarregar substituirá os dados pré-preenchidos atuais.
+      </p>
+      <PopulatePanel
+        documentId={documentId}
+        onPopulated={() => {
+          setOpen(false);
+          onPopulated();
+        }}
+      />
+      <button onClick={() => setOpen(false)} className="text-xs text-muted-foreground underline">
+        Cancelar
+      </button>
     </div>
   );
 }

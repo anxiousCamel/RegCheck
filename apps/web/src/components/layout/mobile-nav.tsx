@@ -21,8 +21,8 @@ export function MobileBottomNav() {
       <div className="flex h-16 items-center justify-around px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href ||
-            (item.href !== '/' && pathname.startsWith(item.href));
+          const isActive =
+            pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
 
           return (
             <Link
@@ -31,7 +31,7 @@ export function MobileBottomNav() {
               prefetch={true}
               className={cn(
                 'relative flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-300 active:scale-90',
-                isActive ? 'text-primary' : 'text-muted-foreground/70 hover:text-muted-foreground'
+                isActive ? 'text-primary' : 'text-muted-foreground/70 hover:text-muted-foreground',
               )}
             >
               {/* Active Indicator Pill */}
@@ -39,17 +39,21 @@ export function MobileBottomNav() {
                 <div className="absolute top-1 h-1 w-8 bg-primary rounded-full animate-in fade-in slide-in-from-top-1 duration-500" />
               )}
 
-              <div className={cn(
-                "p-1.5 rounded-xl transition-all duration-300",
-                isActive ? "bg-primary/10" : "bg-transparent"
-              )}>
-                <Icon className={cn("h-5 w-5", isActive ? "stroke-[2.5px]" : "stroke-[2px]")} />
+              <div
+                className={cn(
+                  'p-1.5 rounded-xl transition-all duration-300',
+                  isActive ? 'bg-primary/10' : 'bg-transparent',
+                )}
+              >
+                <Icon className={cn('h-5 w-5', isActive ? 'stroke-[2.5px]' : 'stroke-[2px]')} />
               </div>
-              
-              <span className={cn(
-                "text-[10px] font-black uppercase tracking-tight transition-all duration-300",
-                isActive ? "opacity-100" : "opacity-60"
-              )}>
+
+              <span
+                className={cn(
+                  'text-[10px] font-black uppercase tracking-tight transition-all duration-300',
+                  isActive ? 'opacity-100' : 'opacity-60',
+                )}
+              >
                 {item.label}
               </span>
             </Link>

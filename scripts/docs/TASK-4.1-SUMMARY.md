@@ -16,6 +16,7 @@ Created a comprehensive route file parser that extracts API endpoint information
 ## Files Created
 
 ### Implementation
+
 - **`scripts/docs/route-parser.ts`** - Main parser implementation
   - `parseRouteFiles()` - Parse all route files in a directory
   - `parseRouteFile()` - Parse a single route file
@@ -27,6 +28,7 @@ Created a comprehensive route file parser that extracts API endpoint information
   - `groupEndpointsByResource()` - Group endpoints by resource name
 
 ### Tests
+
 - **`scripts/docs/route-parser.test.ts`** - Comprehensive unit tests
   - Tests for GET, POST, PATCH, DELETE endpoints
   - Tests for path parameter extraction
@@ -38,6 +40,7 @@ Created a comprehensive route file parser that extracts API endpoint information
   - Tests for endpoint grouping
 
 ### Verification
+
 - **`scripts/verify-route-parser.ts`** - Verification script
   - Demonstrates parser capabilities
   - Tests against real route files
@@ -47,7 +50,9 @@ Created a comprehensive route file parser that extracts API endpoint information
 ## Key Features
 
 ### 1. HTTP Method Extraction
+
 Extracts all HTTP methods from router calls:
+
 ```typescript
 templateRouter.get('/', ...)     // → GET
 templateRouter.post('/', ...)    // → POST
@@ -56,31 +61,39 @@ templateRouter.delete('/:id', ...) // → DELETE
 ```
 
 ### 2. Path Parameter Extraction
+
 Automatically extracts parameters from route paths:
+
 ```typescript
 '/:id' → { name: 'id', location: 'path', required: true }
 '/:id/publish' → { name: 'id', location: 'path', required: true }
 ```
 
 ### 3. Request Body Schema Extraction
+
 Detects Zod schema validation:
+
 ```typescript
-createTemplateSchema.parse(req.body)
+createTemplateSchema.parse(req.body);
 // → { schemaName: 'createTemplateSchema', contentType: 'application/json' }
 ```
 
 ### 4. Query Parameter Extraction
+
 Extracts query parameters from handler code:
+
 ```typescript
-paginationSchema.parse(req.query)
+paginationSchema.parse(req.query);
 // → [{ name: 'page', location: 'query' }, { name: 'pageSize', location: 'query' }]
 
-req.query.key
+req.query.key;
 // → { name: 'key', location: 'query' }
 ```
 
 ### 5. Response Status Code Detection
+
 Infers response status codes:
+
 ```typescript
 res.status(201).json(...)  // → 201 Created
 res.json(...)              // → 200 OK (GET/PATCH/DELETE) or 201 (POST)
@@ -88,21 +101,27 @@ res.status(204).end()      // → 204 No Content
 ```
 
 ### 6. File Upload Detection
+
 Detects multipart/form-data uploads:
+
 ```typescript
 if (req.file) { ... }
 // → { contentType: 'multipart/form-data', description: 'File upload' }
 ```
 
 ### 7. JSDoc Comment Extraction
+
 Extracts descriptions from JSDoc comments:
+
 ```typescript
 /** GET /api/templates/:id - Get template by ID */
 // → description: "Get template by ID"
 ```
 
 ### 8. Resource Grouping
+
 Groups endpoints by resource name:
+
 ```typescript
 /api/templates → 'templates'
 /api/documents → 'documents'
@@ -112,6 +131,7 @@ Groups endpoints by resource name:
 ## Test Coverage
 
 ### Unit Tests (route-parser.test.ts)
+
 - ✅ Extract GET endpoint with path parameter
 - ✅ Extract POST endpoint with request body
 - ✅ Extract PATCH endpoint
@@ -126,6 +146,7 @@ Groups endpoints by resource name:
 - ✅ Handle /api prefix in paths
 
 ### Verification Tests (verify-route-parser.ts)
+
 - ✅ Parse templates.ts (6 endpoints)
 - ✅ Parse documents.ts (10+ endpoints)
 - ✅ Parse uploads.ts (5+ endpoints)
@@ -134,16 +155,16 @@ Groups endpoints by resource name:
 
 ## Requirements Coverage
 
-| Requirement | Description | Status |
-|-------------|-------------|--------|
-| 6.2 | Document all template endpoints | ✅ |
-| 6.3 | Document all document endpoints | ✅ |
-| 6.4 | Document all upload endpoints | ✅ |
-| 6.5 | Document all equipment endpoints | ✅ |
-| 6.6 | Document all loja endpoints | ✅ |
-| 6.7 | Document all setor endpoints | ✅ |
-| 6.8 | Document all tipo endpoints | ✅ |
-| 6.9 | Document HTTP methods, parameters, body, responses | ✅ |
+| Requirement | Description                                        | Status |
+| ----------- | -------------------------------------------------- | ------ |
+| 6.2         | Document all template endpoints                    | ✅     |
+| 6.3         | Document all document endpoints                    | ✅     |
+| 6.4         | Document all upload endpoints                      | ✅     |
+| 6.5         | Document all equipment endpoints                   | ✅     |
+| 6.6         | Document all loja endpoints                        | ✅     |
+| 6.7         | Document all setor endpoints                       | ✅     |
+| 6.8         | Document all tipo endpoints                        | ✅     |
+| 6.9         | Document HTTP methods, parameters, body, responses | ✅     |
 
 ## Example Output
 

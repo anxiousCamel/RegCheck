@@ -7,13 +7,13 @@ import { initializePrismaQueryLogging } from '../../lib/prisma-query-logger';
 
 /**
  * Integration tests for Prisma query logging with PerformanceMonitor
- * 
+ *
  * These tests verify that:
  * 1. Prisma queries are tracked per request
  * 2. Slow queries are logged with details
  * 3. Query count is included in request logs
  * 4. Request context properly associates queries with requests
- * 
+ *
  * **Validates: Requirements 8.2**
  */
 describe('Prisma Query Logging Integration', () => {
@@ -86,13 +86,11 @@ describe('Prisma Query Logging Integration', () => {
         method: 'GET',
         path: '/api/test-query',
         queryCount: expect.any(Number),
-      })
+      }),
     );
 
     // Find the request log
-    const requestLog = consoleLogSpy.mock.calls.find(
-      call => call[0] === '[Request]'
-    );
+    const requestLog = consoleLogSpy.mock.calls.find((call) => call[0] === '[Request]');
     expect(requestLog).toBeDefined();
     expect(requestLog?.[1].queryCount).toBeGreaterThan(0);
   });
@@ -103,9 +101,7 @@ describe('Prisma Query Logging Integration', () => {
     expect(response.status).toBe(200);
 
     // Check that all queries were counted
-    const requestLog = consoleLogSpy.mock.calls.find(
-      call => call[0] === '[Request]'
-    );
+    const requestLog = consoleLogSpy.mock.calls.find((call) => call[0] === '[Request]');
     expect(requestLog).toBeDefined();
     expect(requestLog?.[1].queryCount).toBeGreaterThanOrEqual(3);
   });
@@ -116,10 +112,8 @@ describe('Prisma Query Logging Integration', () => {
     expect(response.status).toBe(200);
 
     // Check that slow query was logged
-    const slowQueryLog = consoleWarnSpy.mock.calls.find(
-      call => call[0] === '[Slow Query]'
-    );
-    
+    const slowQueryLog = consoleWarnSpy.mock.calls.find((call) => call[0] === '[Slow Query]');
+
     expect(slowQueryLog).toBeDefined();
     expect(slowQueryLog?.[1]).toMatchObject({
       requestId: expect.any(String),
@@ -128,9 +122,7 @@ describe('Prisma Query Logging Integration', () => {
     });
 
     // Check that request log includes slow query count
-    const requestLog = consoleLogSpy.mock.calls.find(
-      call => call[0] === '[Request]'
-    );
+    const requestLog = consoleLogSpy.mock.calls.find((call) => call[0] === '[Request]');
     expect(requestLog?.[1].slowQueries).toBeGreaterThan(0);
   });
 
@@ -145,19 +137,17 @@ describe('Prisma Query Logging Integration', () => {
     const responses = await Promise.all(requests);
 
     // All requests should succeed
-    responses.forEach(response => {
+    responses.forEach((response) => {
       expect(response.status).toBe(200);
     });
 
     // Each request should have its own query count
-    const requestLogs = consoleLogSpy.mock.calls.filter(
-      call => call[0] === '[Request]'
-    );
-    
+    const requestLogs = consoleLogSpy.mock.calls.filter((call) => call[0] === '[Request]');
+
     expect(requestLogs.length).toBeGreaterThanOrEqual(3);
-    
+
     // Verify each request has query tracking
-    requestLogs.forEach(log => {
+    requestLogs.forEach((log) => {
       expect(log[1]).toMatchObject({
         requestId: expect.any(String),
         queryCount: expect.any(Number),
@@ -185,7 +175,7 @@ describe('Prisma Query Logging Integration', () => {
 
     // Should still log request with 0 queries
     const requestLog = consoleLogSpy.mock.calls.find(
-      call => call[0] === '[Request]' && call[1].path === '/api/no-query'
+      (call) => call[0] === '[Request]' && call[1].path === '/api/no-query',
     );
     expect(requestLog).toBeDefined();
     expect(requestLog?.[1].queryCount).toBe(0);

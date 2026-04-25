@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ImageWorkerService } from '@/lib/scanner/services/image-worker.service';
 
 // Mock Worker constructor to always throw (simulates mobile failure)
@@ -9,7 +9,10 @@ function makeImageData(width = 4, height = 4): ImageData {
   // Fill with a gradient
   for (let i = 0; i < data.length; i += 4) {
     const v = (i / data.length) * 255;
-    data[i] = v; data[i + 1] = v; data[i + 2] = v; data[i + 3] = 255;
+    data[i] = v;
+    data[i + 1] = v;
+    data[i + 2] = v;
+    data[i + 3] = 255;
   }
   return { data, width, height } as unknown as ImageData;
 }
@@ -19,7 +22,9 @@ describe('ImageWorkerService — main thread fallback', () => {
     ImageWorkerService.terminate();
     // Force Worker constructor to fail
     (globalThis as unknown as Record<string, unknown>).Worker = class {
-      constructor() { throw new Error('Worker not available'); }
+      constructor() {
+        throw new Error('Worker not available');
+      }
     };
   });
 
@@ -48,9 +53,9 @@ describe('ImageWorkerService — main thread fallback', () => {
     const controller = new AbortController();
     controller.abort();
     const imageData = makeImageData();
-    await expect(
-      ImageWorkerService.process(imageData, {}, controller.signal)
-    ).rejects.toThrow('Cancelled');
+    await expect(ImageWorkerService.process(imageData, {}, controller.signal)).rejects.toThrow(
+      'Cancelled',
+    );
   });
 
   it('handles fixed threshold', async () => {
@@ -64,7 +69,9 @@ describe('ImageWorkerService — preprocessing correctness', () => {
   beforeEach(() => {
     ImageWorkerService.terminate();
     (globalThis as unknown as Record<string, unknown>).Worker = class {
-      constructor() { throw new Error('Worker not available'); }
+      constructor() {
+        throw new Error('Worker not available');
+      }
     };
   });
 

@@ -13,7 +13,7 @@ export interface RequestWithPerformance extends Request {
 
 /**
  * Performance middleware that tracks request timing and adds performance headers
- * 
+ *
  * Features:
  * - Tracks request start time
  * - Generates unique request ID for correlation
@@ -21,14 +21,10 @@ export interface RequestWithPerformance extends Request {
  * - Logs request details including duration and cache status
  * - Integrates with PerformanceMonitor for query tracking
  * - Sets up request context for Prisma query logging
- * 
+ *
  * **Validates: Requirements 8.1, 8.2**
  */
-export function performanceMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
+export function performanceMiddleware(req: Request, res: Response, next: NextFunction): void {
   const requestId = randomUUID();
   const startTime = Date.now();
 
@@ -41,14 +37,14 @@ export function performanceMiddleware(
 
   // Intercept res.end to set the header before the response is sent
   const originalEnd = res.end.bind(res);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (res as any).end = (...args: Parameters<typeof res.end>) => {
+  // Override res.end to inject X-Response-Time header before response is sent
+  res.end = ((...args: Parameters<typeof res.end>) => {
     const duration = Date.now() - startTime;
     if (!res.headersSent) {
       res.setHeader('X-Response-Time', `${duration}ms`);
     }
     return originalEnd(...args);
-  };
+  }) as typeof res.end;
 
   // Track response finish (logging only — headers already set above)
   res.on('finish', () => {

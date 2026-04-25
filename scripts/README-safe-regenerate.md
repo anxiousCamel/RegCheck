@@ -13,11 +13,13 @@ pnpm run db:safe-regenerate
 Ou diretamente:
 
 **Windows (PowerShell):**
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/safe-regenerate.ps1
 ```
 
 **Linux/Mac (Bash):**
+
 ```bash
 bash scripts/safe-regenerate.sh
 ```
@@ -27,26 +29,31 @@ bash scripts/safe-regenerate.sh
 ## 📋 O Que o Script Faz
 
 ### Passo 1: 📦 Backup do Banco de Dados
+
 - Cria um backup automático do banco de dados
 - Salva em `backups/` com timestamp
 - Continua mesmo se o backup falhar (banco pode não estar rodando)
 
 ### Passo 2: 🛑 Para Processos Node.js
+
 - Para todos os processos Node.js em execução
 - Garante que nenhum arquivo está sendo usado
 - Evita erros de "arquivo em uso"
 
 ### Passo 3: 🧹 Limpa Cache do Prisma
+
 - Remove a pasta `.prisma` do cache
 - Garante regeneração limpa
 - Evita conflitos de versão
 
 ### Passo 4: ⚙️ Regenera Prisma Client
+
 - Executa `pnpm run db:generate`
 - Atualiza os tipos TypeScript
 - Inclui novos campos do schema
 
 ### Passo 5: 🚀 Reinicia Aplicação (Opcional)
+
 - Pergunta se você quer iniciar a aplicação
 - Se sim, executa `pnpm dev`
 - Se não, você pode iniciar manualmente depois
@@ -78,15 +85,18 @@ Use este comando quando:
 ## 🔧 Troubleshooting
 
 ### Erro: "EPERM: operation not permitted"
+
 - O script já resolve isso parando os processos automaticamente
 - Se persistir, feche manualmente todos os terminais e tente novamente
 
 ### Erro: "Backup failed"
+
 - Normal se o banco não estiver rodando
 - O script continua mesmo assim
 - Inicie o banco com `pnpm infra:up` se necessário
 
 ### Erro: "Prisma generate failed"
+
 - Verifique se o schema está correto
 - Verifique se o banco está acessível
 - Verifique as variáveis de ambiente (.env)
@@ -125,11 +135,11 @@ Deseja iniciar a aplicação agora? (S/n) S
 
 ## 🆚 Comparação com Outros Comandos
 
-| Comando | Backup | Para Processos | Limpa Cache | Regenera | Reinicia |
-|---------|--------|----------------|-------------|----------|----------|
-| `pnpm db:generate` | ❌ | ❌ | ❌ | ✅ | ❌ |
-| `pnpm reinstall` | ❌ | ✅ | ✅ | ✅ | ❌ |
-| `pnpm db:safe-regenerate` | ✅ | ✅ | ✅ | ✅ | ✅ (opcional) |
+| Comando                   | Backup | Para Processos | Limpa Cache | Regenera | Reinicia      |
+| ------------------------- | ------ | -------------- | ----------- | -------- | ------------- |
+| `pnpm db:generate`        | ❌     | ❌             | ❌          | ✅       | ❌            |
+| `pnpm reinstall`          | ❌     | ✅             | ✅          | ✅       | ❌            |
+| `pnpm db:safe-regenerate` | ✅     | ✅             | ✅          | ✅       | ✅ (opcional) |
 
 ---
 

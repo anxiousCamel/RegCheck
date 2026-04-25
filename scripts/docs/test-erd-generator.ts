@@ -14,9 +14,9 @@ const schemaContent = readFileSync(schemaPath, 'utf-8');
 console.log('Parsing Prisma schema...');
 const schema = parsePrismaSchema(schemaContent);
 
-console.log(`\nFound ${schema.models.length} models`);
-console.log(`Found ${schema.enums.length} enums`);
-console.log(`Found ${schema.relationships.length} relationships`);
+console.log(`\nFound ${schema.data.models.length} models`);
+console.log(`Found ${schema.data.enums.length} enums`);
+console.log(`Found ${schema.data.relationships.length} relationships`);
 
 // Generate ERD
 console.log('\n=== Generated ERD ===\n');

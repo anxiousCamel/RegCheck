@@ -10,9 +10,7 @@ describe('retry', () => {
   });
 
   it('retries on failure and succeeds', async () => {
-    const fn = vi.fn()
-      .mockRejectedValueOnce(new Error('fail'))
-      .mockResolvedValue('ok');
+    const fn = vi.fn().mockRejectedValueOnce(new Error('fail')).mockResolvedValue('ok');
     const result = await retry(fn, { maxRetries: 2, baseDelay: 0 });
     expect(result).toBe('ok');
     expect(fn).toHaveBeenCalledTimes(2);
@@ -32,7 +30,8 @@ describe('retry', () => {
 
   it('calls onRetry callback before each retry', async () => {
     const onRetry = vi.fn();
-    const fn = vi.fn()
+    const fn = vi
+      .fn()
       .mockRejectedValueOnce(new Error('fail'))
       .mockRejectedValueOnce(new Error('fail'))
       .mockResolvedValue('ok');
@@ -44,8 +43,9 @@ describe('retry', () => {
     const controller = new AbortController();
     controller.abort();
     const fn = vi.fn().mockResolvedValue('ok');
-    await expect(retry(fn, { maxRetries: 2, baseDelay: 0 }, controller.signal))
-      .rejects.toThrow('Cancelled');
+    await expect(retry(fn, { maxRetries: 2, baseDelay: 0 }, controller.signal)).rejects.toThrow(
+      'Cancelled',
+    );
     expect(fn).not.toHaveBeenCalled();
   });
 
@@ -63,9 +63,7 @@ describe('retry', () => {
 
 describe('retryBarcode', () => {
   it('retries once on failure', async () => {
-    const fn = vi.fn()
-      .mockRejectedValueOnce(new Error('fail'))
-      .mockResolvedValue([]);
+    const fn = vi.fn().mockRejectedValueOnce(new Error('fail')).mockResolvedValue([]);
     await retryBarcode(fn);
     expect(fn).toHaveBeenCalledTimes(2);
   });
@@ -73,7 +71,8 @@ describe('retryBarcode', () => {
 
 describe('retryOCR', () => {
   it('retries twice on failure', async () => {
-    const fn = vi.fn()
+    const fn = vi
+      .fn()
       .mockRejectedValueOnce(new Error('fail'))
       .mockRejectedValueOnce(new Error('fail'))
       .mockResolvedValue([]);

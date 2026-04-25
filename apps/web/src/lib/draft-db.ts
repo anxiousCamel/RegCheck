@@ -103,7 +103,9 @@ export async function markFieldsSynced(keys: string[]): Promise<void> {
     const tx = db.transaction('fields', 'readwrite');
     const store = tx.objectStore('fields');
     let pending = keys.length;
-    const done = () => { if (--pending === 0) resolve(); };
+    const done = () => {
+      if (--pending === 0) resolve();
+    };
 
     for (const key of keys) {
       const req = store.get(key);

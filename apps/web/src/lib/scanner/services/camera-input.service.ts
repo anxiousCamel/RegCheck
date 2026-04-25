@@ -4,7 +4,11 @@ export const CameraInputService = {
   /** Opens native camera via file input, returns ImageBitmap. */
   capture(fileInput: HTMLInputElement): Promise<ImageBitmap> {
     return new Promise((resolve, reject) => {
-      const el = fileInput as unknown as EventTarget & { files: FileList | null; value: string; click(): void };
+      const el = fileInput as unknown as EventTarget & {
+        files: FileList | null;
+        value: string;
+        click(): void;
+      };
 
       const cleanup = () => {
         el.removeEventListener('change', onChange);

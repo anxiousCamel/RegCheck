@@ -28,10 +28,31 @@ const MODELO_PATTERNS = [
 ];
 
 const NOISE_WORDS = new Set([
-  'INPUT', 'OUTPUT', 'WARRANTY', 'POWER', 'VOLTAGE', 'WATTS', 'AMPS',
-  'HERTZ', 'MADE', 'CHINA', 'BRAZIL', 'BRASIL', 'FABRICADO', 'TYPE',
-  'TIPO', 'CLASS', 'RATING', 'DATE', 'DATA', 'BATCH', 'LOTE',
-  'WEIGHT', 'PESO', 'CAUTION', 'WARNING',
+  'INPUT',
+  'OUTPUT',
+  'WARRANTY',
+  'POWER',
+  'VOLTAGE',
+  'WATTS',
+  'AMPS',
+  'HERTZ',
+  'MADE',
+  'CHINA',
+  'BRAZIL',
+  'BRASIL',
+  'FABRICADO',
+  'TYPE',
+  'TIPO',
+  'CLASS',
+  'RATING',
+  'DATE',
+  'DATA',
+  'BATCH',
+  'LOTE',
+  'WEIGHT',
+  'PESO',
+  'CAUTION',
+  'WARNING',
 ]);
 
 // ─── Parser ───────────────────────────────────────────────────────────────────
@@ -57,7 +78,7 @@ export function parseOCRText(rawText: string): OCRCandidate[] {
     for (const pattern of MODELO_PATTERNS) {
       const match = line.match(pattern);
       if (match?.[1]) {
-        candidates.push({ type: 'modelo', value: match[1].trim(), confidence: 0.80 });
+        candidates.push({ type: 'modelo', value: match[1].trim(), confidence: 0.8 });
       }
     }
   }
@@ -111,7 +132,10 @@ function scoreValue(value: string, fullText: string): number {
   if (/[A-Z]/.test(value) && /\d/.test(value)) score += 1;
 
   for (const word of NOISE_WORDS) {
-    if (value.includes(word)) { score -= 2; break; }
+    if (value.includes(word)) {
+      score -= 2;
+      break;
+    }
   }
 
   if (value.length < 6) score -= 1;
@@ -121,7 +145,10 @@ function scoreValue(value: string, fullText: string): number {
   if (idx >= 0) {
     const ctx = fullText.substring(Math.max(0, idx - 30), idx + value.length + 30);
     for (const word of NOISE_WORDS) {
-      if (ctx.includes(word)) { score -= 0.5; break; }
+      if (ctx.includes(word)) {
+        score -= 0.5;
+        break;
+      }
     }
   }
 

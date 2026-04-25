@@ -16,7 +16,9 @@ uploadRouter.get('/presigned', async (req, res, next) => {
   try {
     const key = req.query.key as string;
     if (!key) {
-      res.status(400).json({ success: false, error: { code: 'MISSING_KEY', message: 'key is required' } });
+      res
+        .status(400)
+        .json({ success: false, error: { code: 'MISSING_KEY', message: 'key is required' } });
       return;
     }
     const url = await getPresignedUrl(key);
@@ -31,7 +33,9 @@ uploadRouter.get('/file', async (req, res, next) => {
   try {
     const key = req.query.key as string;
     if (!key) {
-      res.status(400).json({ success: false, error: { code: 'MISSING_KEY', message: 'key is required' } });
+      res
+        .status(400)
+        .json({ success: false, error: { code: 'MISSING_KEY', message: 'key is required' } });
       return;
     }
     const buffer = await downloadFile(key);
@@ -55,12 +59,16 @@ uploadRouter.get('/file', async (req, res, next) => {
 uploadRouter.post('/restore', upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {
-      res.status(400).json({ success: false, error: { code: 'NO_FILE', message: 'No file uploaded' } });
+      res
+        .status(400)
+        .json({ success: false, error: { code: 'NO_FILE', message: 'No file uploaded' } });
       return;
     }
     const key = req.query.key as string;
     if (!key) {
-      res.status(400).json({ success: false, error: { code: 'MISSING_KEY', message: 'key is required' } });
+      res
+        .status(400)
+        .json({ success: false, error: { code: 'MISSING_KEY', message: 'key is required' } });
       return;
     }
     console.log(`[restore] uploading key=${key} size=${req.file.buffer.length}`);
@@ -74,7 +82,9 @@ uploadRouter.post('/restore', upload.single('file'), async (req, res, next) => {
 uploadRouter.post('/pdf', upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {
-      res.status(400).json({ success: false, error: { code: 'NO_FILE', message: 'No file uploaded' } });
+      res
+        .status(400)
+        .json({ success: false, error: { code: 'NO_FILE', message: 'No file uploaded' } });
       return;
     }
 
@@ -93,7 +103,9 @@ uploadRouter.post('/pdf', upload.single('file'), async (req, res, next) => {
 uploadRouter.post('/image', upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {
-      res.status(400).json({ success: false, error: { code: 'NO_FILE', message: 'No file uploaded' } });
+      res
+        .status(400)
+        .json({ success: false, error: { code: 'NO_FILE', message: 'No file uploaded' } });
       return;
     }
 

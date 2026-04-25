@@ -84,9 +84,7 @@ export class TemplatePaginator {
       if (f.slotIndex === null || f.slotIndex === undefined) {
         errors.push(`Item field "${f.config.label || f.id}" requires a slotIndex (SX).`);
       } else if (!Number.isInteger(f.slotIndex) || f.slotIndex < 0) {
-        errors.push(
-          `Item field "${f.config.label || f.id}" has invalid slotIndex=${f.slotIndex}.`,
-        );
+        errors.push(`Item field "${f.config.label || f.id}" has invalid slotIndex=${f.slotIndex}.`);
       }
     }
 

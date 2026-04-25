@@ -199,4 +199,3 @@ Este documento especifica os requisitos para a criação de uma documentação t
 3. THE Documentation_Generator SHALL ensure all Mermaid diagrams have valid syntax
 4. THE Documentation_Generator SHALL ensure all links are properly formatted
 5. FOR ALL valid Markdown documents, parsing then formatting then parsing SHALL produce an equivalent document (round-trip property)
-

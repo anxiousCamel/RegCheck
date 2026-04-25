@@ -7,10 +7,15 @@
     "allowJs": true,
     "noEmit": true,
     "incremental": true,
+    // skipLibCheck: node_modules contém conflitos de tipos entre lib.dom.d.ts e
+    // lib.webworker.d.ts, além de incompatibilidades em next, @tanstack e zxing-wasm
+    // com exactOptionalPropertyTypes habilitado no tsconfig raiz.
+    "skipLibCheck": true,
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "types": ["vitest/globals"]
   },
   "include": ["src", "next-env.d.ts", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]

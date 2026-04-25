@@ -52,6 +52,7 @@
 Tested against the actual `packages/database/prisma/schema.prisma` file:
 
 ### ✅ Models Parsed (10 total)
+
 - PdfFile (8 fields, comment: "Uploaded PDF files used as template bases")
 - Template (12 fields, comment: "Document template definitions")
 - TemplateVersion (6 fields, comment: "Version history for templates")
@@ -64,12 +65,15 @@ Tested against the actual `packages/database/prisma/schema.prisma` file:
 - Equipamento (15 fields, comment: "Equipment registry")
 
 ### ✅ Enums Parsed (3 total)
+
 - TemplateStatus: DRAFT, PUBLISHED, ARCHIVED
 - FieldType: TEXT, IMAGE, SIGNATURE, CHECKBOX
 - DocumentStatus: DRAFT, IN_PROGRESS, COMPLETED, GENERATING, GENERATED, ERROR
 
 ### ✅ Relationships Extracted (18 total)
+
 Including relationships like:
+
 - Template ↔ PdfFile (one-to-many, many-to-one)
 - Template ↔ TemplateField (one-to-many, many-to-one)
 - Template ↔ TemplateVersion (one-to-many, many-to-one)
@@ -81,6 +85,7 @@ Including relationships like:
 - Equipamento ↔ TipoEquipamento (one-to-many, many-to-one)
 
 ### ✅ Field Attributes Correctly Identified
+
 - Primary keys: All models have `id` field marked as primary key
 - Unique constraints: `fileKey` (PdfFile), `nome` (Loja, Setor, TipoEquipamento)
 - Optional fields: Correctly identified with `?` modifier
@@ -129,6 +134,7 @@ console.log(`Found ${relationships.length} relationships`);
 ## Next Steps
 
 This parser will be used by:
+
 - Task 3.2: ERD generator (to create Mermaid diagrams)
 - Task 6.1: Data model documentation generator (to create 04-modelagem-dados.md)
 

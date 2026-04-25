@@ -20,7 +20,7 @@ describe('TaskController', () => {
   });
 
   it('cancelAll aborts all active tasks', () => {
-    const { signal: s1 } = TaskController.createTask();
+    const { signal: _s1 } = TaskController.createTask();
     const { signal: s2 } = TaskController.createTask();
     // s1 is already aborted by s2 creation, but let's test cancelAll directly
     TaskController.cancelAll();

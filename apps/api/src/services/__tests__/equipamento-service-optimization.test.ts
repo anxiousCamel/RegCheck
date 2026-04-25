@@ -51,7 +51,7 @@ describe('EquipamentoService - Query Optimization', () => {
       expect(prisma.equipamento.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           take: 100, // Should be capped at 100
-        })
+        }),
       );
     });
 
@@ -66,7 +66,7 @@ describe('EquipamentoService - Query Optimization', () => {
       expect(prisma.equipamento.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           take: 50,
-        })
+        }),
       );
     });
 
@@ -94,7 +94,7 @@ describe('EquipamentoService - Query Optimization', () => {
       const call = vi.mocked(prisma.equipamento.findMany).mock.calls[0][0];
       expect(call).toHaveProperty('select');
       expect(call).not.toHaveProperty('include');
-      
+
       // Verify select includes relations with nested select
       expect(call.select).toHaveProperty('loja');
       expect(call.select).toHaveProperty('setor');
@@ -116,11 +116,29 @@ describe('EquipamentoService - Query Optimization', () => {
         glpiId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-        loja: { id: 'loja-1', nome: 'Loja 1', ativo: true, createdAt: new Date(), updatedAt: new Date() },
-        setor: { id: 'setor-1', nome: 'Setor 1', ativo: true, createdAt: new Date(), updatedAt: new Date() },
-        tipo: { id: 'tipo-1', nome: 'Tipo 1', ativo: true, createdAt: new Date(), updatedAt: new Date() },
+        loja: {
+          id: 'loja-1',
+          nome: 'Loja 1',
+          ativo: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        setor: {
+          id: 'setor-1',
+          nome: 'Setor 1',
+          ativo: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        tipo: {
+          id: 'tipo-1',
+          nome: 'Tipo 1',
+          ativo: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       };
-      
+
       vi.mocked(prisma.equipamento.findUnique).mockResolvedValue(mockEquipamento);
 
       await EquipamentoService.getById('test-id');
@@ -139,7 +157,7 @@ describe('EquipamentoService - Query Optimization', () => {
       await EquipamentoService.list(1, 10, filters);
 
       const call = vi.mocked(prisma.equipamento.findMany).mock.calls[0][0];
-      
+
       // Verify loja relation only selects necessary fields
       expect(call.select.loja.select).toEqual({
         id: true,
@@ -182,9 +200,27 @@ describe('EquipamentoService - Query Optimization', () => {
         glpiId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-        loja: { id: 'loja-1', nome: 'Loja 1', ativo: true, createdAt: new Date(), updatedAt: new Date() },
-        setor: { id: 'setor-1', nome: 'Setor 1', ativo: true, createdAt: new Date(), updatedAt: new Date() },
-        tipo: { id: 'tipo-1', nome: 'Tipo 1', ativo: true, createdAt: new Date(), updatedAt: new Date() },
+        loja: {
+          id: 'loja-1',
+          nome: 'Loja 1',
+          ativo: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        setor: {
+          id: 'setor-1',
+          nome: 'Setor 1',
+          ativo: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        tipo: {
+          id: 'tipo-1',
+          nome: 'Tipo 1',
+          ativo: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       };
 
       vi.mocked(prisma.equipamento.findMany).mockResolvedValue([mockEquipamento]);
@@ -195,7 +231,7 @@ describe('EquipamentoService - Query Optimization', () => {
 
       // Should only call findMany once (with relations included via select)
       expect(prisma.equipamento.findMany).toHaveBeenCalledTimes(1);
-      
+
       // Should not make separate queries for loja, setor, or tipo
       expect(prisma.loja.findUnique).not.toHaveBeenCalled();
       expect(prisma.setor.findUnique).not.toHaveBeenCalled();

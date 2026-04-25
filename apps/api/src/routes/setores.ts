@@ -1,6 +1,11 @@
 import { Router } from 'express';
 import { SetorService } from '../services/setor-service';
-import { createSetorSchema, updateSetorSchema, paginationSchema, idParamSchema } from '@regcheck/validators';
+import {
+  createSetorSchema,
+  updateSetorSchema,
+  paginationSchema,
+  idParamSchema,
+} from '@regcheck/validators';
 import type { ApiResponse } from '@regcheck/shared';
 
 export const setorRouter = Router();

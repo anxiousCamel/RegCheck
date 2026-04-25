@@ -5,6 +5,7 @@
 **Status**: COMPLETE
 
 **Requirements Validated**:
+
 - ✅ Requirement 1.1: API response times < 200ms for listings
 - ✅ Requirement 1.2: API response times < 150ms for detail views
 - ✅ Requirement 5.5: Database query execution < 50ms
@@ -43,31 +44,31 @@
 
 ### API Response Time Tests (Requirement 1.1, 1.2)
 
-| Endpoint | Target | Test Status |
-|----------|--------|-------------|
-| GET /api/lojas | < 200ms | ✅ Implemented |
-| GET /api/setores | < 200ms | ✅ Implemented |
+| Endpoint                   | Target  | Test Status    |
+| -------------------------- | ------- | -------------- |
+| GET /api/lojas             | < 200ms | ✅ Implemented |
+| GET /api/setores           | < 200ms | ✅ Implemented |
 | GET /api/tipos-equipamento | < 200ms | ✅ Implemented |
-| GET /api/equipamentos | < 200ms | ✅ Implemented |
-| GET /api/documents | < 200ms | ✅ Implemented |
-| GET /api/templates | < 200ms | ✅ Implemented |
-| GET /api/lojas/:id | < 150ms | ✅ Implemented |
-| GET /api/equipamentos/:id | < 150ms | ✅ Implemented |
-| GET /api/documents/:id | < 150ms | ✅ Implemented |
-| GET /api/templates/:id | < 150ms | ✅ Implemented |
+| GET /api/equipamentos      | < 200ms | ✅ Implemented |
+| GET /api/documents         | < 200ms | ✅ Implemented |
+| GET /api/templates         | < 200ms | ✅ Implemented |
+| GET /api/lojas/:id         | < 150ms | ✅ Implemented |
+| GET /api/equipamentos/:id  | < 150ms | ✅ Implemented |
+| GET /api/documents/:id     | < 150ms | ✅ Implemented |
+| GET /api/templates/:id     | < 150ms | ✅ Implemented |
 
 ### Database Query Performance Tests (Requirement 5.5)
 
-| Service Method | Target | Test Status |
-|----------------|--------|-------------|
-| EquipamentoService.list() | < 50ms | ✅ Implemented |
+| Service Method               | Target | Test Status    |
+| ---------------------------- | ------ | -------------- |
+| EquipamentoService.list()    | < 50ms | ✅ Implemented |
 | EquipamentoService.getById() | < 50ms | ✅ Implemented |
-| DocumentService.list() | < 50ms | ✅ Implemented |
-| DocumentService.getById() | < 50ms | ✅ Implemented |
-| TemplateService.list() | < 50ms | ✅ Implemented |
-| TemplateService.getById() | < 50ms | ✅ Implemented |
-| LojaService.list() | < 50ms | ✅ Implemented |
-| LojaService.getById() | < 50ms | ✅ Implemented |
+| DocumentService.list()       | < 50ms | ✅ Implemented |
+| DocumentService.getById()    | < 50ms | ✅ Implemented |
+| TemplateService.list()       | < 50ms | ✅ Implemented |
+| TemplateService.getById()    | < 50ms | ✅ Implemented |
+| LojaService.list()           | < 50ms | ✅ Implemented |
+| LojaService.getById()        | < 50ms | ✅ Implemented |
 
 ### Additional Test Coverage
 
@@ -83,6 +84,7 @@
 ## Running the Tests
 
 ### Option 1: Using npm test
+
 ```bash
 cd apps/api
 npm test src/__tests__/performance-benchmarks.test.ts
@@ -90,12 +92,14 @@ npm test src/__tests__/database-query-performance.test.ts
 ```
 
 ### Option 2: Using the runner script
+
 ```bash
 cd apps/api
 ./run-performance-tests.sh
 ```
 
 ### Option 3: Using vitest directly
+
 ```bash
 cd apps/api
 npx vitest run src/__tests__/performance-benchmarks.test.ts
@@ -109,6 +113,7 @@ npx vitest run src/__tests__/database-query-performance.test.ts
 These performance benchmark tests use **mocked services** rather than real database connections:
 
 **Advantages**:
+
 1. **Fast execution**: Tests complete in seconds, not minutes
 2. **Consistent results**: No database variability or network latency
 3. **CI/CD friendly**: No infrastructure dependencies
@@ -116,6 +121,7 @@ These performance benchmark tests use **mocked services** rather than real datab
 5. **Deterministic**: Same results every run
 
 **What They Measure**:
+
 - Express routing overhead
 - Middleware execution time
 - Service layer processing
@@ -123,6 +129,7 @@ These performance benchmark tests use **mocked services** rather than real datab
 - Application code efficiency
 
 **What They Don't Measure**:
+
 - Actual database query execution time
 - Network latency
 - Database index effectiveness
@@ -131,10 +138,12 @@ These performance benchmark tests use **mocked services** rather than real datab
 ### Integration Tests
 
 For **real database performance testing**, the codebase already has:
+
 - `src/services/__tests__/*-optimization.test.ts` - Query optimization with real Prisma
 - `src/services/__tests__/*-cache.integration.test.ts` - Cache behavior with real Redis
 
 These integration tests complement the benchmark tests by validating:
+
 - Actual database query performance
 - Real cache effectiveness
 - Database index usage
@@ -142,12 +151,12 @@ These integration tests complement the benchmark tests by validating:
 
 ## Performance Targets
 
-| Metric | Target | Source |
-|--------|--------|--------|
-| Listing API Response | < 200ms | Requirement 1.1 |
-| Detail API Response | < 150ms | Requirement 1.2 |
-| Database Query Execution | < 50ms | Requirement 5.5 |
-| Max Page Size | 100 items | Requirement 5.2 |
+| Metric                   | Target    | Source          |
+| ------------------------ | --------- | --------------- |
+| Listing API Response     | < 200ms   | Requirement 1.1 |
+| Detail API Response      | < 150ms   | Requirement 1.2 |
+| Database Query Execution | < 50ms    | Requirement 5.5 |
+| Max Page Size            | 100 items | Requirement 5.2 |
 
 ## Test Structure
 
@@ -160,17 +169,17 @@ describe('Performance Benchmarks', () => {
       const start = Date.now();
       const response = await request(app).get('/api/lojas?page=1&pageSize=50');
       const duration = Date.now() - start;
-      
+
       expect(response.status).toBe(200);
       expect(duration).toBeLessThan(200);
     });
     // ... more tests
   });
-  
+
   describe('Detail Endpoints - Response Time < 150ms', () => {
     // ... tests
   });
-  
+
   describe('Concurrent Request Performance', () => {
     // ... tests
   });
@@ -186,12 +195,12 @@ describe('Database Query Performance', () => {
       const start = Date.now();
       await EquipamentoService.list(1, 50, {});
       const duration = Date.now() - start;
-      
+
       expect(duration).toBeLessThan(50);
     });
     // ... more tests
   });
-  
+
   describe('Query Optimization Patterns', () => {
     // ... tests
   });
@@ -201,6 +210,7 @@ describe('Database Query Performance', () => {
 ## Success Criteria
 
 ✅ All tests pass with performance targets met:
+
 - Listing endpoints respond in < 200ms
 - Detail endpoints respond in < 150ms
 - Database queries execute in < 50ms
@@ -208,12 +218,14 @@ describe('Database Query Performance', () => {
 - Response validation passes
 
 ✅ Tests are well-documented:
+
 - Clear test descriptions
 - Requirement traceability
 - Usage instructions
 - Troubleshooting guide
 
 ✅ Tests are maintainable:
+
 - Consistent structure
 - Reusable patterns
 - Clear assertions
@@ -273,6 +285,7 @@ These tasks will add **runtime performance monitoring** to complement these **te
 ## Documentation
 
 All documentation is located in:
+
 - `src/__tests__/PERFORMANCE_TESTS_README.md` - Comprehensive guide
 - `src/__tests__/TASK_4.5_SUMMARY.md` - Implementation summary
 - This file - Complete overview
@@ -289,6 +302,7 @@ Task 4.5 is **COMPLETE** with comprehensive performance benchmark tests that:
 ✅ Provide easy-to-use test runner script
 
 The tests are designed to be:
+
 - Fast and deterministic
 - CI/CD friendly
 - Easy to maintain

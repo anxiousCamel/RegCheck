@@ -3,8 +3,8 @@
 Este documento lista todos os códigos de erro utilizados na API do RegCheck.
 
 **Fonte:** error-code-parser
-**Gerado em:** 23/04/2026, 12:20:17
-**Total de erros:** 20
+**Gerado em:** 25/04/2026, 12:16:41
+**Total de erros:** 24
 
 ## Formato de Resposta de Erro
 
@@ -27,23 +27,27 @@ Tabela completa com todos os códigos de erro:
 | Código | Status HTTP | Mensagem | Contexto |
 |---|---|---|---|
 | ALREADY_GENERATING | 409 | PDF generation already in progress | - |
+| EQUIPMENT_NOT_FOUND | 404 | Equipamento não encontrado | Resource not found in database |
 | FILE_TOO_LARGE | 400 | Unknown error | File size exceeds limit |
 | IN_USE | 409 | Loja possui equipamentos vinculados | Resource not found in database |
 | INTERNAL_ERROR | 500 | An unexpected error occurred | Unhandled error |
-| INVALID_FILE_TYPE | 400 | Only PDF files are allowed | File size exceeds limit |
+| INVALID_FILE_TYPE | 400 | Only PDF files are allowed | Invalid file type |
+| INVALID_FILL_MODE | 400 | Este documento não está em modo SELECAO_MANUAL | - |
 | INVALID_LOJA | 400 | Loja não encontrada ou inativa | Resource not found in database |
-| INVALID_SETOR | 400 | Setor não encontrado ou inativo | Resource not found in database |
-| INVALID_TIPO | 400 | Tipo não encontrado ou inativo | Resource not found in database |
+| INVALID_SETOR | 400 | Setor não encontrado ou inativo | - |
+| INVALID_TIPO | 400 | Tipo não encontrado ou inativo | - |
 | MISSING_KEY | 400 | key is required | - |
 | NO_EQUIPMENT | 400 | Nenhum equipamento encontrado para os filtros selecionados | - |
 | NO_FILE | 400 | No file uploaded | - |
 | NOT_FOUND | 404 | Template not found | Resource not found in database |
 | PDF_NOT_FOUND | 400 | PDF file not found. Upload first. | Resource not found in database |
 | PDF_NOT_GENERATED | 400 | PDF has not been generated yet | - |
+| SLOT_NOT_FOUND | 400 | Unknown error | - |
 | TEMPLATE_INVALID | 400 | Unknown error | - |
 | TEMPLATE_NO_SLOTS | 400 | Template não define slots SX (nenhum campo de item). Configure os slots antes de popular. | - |
 | TEMPLATE_NOT_PUBLISHED | 400 | Template must be published before filling | Resource not found in database |
 | TEMPLATE_PUBLISHED | 400 | Cannot modify a published template. Create a new version. | Resource not found in database |
+| TIPO_MISMATCH | 400 | Unknown error | Resource not found in database |
 | TOO_MANY_PAGES | 400 | Unknown error | PDF has too many pages |
 | VALIDATION_ERROR | 400 | Request validation failed | Zod schema validation failure |
 
@@ -51,29 +55,31 @@ Tabela completa com todos os códigos de erro:
 
 ### 400 - Bad Request
 
-Total: **16** erro(s)
+Total: **19** erro(s)
 
 - **FILE_TOO_LARGE**: Unknown error
   - *Contexto:* File size exceeds limit
 - **INVALID_FILE_TYPE**: Only PDF files are allowed
-  - *Contexto:* File size exceeds limit
+  - *Contexto:* Invalid file type
+- **INVALID_FILL_MODE**: Este documento não está em modo SELECAO_MANUAL
 - **INVALID_LOJA**: Loja não encontrada ou inativa
   - *Contexto:* Resource not found in database
 - **INVALID_SETOR**: Setor não encontrado ou inativo
-  - *Contexto:* Resource not found in database
 - **INVALID_TIPO**: Tipo não encontrado ou inativo
-  - *Contexto:* Resource not found in database
 - **MISSING_KEY**: key is required
 - **NO_EQUIPMENT**: Nenhum equipamento encontrado para os filtros selecionados
 - **NO_FILE**: No file uploaded
 - **PDF_NOT_FOUND**: PDF file not found. Upload first.
   - *Contexto:* Resource not found in database
 - **PDF_NOT_GENERATED**: PDF has not been generated yet
+- **SLOT_NOT_FOUND**: Unknown error
 - **TEMPLATE_INVALID**: Unknown error
 - **TEMPLATE_NO_SLOTS**: Template não define slots SX (nenhum campo de item). Configure os slots antes de popular.
 - **TEMPLATE_NOT_PUBLISHED**: Template must be published before filling
   - *Contexto:* Resource not found in database
 - **TEMPLATE_PUBLISHED**: Cannot modify a published template. Create a new version.
+  - *Contexto:* Resource not found in database
+- **TIPO_MISMATCH**: Unknown error
   - *Contexto:* Resource not found in database
 - **TOO_MANY_PAGES**: Unknown error
   - *Contexto:* PDF has too many pages
@@ -83,8 +89,10 @@ Total: **16** erro(s)
 
 ### 404 - Not Found
 
-Total: **1** erro(s)
+Total: **2** erro(s)
 
+- **EQUIPMENT_NOT_FOUND**: Equipamento não encontrado
+  - *Contexto:* Resource not found in database
 - **NOT_FOUND**: Template not found
   - *Contexto:* Resource not found in database
 

@@ -84,6 +84,7 @@ docs/
 ### Diagramas Mermaid
 
 Todos os diagramas são renderizáveis em:
+
 - GitHub/GitLab (nativo)
 - VS Code (extensão Markdown Preview Mermaid Support)
 - Editores online: https://mermaid.live/
@@ -126,6 +127,7 @@ Para melhorar esta documentação:
 ## Contato
 
 Para dúvidas sobre a documentação:
+
 - **Tech Lead:** [Nome/Email]
 - **Canal Slack:** #regcheck-dev
 - **Email:** dev@regcheck.com

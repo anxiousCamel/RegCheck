@@ -21,6 +21,7 @@ scripts/docs/validators/
 **Responsabilidade:** Garantir sintaxe Markdown válida
 
 **Validações:**
+
 - ✅ Hierarquia de headings (sem pulos de nível)
 - ✅ Code blocks fechados corretamente
 - ✅ Tabelas com colunas consistentes
@@ -28,6 +29,7 @@ scripts/docs/validators/
 - ✅ Estrutura básica (título h1, seções h2)
 
 **Exemplo de erro detectado:**
+
 ```
 ❌ [heading] Skipped heading level from h1 to h3 at line 45
 ❌ [code-block] Unclosed code block starting at line 120
@@ -39,6 +41,7 @@ scripts/docs/validators/
 **Responsabilidade:** Garantir diagramas Mermaid renderizáveis
 
 **Validações:**
+
 - ✅ Blocos ```mermaid abrem e fecham
 - ✅ Tipo de diagrama válido (erDiagram, graph, sequenceDiagram)
 - ✅ Sintaxe específica por tipo:
@@ -47,6 +50,7 @@ scripts/docs/validators/
   - **Sequence**: Interações entre atores
 
 **Exemplo de erro detectado:**
+
 ```
 ❌ [syntax] ER diagram must start with "erDiagram" at line 50
 ❌ [structure] Graph has no nodes at line 120
@@ -58,6 +62,7 @@ scripts/docs/validators/
 **Responsabilidade:** Garantir conteúdo significativo (não apenas estrutura vazia)
 
 **Validações:**
+
 - ✅ Documento não vazio
 - ✅ Possui título (h1)
 - ✅ Possui seções (h2)
@@ -69,6 +74,7 @@ scripts/docs/validators/
   - **Errors**: Status codes
 
 **Estatísticas coletadas:**
+
 ```
 📊 Stats:
    - Lines: 245/280
@@ -101,6 +107,7 @@ scripts/docs/validators/
 ### Fail Fast
 
 Se qualquer validação falhar:
+
 - ❌ Pipeline aborta com `exit 1`
 - 🚫 Documentação não é considerada válida
 - 📋 Erros detalhados são exibidos
@@ -217,6 +224,7 @@ Please fix the errors above and regenerate documentation.
 ### Arquivo: `scripts/docs/__tests__/e2e-generation.test.ts`
 
 **Cobertura:**
+
 - ✅ Parse completo sem erros
 - ✅ Geração de todos os arquivos
 - ✅ Validação automática
@@ -225,6 +233,7 @@ Please fix the errors above and regenerate documentation.
 - ✅ Tratamento de erros
 
 **Execução:**
+
 ```bash
 pnpm test scripts/docs/__tests__/e2e-generation.test.ts
 ```
@@ -233,30 +242,30 @@ pnpm test scripts/docs/__tests__/e2e-generation.test.ts
 
 ### Markdown
 
-| Critério | Validação |
-|----------|-----------|
-| Hierarquia de headings | Sem pulos de nível |
-| Code blocks | Todos fechados |
-| Tabelas | Colunas consistentes |
-| Links | Formato válido |
-| Estrutura | h1 + h2 presentes |
+| Critério               | Validação            |
+| ---------------------- | -------------------- |
+| Hierarquia de headings | Sem pulos de nível   |
+| Code blocks            | Todos fechados       |
+| Tabelas                | Colunas consistentes |
+| Links                  | Formato válido       |
+| Estrutura              | h1 + h2 presentes    |
 
 ### Mermaid
 
-| Tipo | Validação |
-|------|-----------|
-| erDiagram | Relacionamentos + entidades |
-| graph/flowchart | Nós + conexões |
-| sequenceDiagram | Interações entre atores |
+| Tipo            | Validação                   |
+| --------------- | --------------------------- |
+| erDiagram       | Relacionamentos + entidades |
+| graph/flowchart | Nós + conexões              |
+| sequenceDiagram | Interações entre atores     |
 
 ### Conteúdo
 
-| Critério | Mínimo |
-|----------|--------|
-| Palavras | 50 |
-| Seções (h2) | 1 |
-| Título (h1) | 1 |
-| Placeholders | 0 |
+| Critério     | Mínimo |
+| ------------ | ------ |
+| Palavras     | 50     |
+| Seções (h2)  | 1      |
+| Título (h1)  | 1      |
+| Placeholders | 0      |
 
 ## Uso Programático
 
@@ -283,6 +292,7 @@ Para adicionar novos validadores:
 4. Adicionar testes
 
 **Exemplo:**
+
 ```typescript
 // scripts/docs/validators/link-validator.ts
 export function validateLinks(content: string): ValidationResult {

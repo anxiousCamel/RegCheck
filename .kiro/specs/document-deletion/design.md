@@ -7,6 +7,7 @@ Esta feature adiciona suporte completo à exclusão permanente de documentos na 
 A exclusão é um **hard delete**: o documento e todos os seus `FilledField`s associados são removidos em uma única transação. Não há soft delete ou arquivamento.
 
 O fluxo é:
+
 1. Usuário clica em "Excluir" na `DocumentsPage`
 2. Um `ConfirmationDialog` exibe o nome do documento e avisa que a ação é irreversível
 3. Ao confirmar, o frontend chama `DELETE /api/documents/:id`
@@ -95,6 +96,7 @@ interface ConfirmationDialogProps {
 ```
 
 Renderiza um modal com:
+
 - Nome do documento
 - Mensagem de irreversibilidade
 - Botão "Confirmar" (desabilitado + spinner quando `isPending`)
@@ -130,6 +132,7 @@ FilledField
 A deleção em cascata é feita **explicitamente via transação** no serviço (não via `onDelete: Cascade` no schema), mantendo consistência com o padrão já adotado em `populate()` que usa `prisma.filledField.deleteMany`.
 
 **Ordem da transação:**
+
 1. `prisma.filledField.deleteMany({ where: { documentId: id } })`
 2. `prisma.document.delete({ where: { id } })`
 
@@ -137,35 +140,35 @@ A deleção em cascata é feita **explicitamente via transação** no serviço (
 
 ## Correctness Properties
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system — essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+_A property is a characteristic or behavior that should hold true across all valid executions of a system — essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees._
 
 ### Property 1: Exclusão remove documento e todos os FilledFields
 
-*For any* documento com qualquer número de `FilledField`s associados, após a execução de `DocumentService.delete(id)`, nem o documento nem nenhum de seus `FilledField`s devem existir no banco de dados.
+_For any_ documento com qualquer número de `FilledField`s associados, após a execução de `DocumentService.delete(id)`, nem o documento nem nenhum de seus `FilledField`s devem existir no banco de dados.
 
 **Validates: Requirements 1.4**
 
 ### Property 2: Inputs inválidos são rejeitados com VALIDATION_ERROR
 
-*For any* string que não seja um UUID v4 válido enviada como parâmetro `:id`, o endpoint `DELETE /api/documents/:id` deve retornar HTTP 400 com `code: 'VALIDATION_ERROR'`.
+_For any_ string que não seja um UUID v4 válido enviada como parâmetro `:id`, o endpoint `DELETE /api/documents/:id` deve retornar HTTP 400 com `code: 'VALIDATION_ERROR'`.
 
 **Validates: Requirements 1.3**
 
 ### Property 3: Erros HTTP do servidor são propagados como Error
 
-*For any* resposta HTTP de erro (4xx ou 5xx) retornada pelo servidor, `ApiClient.deleteDocument` deve rejeitar a Promise com uma instância de `Error` cuja mensagem corresponde ao campo `error.message` do corpo da resposta.
+_For any_ resposta HTTP de erro (4xx ou 5xx) retornada pelo servidor, `ApiClient.deleteDocument` deve rejeitar a Promise com uma instância de `Error` cuja mensagem corresponde ao campo `error.message` do corpo da resposta.
 
 **Validates: Requirements 2.3**
 
 ### Property 4: Botão "Excluir" presente para cada documento listado
 
-*For any* lista de N documentos renderizada na `DocumentsPage`, exatamente N botões "Excluir" devem estar presentes no DOM.
+_For any_ lista de N documentos renderizada na `DocumentsPage`, exatamente N botões "Excluir" devem estar presentes no DOM.
 
 **Validates: Requirements 3.1**
 
 ### Property 5: Dialog exibe o nome do documento correto
 
-*For any* documento na lista, ao clicar no botão "Excluir" desse documento, o `ConfirmationDialog` deve exibir o nome exato daquele documento.
+_For any_ documento na lista, ao clicar no botão "Excluir" desse documento, o `ConfirmationDialog` deve exibir o nome exato daquele documento.
 
 **Validates: Requirements 3.2**
 
@@ -173,13 +176,13 @@ A deleção em cascata é feita **explicitamente via transação** no serviço (
 
 ## Error Handling
 
-| Cenário | Camada | Comportamento |
-|---|---|---|
-| `id` não é UUID | `DocumentRouter` (Zod) | HTTP 400, `VALIDATION_ERROR` |
-| Documento não encontrado | `DocumentService` | `AppError(404, NOT_FOUND)` → HTTP 404 |
-| Falha de banco de dados | `DocumentService` | Erro propagado → `errorHandler` → HTTP 500, `INTERNAL_ERROR` |
-| Erro HTTP no frontend | `ApiClient` | Promise rejeitada com `Error(message)` |
-| Erro na mutation | `DocumentsPage` | Mensagem de erro exibida; dialog permanece aberto |
+| Cenário                  | Camada                 | Comportamento                                                |
+| ------------------------ | ---------------------- | ------------------------------------------------------------ |
+| `id` não é UUID          | `DocumentRouter` (Zod) | HTTP 400, `VALIDATION_ERROR`                                 |
+| Documento não encontrado | `DocumentService`      | `AppError(404, NOT_FOUND)` → HTTP 404                        |
+| Falha de banco de dados  | `DocumentService`      | Erro propagado → `errorHandler` → HTTP 500, `INTERNAL_ERROR` |
+| Erro HTTP no frontend    | `ApiClient`            | Promise rejeitada com `Error(message)`                       |
+| Erro na mutation         | `DocumentsPage`        | Mensagem de erro exibida; dialog permanece aberto            |
 
 O `errorHandler` existente já cobre todos os casos de backend sem necessidade de alteração.
 
@@ -195,17 +198,20 @@ O `errorHandler` existente já cobre todos os casos de backend sem necessidade d
 ### Backend (Vitest + Prisma mock)
 
 **Testes de exemplo:**
+
 - `DELETE /api/documents/:id` com id válido → 204 sem corpo
 - `DELETE /api/documents/:id` com id inexistente → 404 `NOT_FOUND`
 - Falha de banco simulada → 500 `INTERNAL_ERROR`
 
 **Testes de propriedade (fast-check):**
+
 - Property 1: Para qualquer documento com N filledFields gerados, após delete, documento e campos não existem
 - Property 2: Para qualquer string não-UUID, endpoint retorna 400 `VALIDATION_ERROR`
 
 ### Frontend (Vitest + React Testing Library)
 
 **Testes de exemplo:**
+
 - `deleteDocument(id)` faz requisição `DELETE` para URL correta
 - Servidor retorna 204 → Promise resolve como void
 - Confirmar no dialog chama `api.deleteDocument(id)` com id correto
@@ -215,10 +221,12 @@ O `errorHandler` existente já cobre todos os casos de backend sem necessidade d
 - Erro → mensagem exibida, dialog permanece aberto
 
 **Testes de propriedade (fast-check):**
+
 - Property 3: Para qualquer resposta de erro HTTP, ApiClient rejeita com Error(message)
 - Property 4: Para qualquer lista de N documentos, N botões "Excluir" presentes
 - Property 5: Para qualquer documento, dialog exibe o nome correto
 
 **Configuração de testes de propriedade:**
+
 - Mínimo de 100 iterações por propriedade
 - Tag de referência: `// Feature: document-deletion, Property {N}: {texto}`

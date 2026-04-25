@@ -42,4 +42,3 @@ pnpm generate:docs
 
 - Código fonte: Repositório principal
 - Gerador de docs: `scripts/generate-docs.ts`
-

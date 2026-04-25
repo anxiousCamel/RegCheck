@@ -21,6 +21,7 @@ The optimization strategy spans both the Next.js frontend (apps/web) and Express
 ### Technology Stack Context
 
 **Backend (apps/api)**:
+
 - Express.js with TypeScript
 - Prisma ORM with PostgreSQL
 - Redis (already available via ioredis)
@@ -28,6 +29,7 @@ The optimization strategy spans both the Next.js frontend (apps/web) and Express
 - AWS S3 for file storage
 
 **Frontend (apps/web)**:
+
 - Next.js 14 (App Router)
 - React 18 with Server Components
 - TanStack React Query v5
@@ -45,24 +47,24 @@ graph TB
         B[React Query Cache]
         C[Service Worker]
     end
-    
+
     subgraph "Frontend Server"
         D[Next.js Server]
         E[Static Assets CDN]
     end
-    
+
     subgraph "Backend API"
         F[Express Server]
         G[Request Logger]
         H[Cache Middleware]
     end
-    
+
     subgraph "Data Layer"
         I[Redis Cache]
         J[PostgreSQL]
         K[Prisma ORM]
     end
-    
+
     A -->|SSR/RSC| D
     A -->|API Calls| F
     B -->|Stale Data| A
@@ -73,7 +75,7 @@ graph TB
     H -->|Cache Miss| K
     K --> J
     I -.->|Invalidation| H
-    
+
     style I fill:#ff9999
     style B fill:#99ccff
     style E fill:#99ff99
@@ -91,11 +93,13 @@ The system implements a multi-layer caching approach:
 ### Data Flow Optimization
 
 **Before Optimization**:
+
 ```
 User Request → Next.js → API → Prisma → PostgreSQL (N+1 queries) → Response (500ms+)
 ```
 
 **After Optimization**:
+
 ```
 User Request → Next.js (SSR with prefetch) → API → Redis (cache hit) → Response (50ms)
                                                   ↓ (cache miss)
@@ -121,6 +125,7 @@ interface CacheService {
 ```
 
 **Key Features**:
+
 - Generic type support for type-safe caching
 - Pattern-based invalidation for related keys
 - Wrap function for cache-aside pattern
@@ -211,11 +216,11 @@ Web Vitals tracking and reporting.
 
 ```typescript
 interface WebVitalsMetrics {
-  LCP: number;  // Largest Contentful Paint
-  FID: number;  // First Input Delay
-  CLS: number;  // Cumulative Layout Shift
+  LCP: number; // Largest Contentful Paint
+  FID: number; // First Input Delay
+  CLS: number; // Cumulative Layout Shift
   TTFB: number; // Time to First Byte
-  FCP: number;  // First Contentful Paint
+  FCP: number; // First Contentful Paint
 }
 
 function reportWebVitals(metric: WebVitalsMetrics): void;
@@ -244,6 +249,7 @@ const TemplateEditor = dynamic(() => import('@/components/template-editor'), {
 All endpoints will be optimized with the following patterns:
 
 #### Listing Endpoints
+
 ```typescript
 GET /api/lojas?page=1&pageSize=50
 GET /api/setores?page=1&pageSize=50
@@ -254,12 +260,14 @@ GET /api/templates?page=1&pageSize=50
 ```
 
 **Optimizations**:
+
 - Redis caching with 5-minute TTL
 - Prisma select for specific fields only
 - Eager loading of required relations
 - Maximum pageSize of 100
 
 #### Detail Endpoints
+
 ```typescript
 GET /api/lojas/:id
 GET /api/equipamentos/:id
@@ -268,6 +276,7 @@ GET /api/templates/:id
 ```
 
 **Optimizations**:
+
 - Redis caching with 2-minute TTL
 - Conditional includes based on query params
 - Cache invalidation on updates
@@ -287,7 +296,7 @@ const CACHE_KEYS = {
   EQUIPAMENTOS_LIST: 'equipamentos:list:page:{page}:size:{pageSize}',
   DOCUMENTS_LIST: 'documents:list:page:{page}:size:{pageSize}',
   TEMPLATES_LIST: 'templates:list:page:{page}:size:{pageSize}',
-  
+
   // Detail caches
   LOJA_DETAIL: 'loja:{id}',
   SETOR_DETAIL: 'setor:{id}',
@@ -371,7 +380,6 @@ interface PageLoadMetrics {
 }
 ```
 
-
 ## Error Handling
 
 ### Cache Failure Handling
@@ -390,7 +398,7 @@ class CacheService {
       return null;
     }
   }
-  
+
   async set<T>(key: string, value: T, ttl?: number): Promise<void> {
     try {
       await this.redis.set(key, JSON.stringify(value), 'EX', ttl ?? 300);
@@ -403,6 +411,7 @@ class CacheService {
 ```
 
 **Error Scenarios**:
+
 1. **Redis Connection Lost**: Continue serving from database, log errors
 2. **Cache Serialization Error**: Skip caching, serve from database
 3. **Cache Invalidation Failure**: Log error, continue operation
@@ -433,7 +442,7 @@ prisma.$use(async (params, next) => {
   const timeoutPromise = new Promise((_, reject) => {
     setTimeout(() => reject(new Error('Query timeout')), timeout);
   });
-  
+
   try {
     return await Promise.race([next(params), timeoutPromise]);
   } catch (error) {
@@ -471,7 +480,7 @@ function reportWebVitals(metric: WebVitalsMetrics): void {
     if (process.env.NODE_ENV === 'development') {
       console.log('[Web Vitals]', metric);
     }
-    
+
     // Send to analytics in production
     if (process.env.NODE_ENV === 'production') {
       // Non-blocking analytics call
@@ -499,7 +508,7 @@ Maintain consistent error responses even under load:
 // Error handler with performance context
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   const duration = Date.now() - req.startTime;
-  
+
   console.error('[Error]', {
     path: req.path,
     method: req.method,
@@ -507,7 +516,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     error: err.message,
     stack: err.stack,
   });
-  
+
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
       error: err.message,
@@ -515,7 +524,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
       duration,
     });
   }
-  
+
   // Generic error response
   res.status(500).json({
     error: 'Internal server error',
@@ -539,12 +548,14 @@ This feature requires a different testing approach than typical functional featu
 **Why Property-Based Testing Does NOT Apply**:
 
 Property-based testing is designed for testing universal properties of pure functions across many generated inputs. This feature involves:
+
 - Infrastructure configuration (Redis, database indexes)
 - Performance characteristics (response times, bundle sizes)
 - Side effects (caching, logging, monitoring)
 - Integration between systems
 
 None of these have meaningful "for all inputs X, property P(X) holds" statements. Instead, we use:
+
 - **Snapshot tests** for bundle size verification
 - **Integration tests** for cache behavior
 - **Performance benchmarks** for response time validation
@@ -555,32 +566,33 @@ None of these have meaningful "for all inputs X, property P(X) holds" statements
 Focus on individual component behavior:
 
 #### Cache Service Tests
+
 ```typescript
 describe('CacheService', () => {
   it('should return null when key does not exist', async () => {
     const value = await cacheService.get('nonexistent');
     expect(value).toBeNull();
   });
-  
+
   it('should store and retrieve values', async () => {
     await cacheService.set('test', { data: 'value' });
     const value = await cacheService.get('test');
     expect(value).toEqual({ data: 'value' });
   });
-  
+
   it('should handle Redis unavailability gracefully', async () => {
     // Mock Redis failure
     redis.get.mockRejectedValue(new Error('Connection lost'));
-    
+
     const value = await cacheService.get('test');
     expect(value).toBeNull(); // Graceful degradation
   });
-  
+
   it('should invalidate pattern-matched keys', async () => {
     await cacheService.set('lojas:list:page:1', []);
     await cacheService.set('lojas:list:page:2', []);
     await cacheService.delPattern('lojas:list:*');
-    
+
     const page1 = await cacheService.get('lojas:list:page:1');
     const page2 = await cacheService.get('lojas:list:page:2');
     expect(page1).toBeNull();
@@ -590,22 +602,23 @@ describe('CacheService', () => {
 ```
 
 #### Query Optimization Tests
+
 ```typescript
 describe('Query Optimization', () => {
   it('should use select to limit returned fields', async () => {
     const lojas = await LojaService.list(1, 10);
-    
+
     // Verify only necessary fields are returned
     expect(lojas.items[0]).toHaveProperty('id');
     expect(lojas.items[0]).toHaveProperty('nome');
     expect(lojas.items[0]).not.toHaveProperty('createdAt');
   });
-  
+
   it('should use eager loading for relations', async () => {
     const spy = jest.spyOn(prisma, '$queryRaw');
-    
+
     await EquipamentoService.list(1, 10);
-    
+
     // Should be 1 query with JOIN, not N+1 queries
     expect(spy).toHaveBeenCalledTimes(1);
   });
@@ -621,33 +634,31 @@ describe('Cache Integration', () => {
   beforeEach(async () => {
     await redis.flushall();
   });
-  
+
   it('should cache listing responses', async () => {
     const response1 = await request(app).get('/api/lojas?page=1&pageSize=10');
     const response2 = await request(app).get('/api/lojas?page=1&pageSize=10');
-    
+
     expect(response1.body).toEqual(response2.body);
     expect(response2.headers['x-cache']).toBe('HIT');
   });
-  
+
   it('should invalidate cache on create', async () => {
     // Prime cache
     await request(app).get('/api/lojas?page=1&pageSize=10');
-    
+
     // Create new loja
-    await request(app)
-      .post('/api/lojas')
-      .send({ nome: 'Nova Loja', endereco: 'Rua X' });
-    
+    await request(app).post('/api/lojas').send({ nome: 'Nova Loja', endereco: 'Rua X' });
+
     // Cache should be invalidated
     const response = await request(app).get('/api/lojas?page=1&pageSize=10');
     expect(response.headers['x-cache']).toBe('MISS');
   });
-  
+
   it('should continue working when Redis is down', async () => {
     // Stop Redis
     await redis.disconnect();
-    
+
     // Should still work, just slower
     const response = await request(app).get('/api/lojas?page=1&pageSize=10');
     expect(response.status).toBe(200);
@@ -666,31 +677,31 @@ describe('Performance Benchmarks', () => {
     const start = Date.now();
     const response = await request(app).get('/api/lojas?page=1&pageSize=50');
     const duration = Date.now() - start;
-    
+
     expect(response.status).toBe(200);
     expect(duration).toBeLessThan(200);
   });
-  
+
   it('should respond to detail requests in < 150ms', async () => {
     const loja = await createTestLoja();
-    
+
     const start = Date.now();
     const response = await request(app).get(`/api/lojas/${loja.id}`);
     const duration = Date.now() - start;
-    
+
     expect(response.status).toBe(200);
     expect(duration).toBeLessThan(150);
   });
-  
+
   it('should execute database queries in < 50ms', async () => {
     const queryTimes: number[] = [];
-    
+
     prisma.$on('query', (e) => {
       queryTimes.push(e.duration);
     });
-    
+
     await LojaService.list(1, 50);
-    
+
     const maxQueryTime = Math.max(...queryTimes);
     expect(maxQueryTime).toBeLessThan(50);
   });
@@ -706,21 +717,21 @@ describe('Bundle Size', () => {
   it('should have First Load JS < 150KB', async () => {
     // Run next build and analyze
     const buildInfo = await analyzeBuild();
-    
+
     const firstLoadJS = buildInfo.pages['/'].firstLoadJS;
     expect(firstLoadJS).toBeLessThan(150 * 1024); // 150KB
   });
-  
+
   it('should code-split heavy libraries', async () => {
     const buildInfo = await analyzeBuild();
-    
+
     // PDF.js should be in separate chunk
-    const pdfChunk = buildInfo.chunks.find(c => c.name.includes('pdfjs'));
+    const pdfChunk = buildInfo.chunks.find((c) => c.name.includes('pdfjs'));
     expect(pdfChunk).toBeDefined();
     expect(pdfChunk.async).toBe(true);
-    
+
     // Konva should be in separate chunk
-    const konvaChunk = buildInfo.chunks.find(c => c.name.includes('konva'));
+    const konvaChunk = buildInfo.chunks.find((c) => c.name.includes('konva'));
     expect(konvaChunk).toBeDefined();
     expect(konvaChunk.async).toBe(true);
   });
@@ -738,26 +749,26 @@ import { check, sleep } from 'k6';
 
 export const options = {
   stages: [
-    { duration: '30s', target: 20 },  // Ramp up to 20 users
-    { duration: '1m', target: 20 },   // Stay at 20 users
-    { duration: '30s', target: 50 },  // Ramp up to 50 users
-    { duration: '1m', target: 50 },   // Stay at 50 users
-    { duration: '30s', target: 0 },   // Ramp down
+    { duration: '30s', target: 20 }, // Ramp up to 20 users
+    { duration: '1m', target: 20 }, // Stay at 20 users
+    { duration: '30s', target: 50 }, // Ramp up to 50 users
+    { duration: '1m', target: 50 }, // Stay at 50 users
+    { duration: '30s', target: 0 }, // Ramp down
   ],
   thresholds: {
     http_req_duration: ['p(95)<200'], // 95% of requests < 200ms
-    http_req_failed: ['rate<0.01'],   // Error rate < 1%
+    http_req_failed: ['rate<0.01'], // Error rate < 1%
   },
 };
 
 export default function () {
   const response = http.get('http://localhost:4000/api/lojas?page=1&pageSize=50');
-  
+
   check(response, {
     'status is 200': (r) => r.status === 200,
     'response time < 200ms': (r) => r.timings.duration < 200,
   });
-  
+
   sleep(1);
 }
 ```
@@ -770,7 +781,7 @@ Test Web Vitals in real browser environment (using Playwright):
 describe('Web Vitals', () => {
   it('should have LCP < 2.5s', async () => {
     const page = await browser.newPage();
-    
+
     const metrics = await page.evaluate(() => {
       return new Promise((resolve) => {
         new PerformanceObserver((list) => {
@@ -780,14 +791,14 @@ describe('Web Vitals', () => {
         }).observe({ type: 'largest-contentful-paint', buffered: true });
       });
     });
-    
+
     expect(metrics).toBeLessThan(2500);
   });
-  
+
   it('should have FID < 100ms', async () => {
     const page = await browser.newPage();
     await page.goto('http://localhost:3000/cadastros/lojas');
-    
+
     const fid = await page.evaluate(() => {
       return new Promise((resolve) => {
         new PerformanceObserver((list) => {
@@ -796,7 +807,7 @@ describe('Web Vitals', () => {
         }).observe({ type: 'first-input', buffered: true });
       });
     });
-    
+
     expect(fid).toBeLessThan(100);
   });
 });
@@ -810,18 +821,16 @@ Verify monitoring systems are working:
 describe('Performance Monitoring', () => {
   it('should log slow queries', async () => {
     const logSpy = jest.spyOn(console, 'warn');
-    
+
     // Simulate slow query
     await prisma.$queryRaw`SELECT pg_sleep(0.15)`;
-    
-    expect(logSpy).toHaveBeenCalledWith(
-      expect.stringContaining('[Slow Query]')
-    );
+
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('[Slow Query]'));
   });
-  
+
   it('should track request duration', async () => {
     const response = await request(app).get('/api/lojas');
-    
+
     expect(response.headers['x-response-time']).toBeDefined();
     const duration = parseInt(response.headers['x-response-time']);
     expect(duration).toBeGreaterThan(0);
@@ -852,4 +861,3 @@ The optimization is successful when:
 - ✅ Cache hit rate > 70% for listing endpoints
 - ✅ Zero N+1 query issues
 - ✅ All tests passing with performance assertions
-

@@ -18,9 +18,18 @@ export const fieldConfigSchema = z.object({
   defaultValue: z.string().max(1000).optional(),
   fontSize: z.number().min(6).max(72).optional(),
   fontFamily: z.string().max(100).optional(),
-  fontColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-  backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-  borderColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  fontColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
+  backgroundColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
+  borderColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
   borderWidth: z.number().min(0).max(10).optional(),
   textAlign: z.enum(['left', 'center', 'right']).optional(),
   maxLength: z.number().int().min(1).max(10000).optional(),
@@ -32,11 +41,9 @@ export const fieldConfigSchema = z.object({
  *   - `eq.<key>`:     per-item value (e.g. `eq.serie`, `eq.patrimonio`)
  * New namespaces/keys don't require schema changes — just producer side.
  */
-export const bindingKeySchema = z
-  .string()
-  .regex(/^(global|eq)\.[a-z][a-z0-9_.]*$/i, {
-    message: "bindingKey must match '<global|eq>.<key>'",
-  });
+export const bindingKeySchema = z.string().regex(/^(global|eq)\.[a-z][a-z0-9_.]*$/i, {
+  message: "bindingKey must match '<global|eq>.<key>'",
+});
 
 export const createFieldSchema = z
   .object({
@@ -52,9 +59,10 @@ export const createFieldSchema = z
   })
   .transform((v) => {
     // Normalize: if scope='item' and slotIndex is missing, default to 0
-    const normalizedSlotIndex = v.scope === 'item' && v.slotIndex === undefined ? 0 : v.slotIndex ?? null;
+    const normalizedSlotIndex =
+      v.scope === 'item' && v.slotIndex === undefined ? 0 : (v.slotIndex ?? null);
     const normalizedBindingKey = v.bindingKey ?? null;
-    
+
     return {
       ...v,
       slotIndex: normalizedSlotIndex,
@@ -75,16 +83,15 @@ export const createFieldSchema = z
     },
   );
 
-export const updateFieldSchema = z
-  .object({
-    type: fieldTypeSchema.optional(),
-    pageIndex: z.number().int().min(0).optional(),
-    position: fieldPositionSchema.optional(),
-    config: fieldConfigSchema.optional(),
-    scope: fieldScopeSchema.optional(),
-    slotIndex: z.number().int().min(0).nullable().optional(),
-    bindingKey: bindingKeySchema.nullable().optional(),
-  });
+export const updateFieldSchema = z.object({
+  type: fieldTypeSchema.optional(),
+  pageIndex: z.number().int().min(0).optional(),
+  position: fieldPositionSchema.optional(),
+  config: fieldConfigSchema.optional(),
+  scope: fieldScopeSchema.optional(),
+  slotIndex: z.number().int().min(0).nullable().optional(),
+  bindingKey: bindingKeySchema.nullable().optional(),
+});
 
 export const filledFieldDataSchema = z.object({
   fieldId: z.string().uuid(),

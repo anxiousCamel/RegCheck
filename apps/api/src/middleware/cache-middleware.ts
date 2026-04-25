@@ -50,13 +50,13 @@ export function cacheMiddleware(options: CacheMiddlewareOptions = {}) {
     const originalJson = res.json.bind(res);
 
     // Override json method to cache response
-    res.json = function (body: any): Response {
+    res.json = function (body: unknown): Response {
       // Check if we should cache this response
       if (shouldCache(req, res)) {
         const cachedResponse: CachedResponse = {
           statusCode: res.statusCode,
           body,
-          contentType: res.getHeader('Content-Type') as string || 'application/json',
+          contentType: (res.getHeader('Content-Type') as string) || 'application/json',
         };
 
         // Cache the response (fire and forget)
@@ -75,7 +75,7 @@ export function cacheMiddleware(options: CacheMiddlewareOptions = {}) {
 
 interface CachedResponse {
   statusCode: number;
-  body: any;
+  body: unknown;
   contentType: string;
 }
 
@@ -84,9 +84,7 @@ interface CachedResponse {
  * Uses method, path, and query string
  */
 function defaultKeyGenerator(req: Request): string {
-  const queryString = Object.keys(req.query).length > 0
-    ? ':' + JSON.stringify(req.query)
-    : '';
+  const queryString = Object.keys(req.query).length > 0 ? ':' + JSON.stringify(req.query) : '';
   return `cache:${req.method}:${req.path}${queryString}`;
 }
 
@@ -94,6 +92,6 @@ function defaultKeyGenerator(req: Request): string {
  * Default conditional caching logic
  * Only cache successful responses (2xx status codes)
  */
-function defaultShouldCache(req: Request, res: Response): boolean {
+function defaultShouldCache(_req: Request, res: Response): boolean {
   return res.statusCode >= 200 && res.statusCode < 300;
 }

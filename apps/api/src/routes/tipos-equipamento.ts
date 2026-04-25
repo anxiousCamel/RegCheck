@@ -1,6 +1,11 @@
 import { Router } from 'express';
 import { TipoEquipamentoService } from '../services/tipo-equipamento-service';
-import { createTipoEquipamentoSchema, updateTipoEquipamentoSchema, paginationSchema, idParamSchema } from '@regcheck/validators';
+import {
+  createTipoEquipamentoSchema,
+  updateTipoEquipamentoSchema,
+  paginationSchema,
+  idParamSchema,
+} from '@regcheck/validators';
 import type { ApiResponse } from '@regcheck/shared';
 
 export const tipoEquipamentoRouter = Router();

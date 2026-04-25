@@ -1,6 +1,11 @@
 import { Router } from 'express';
 import { LojaService } from '../services/loja-service';
-import { createLojaSchema, updateLojaSchema, paginationSchema, idParamSchema } from '@regcheck/validators';
+import {
+  createLojaSchema,
+  updateLojaSchema,
+  paginationSchema,
+  idParamSchema,
+} from '@regcheck/validators';
 import type { ApiResponse } from '@regcheck/shared';
 
 export const lojaRouter = Router();

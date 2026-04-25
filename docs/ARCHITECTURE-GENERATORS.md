@@ -71,13 +71,14 @@ Todos os parsers retornam este formato:
 
 ```typescript
 interface ParserOutput<T> {
-  source: string;        // Identificador do parser
-  generatedAt: string;   // ISO timestamp
-  data: T;              // Dados parseados
+  source: string; // Identificador do parser
+  generatedAt: string; // ISO timestamp
+  data: T; // Dados parseados
 }
 ```
 
 **Implementações:**
+
 - `PrismaParserOutput` → `data: PrismaSchema`
 - `RouteParserOutput` → `data: ApiEndpoint[]`
 - `ErrorCodeParserOutput` → `data: ParsedError[]`
@@ -91,6 +92,7 @@ type DocGenerator<T> = (input: T) => string;
 ```
 
 **Características:**
+
 - ✅ Funções puras (sem side effects)
 - ✅ Retornam apenas string (Markdown)
 - ✅ Reutilizam `markdown-formatter.ts`
@@ -98,15 +100,15 @@ type DocGenerator<T> = (input: T) => string;
 
 ## Generators Implementados
 
-| Generator | Input | Output | Status |
-|-----------|-------|--------|--------|
-| `data-model-generator` | `PrismaParserOutput` | `04-modelagem-dados.md` | ✅ |
-| `api-reference-generator` | `RouteParserOutput` | `06-api-reference.md` | ✅ |
-| `error-codes-generator` | `ErrorCodeParserOutput` | `07-codigos-erro.md` | ✅ |
-| `architecture-generator` | `ArchitectureInput` | `01-arquitetura.md` | ✅ |
-| `tech-stack-generator` | `TechStackInput` | `02-stack-tecnologica.md` | ✅ |
-| `infrastructure-generator` | `InfrastructureInput` | `03-infraestrutura.md` | ✅ |
-| `index-generator` | `IndexInput` | `README.md` | ✅ |
+| Generator                  | Input                   | Output                    | Status |
+| -------------------------- | ----------------------- | ------------------------- | ------ |
+| `data-model-generator`     | `PrismaParserOutput`    | `04-modelagem-dados.md`   | ✅     |
+| `api-reference-generator`  | `RouteParserOutput`     | `06-api-reference.md`     | ✅     |
+| `error-codes-generator`    | `ErrorCodeParserOutput` | `07-codigos-erro.md`      | ✅     |
+| `architecture-generator`   | `ArchitectureInput`     | `01-arquitetura.md`       | ✅     |
+| `tech-stack-generator`     | `TechStackInput`        | `02-stack-tecnologica.md` | ✅     |
+| `infrastructure-generator` | `InfrastructureInput`   | `03-infraestrutura.md`    | ✅     |
+| `index-generator`          | `IndexInput`            | `README.md`               | ✅     |
 
 ## Separação de Responsabilidades
 
@@ -116,7 +118,7 @@ type DocGenerator<T> = (input: T) => string;
 // ❌ Generator com lógica de parsing
 function generateDocs(filePath: string) {
   const content = fs.readFileSync(filePath); // ❌ I/O no generator
-  const parsed = parseContent(content);      // ❌ Parsing no generator
+  const parsed = parseContent(content); // ❌ Parsing no generator
   return formatMarkdown(parsed);
 }
 
@@ -135,7 +137,7 @@ function parsePrismaSchema(content: string): PrismaParserOutput {
   return {
     source: 'prisma-parser',
     generatedAt: new Date().toISOString(),
-    data: { models, enums, relationships }
+    data: { models, enums, relationships },
   };
 }
 
@@ -162,7 +164,7 @@ O `file-writer` implementa cache simples:
 if (skipIfUnchanged && fs.existsSync(filepath)) {
   const existingHash = hashContent(existingContent);
   const newHash = hashContent(content);
-  
+
   if (existingHash === newHash) {
     return { written: false, reason: 'Content unchanged' };
   }

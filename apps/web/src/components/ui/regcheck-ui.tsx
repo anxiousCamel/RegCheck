@@ -22,10 +22,7 @@ export function ProgressBar({
 
   return (
     <div className={cn('flex items-center gap-2 w-full', className)}>
-      <div
-        className="flex-1 bg-muted rounded-full overflow-hidden"
-        style={{ height }}
-      >
+      <div className="flex-1 bg-muted rounded-full overflow-hidden" style={{ height }}>
         <div
           className="h-full bg-primary rounded-full transition-all duration-300 ease-in-out"
           style={{ width: `${pct}%` }}
@@ -66,10 +63,7 @@ interface YesNoProps {
 export function YesNo({ value, onChange, className }: YesNoProps) {
   return (
     <div
-      className={cn(
-        'flex p-[3px] rounded-[10px] bg-muted border border-border w-40',
-        className
-      )}
+      className={cn('flex p-[3px] rounded-[10px] bg-muted border border-border w-40', className)}
     >
       {[
         { v: true, label: 'Sim' },
@@ -85,7 +79,7 @@ export function YesNo({ value, onChange, className }: YesNoProps) {
               'flex-1 h-9 rounded-lg border-none font-bold text-sm transition-all duration-150 ease-in-out cursor-pointer',
               active
                 ? 'bg-white shadow-sm ' + (opt.v ? 'text-green-600' : 'text-red-600')
-                : 'bg-transparent text-muted-foreground'
+                : 'bg-transparent text-muted-foreground',
             )}
           >
             {opt.label}

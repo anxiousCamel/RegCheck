@@ -54,41 +54,44 @@ export function useOcr(): UseOcrReturn {
   }, [abortPrevious]);
 
   /** Processa imagem. Estado sempre limpo antes de iniciar. */
-  const process = useCallback(async (image: ImageBitmap) => {
-    abortPrevious();
+  const process = useCallback(
+    async (image: ImageBitmap) => {
+      abortPrevious();
 
-    const controller = new AbortController();
-    abortRef.current = controller;
+      const controller = new AbortController();
+      abortRef.current = controller;
 
-    // Estado limpo — sem resíduo de captura anterior
-    setState({ status: 'processing', candidates: [], progress: null, error: null });
+      // Estado limpo — sem resíduo de captura anterior
+      setState({ status: 'processing', candidates: [], progress: null, error: null });
 
-    try {
-      const result = await runScanPipeline(image, {
-        onProgress: (p) => setState((prev) => ({ ...prev, progress: p })),
-      });
+      try {
+        const result = await runScanPipeline(image, {
+          onProgress: (p) => setState((prev) => ({ ...prev, progress: p })),
+        });
 
-      if (controller.signal.aborted) return;
+        if (controller.signal.aborted) return;
 
-      // Mapeia ScanCandidate → OCRCandidate (normaliza tipo)
-      const candidates: OCRCandidate[] = result.candidates.map((c) => ({
-        value: c.value,
-        confidence: c.confidence,
-        type: c.type === 'asset' ? 'patrimonio' : c.type === 'serial' ? 'serial' : 'unknown',
-      }));
+        // Mapeia ScanCandidate → OCRCandidate (normaliza tipo)
+        const candidates: OCRCandidate[] = result.candidates.map((c) => ({
+          value: c.value,
+          confidence: c.confidence,
+          type: c.type === 'asset' ? 'patrimonio' : c.type === 'serial' ? 'serial' : 'unknown',
+        }));
 
-      console.debug('[useOcr] candidatos disponíveis para o usuário:', candidates);
+        console.debug('[useOcr] candidatos disponíveis para o usuário:', candidates);
 
-      setState({ status: 'done', candidates, progress: null, error: null });
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        setState((prev) => ({ ...prev, status: 'cancelled', progress: null }));
-        return;
+        setState({ status: 'done', candidates, progress: null, error: null });
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          setState((prev) => ({ ...prev, status: 'cancelled', progress: null }));
+          return;
+        }
+        const msg = err instanceof Error ? err.message : 'Erro ao processar imagem';
+        setState({ status: 'error', candidates: [], progress: null, error: msg });
       }
-      const msg = err instanceof Error ? err.message : 'Erro ao processar imagem';
-      setState({ status: 'error', candidates: [], progress: null, error: msg });
-    }
-  }, [abortPrevious]);
+    },
+    [abortPrevious],
+  );
 
   /** Recaptura: aborta anterior, limpa estado. Quem chama deve fornecer nova imagem. */
   const recapture = useCallback(() => {

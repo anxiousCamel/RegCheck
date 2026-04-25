@@ -87,7 +87,7 @@ export const BarcodeService = {
         .map((r) => ({
           type: 'serial' as const,
           value: r.text,
-          confidence: 0.90,
+          confidence: 0.9,
           source: 'barcode' as const,
         }));
     } catch (err) {

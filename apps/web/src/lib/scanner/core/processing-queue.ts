@@ -27,10 +27,7 @@ function processNext(): void {
 }
 
 export const ProcessingQueue = {
-  enqueue<T>(
-    execute: (signal: AbortSignal) => Promise<T>,
-    priority = 0,
-  ): Promise<T> {
+  enqueue<T>(execute: (signal: AbortSignal) => Promise<T>, priority = 0): Promise<T> {
     // Drop oldest low-priority tasks if queue is full
     while (queue.length >= MAX_QUEUE_SIZE) {
       const dropped = queue.shift()!;

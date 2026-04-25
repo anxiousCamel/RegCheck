@@ -7,28 +7,33 @@ This document describes the documentation generation infrastructure for the RegC
 ## Components Created
 
 ### 1. Main Entry Point
+
 - **File**: `scripts/generate-docs.ts`
 - **Purpose**: Main orchestrator for documentation generation
 - **Language**: TypeScript with ESM modules
 - **Execution**: Via `pnpm generate:docs` command
 
 ### 2. Generator Modules Directory
+
 - **Directory**: `scripts/docs/`
 - **Purpose**: Contains modular generator components
 - **Structure**: Each module handles a specific documentation file or extraction task
 
 ### 3. TypeScript Configuration
+
 - **File**: `scripts/tsconfig.json`
 - **Purpose**: TypeScript configuration for scripts directory
 - **Extends**: Root `tsconfig.json`
 - **Target**: ES2022 with ESNext modules
 
 ### 4. Output Directory
+
 - **Directory**: `docs/`
 - **Purpose**: Contains generated documentation files
 - **Structure**: 11 Markdown files with Mermaid diagrams
 
 ### 5. Package Script
+
 - **Script**: `generate:docs` in root `package.json`
 - **Command**: `tsx scripts/generate-docs.ts`
 - **Execution**: `pnpm generate:docs`
@@ -63,11 +68,13 @@ RegCheck/
 ## Usage
 
 ### Generate Documentation
+
 ```bash
 pnpm generate:docs
 ```
 
 ### Development Workflow
+
 1. Create generator modules in `scripts/docs/`
 2. Import and use in `scripts/generate-docs.ts`
 3. Run `pnpm generate:docs` to test
@@ -98,18 +105,21 @@ This setup satisfies the following requirements from Task 1:
 ## Technical Notes
 
 ### Why tsx?
+
 - Direct TypeScript execution without compilation
 - Fast development iteration
 - Consistent with existing project scripts (used in API dev script)
 - Supports ESM modules natively
 
 ### Why ESM Modules?
+
 - Modern JavaScript standard
 - Better tree-shaking
 - Native TypeScript support
 - Consistent with project structure
 
 ### Directory Organization
+
 - `scripts/` - All build/dev scripts
 - `scripts/docs/` - Documentation-specific modules
 - `docs/` - Generated output (committed to version control)

@@ -49,11 +49,12 @@ const loja = await cacheService.wrap(
     // This only executes on cache miss
     return await prisma.loja.findUnique({ where: { id } });
   },
-  120 // TTL in seconds
+  120, // TTL in seconds
 );
 ```
 
 **How it works:**
+
 1. Checks cache for the key
 2. If found (cache hit), returns cached value
 3. If not found (cache miss), executes the provided function
@@ -67,13 +68,16 @@ const loja = await cacheService.wrap(
 Retrieves a value from cache.
 
 **Parameters:**
+
 - `key`: Cache key to retrieve
 
 **Returns:**
+
 - Cached value of type `T` if found
 - `null` if not found or Redis unavailable
 
 **Example:**
+
 ```typescript
 const lojas = await cacheService.get<Loja[]>('lojas:list:page:1');
 if (lojas) {
@@ -87,11 +91,13 @@ if (lojas) {
 Stores a value in cache.
 
 **Parameters:**
+
 - `key`: Cache key
 - `value`: Value to cache (will be JSON serialized)
 - `ttl`: Time to live in seconds (default: 300 = 5 minutes)
 
 **Example:**
+
 ```typescript
 await cacheService.set('lojas:list:page:1', lojas, 300);
 ```
@@ -101,9 +107,11 @@ await cacheService.set('lojas:list:page:1', lojas, 300);
 Deletes a specific cache key.
 
 **Parameters:**
+
 - `key`: Cache key to delete
 
 **Example:**
+
 ```typescript
 await cacheService.del('loja:123');
 ```
@@ -113,9 +121,11 @@ await cacheService.del('loja:123');
 Deletes all keys matching a pattern.
 
 **Parameters:**
+
 - `pattern`: Redis key pattern (supports `*` wildcard)
 
 **Example:**
+
 ```typescript
 // Delete all loja listing caches
 await cacheService.delPattern('lojas:list:*');
@@ -129,21 +139,24 @@ await cacheService.delPattern('loja:123:*');
 Cache-aside pattern implementation.
 
 **Parameters:**
+
 - `key`: Cache key
 - `fn`: Function to execute on cache miss
 - `ttl`: Time to live in seconds (default: 300)
 
 **Returns:**
+
 - Cached value or result of `fn()`
 
 **Example:**
+
 ```typescript
 const equipamentos = await cacheService.wrap(
   'equipamentos:list:page:1',
   async () => {
     return await prisma.equipamento.findMany({ take: 50 });
   },
-  300
+  300,
 );
 ```
 
@@ -153,32 +166,34 @@ Use consistent naming patterns for cache keys:
 
 ```typescript
 // Listings with pagination
-'lojas:list:page:{page}:size:{pageSize}'
-'equipamentos:list:page:{page}:size:{pageSize}'
+'lojas:list:page:{page}:size:{pageSize}';
+'equipamentos:list:page:{page}:size:{pageSize}';
 
 // Detail views
-'loja:{id}'
-'equipamento:{id}'
-'document:{id}'
+'loja:{id}';
+'equipamento:{id}';
+'document:{id}';
 
 // Nested resources
-'loja:{lojaId}:equipamentos'
-'template:{templateId}:fields'
+'loja:{lojaId}:equipamentos';
+'template:{templateId}:fields';
 
 // Aggregations
-'dashboard:stats'
-'reports:summary'
+'dashboard:stats';
+'reports:summary';
 ```
 
 ## Cache Invalidation Strategy
 
 ### On Create
+
 ```typescript
 // Invalidate listing caches
 await cacheService.delPattern('lojas:list:*');
 ```
 
 ### On Update
+
 ```typescript
 // Invalidate specific item and all listings
 await cacheService.del(`loja:${id}`);
@@ -186,6 +201,7 @@ await cacheService.delPattern('lojas:list:*');
 ```
 
 ### On Delete
+
 ```typescript
 // Invalidate specific item and all listings
 await cacheService.del(`loja:${id}`);
@@ -193,6 +209,7 @@ await cacheService.delPattern('lojas:list:*');
 ```
 
 ### Cascading Invalidation
+
 ```typescript
 // When updating an equipamento, also invalidate related loja cache
 await cacheService.del(`equipamento:${id}`);
@@ -204,13 +221,13 @@ await cacheService.del(`loja:${lojaId}:equipamentos`);
 
 Choose appropriate TTL values based on data characteristics:
 
-| Data Type | TTL | Reason |
-|-----------|-----|--------|
-| Static reference data (tipos, setores) | 600s (10 min) | Rarely changes |
-| Listings (lojas, equipamentos) | 300s (5 min) | Moderate change frequency |
-| Detail views | 120s (2 min) | May be updated frequently |
-| User-specific data | 60s (1 min) | Personalized, changes often |
-| Real-time data | 30s | Needs to be fresh |
+| Data Type                              | TTL           | Reason                      |
+| -------------------------------------- | ------------- | --------------------------- |
+| Static reference data (tipos, setores) | 600s (10 min) | Rarely changes              |
+| Listings (lojas, equipamentos)         | 300s (5 min)  | Moderate change frequency   |
+| Detail views                           | 120s (2 min)  | May be updated frequently   |
+| User-specific data                     | 60s (1 min)   | Personalized, changes often |
+| Real-time data                         | 30s           | Needs to be fresh           |
 
 ## Graceful Degradation
 
@@ -221,6 +238,7 @@ The service automatically handles Redis failures:
 - **Timeout**: Logs error, continues without caching
 
 **Example behavior when Redis is down:**
+
 ```typescript
 // get() returns null (cache miss)
 const data = await cacheService.get('key'); // null
@@ -237,20 +255,26 @@ const result = await cacheService.wrap('key', async () => {
 ## Performance Considerations
 
 ### Cache Hit Rate
+
 Monitor cache hit rates to optimize TTL values:
+
 ```typescript
 // Add X-Cache header to responses
 res.setHeader('X-Cache', cached ? 'HIT' : 'MISS');
 ```
 
 ### Memory Usage
+
 Redis memory is limited. Use appropriate TTLs and avoid caching:
+
 - Large binary data (use S3 instead)
 - Frequently changing data
 - User-specific data with low reuse
 
 ### Serialization Cost
+
 JSON serialization has overhead. For very large objects, consider:
+
 - Caching only necessary fields
 - Using compression
 - Storing in database with better indexing
@@ -258,11 +282,13 @@ JSON serialization has overhead. For very large objects, consider:
 ## Testing
 
 ### Unit Tests
+
 ```bash
 npm test -- src/lib/__tests__/cache.test.ts
 ```
 
 ### Integration Tests (requires Redis)
+
 ```bash
 npm test -- src/lib/__tests__/cache.integration.test.ts
 ```
@@ -280,17 +306,20 @@ Monitor these metrics in production:
 ## Troubleshooting
 
 ### Cache Not Working
+
 1. Check Redis connection: `redis.status === 'ready'`
 2. Verify cache keys are consistent
 3. Check TTL hasn't expired
 4. Look for serialization errors in logs
 
 ### Stale Data
+
 1. Verify cache invalidation is called on updates
 2. Check TTL is appropriate for data change frequency
 3. Consider using shorter TTL for frequently updated data
 
 ### Memory Issues
+
 1. Review TTL values (too long?)
 2. Check for cache key leaks (keys never deleted)
 3. Monitor Redis memory usage
@@ -310,6 +339,7 @@ Monitor these metrics in production:
 ## Examples
 
 See `cache.example.ts` for comprehensive usage examples including:
+
 - Basic get/set operations
 - Cache-aside pattern
 - Cache invalidation strategies
@@ -329,6 +359,7 @@ See `cache.example.ts` for comprehensive usage examples including:
 ## Requirements Satisfied
 
 This implementation satisfies:
+
 - **Requirement 6.1**: Redis cache for frequently accessed data
 - **Requirement 6.5**: Graceful degradation when Redis unavailable
 - **Design Section**: Centralized cache service with type safety

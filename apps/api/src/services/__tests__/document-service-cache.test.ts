@@ -65,7 +65,7 @@ describe('DocumentService - Cache Integration', () => {
       expect(cacheService.wrap).toHaveBeenCalledWith(
         'documents:list:page:1:size:10',
         expect.any(Function),
-        60 // 1 minute TTL (highly dynamic data)
+        60, // 1 minute TTL (highly dynamic data)
       );
     });
 
@@ -85,7 +85,7 @@ describe('DocumentService - Cache Integration', () => {
       expect(cacheService.wrap).toHaveBeenCalledWith(
         'documents:list:page:2:size:20',
         expect.any(Function),
-        60
+        60,
       );
     });
   });
@@ -118,7 +118,7 @@ describe('DocumentService - Cache Integration', () => {
       expect(cacheService.wrap).toHaveBeenCalledWith(
         'document:test-id',
         expect.any(Function),
-        60 // 1 minute TTL (highly dynamic data)
+        60, // 1 minute TTL (highly dynamic data)
       );
     });
   });
@@ -149,7 +149,11 @@ describe('DocumentService - Cache Integration', () => {
       vi.mocked(prisma.template.findUnique).mockResolvedValue(mockTemplate as any);
       vi.mocked(prisma.document.create).mockResolvedValue(mockDocument as any);
 
-      await DocumentService.create({ name: 'New Document', templateId: 'template-id', totalItems: 1 });
+      await DocumentService.create({
+        name: 'New Document',
+        templateId: 'template-id',
+        totalItems: 1,
+      });
 
       expect(cacheService.delPattern).toHaveBeenCalledWith('documents:list:*');
     });
@@ -289,7 +293,10 @@ describe('DocumentService - Cache Integration', () => {
       };
 
       vi.mocked(prisma.document.findUnique).mockResolvedValue(mockDocument as any);
-      vi.mocked(prisma.document.update).mockResolvedValue({ ...mockDocument, status: 'GENERATING' } as any);
+      vi.mocked(prisma.document.update).mockResolvedValue({
+        ...mockDocument,
+        status: 'GENERATING',
+      } as any);
 
       await DocumentService.generatePdf('test-id');
 

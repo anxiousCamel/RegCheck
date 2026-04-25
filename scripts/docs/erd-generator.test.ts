@@ -4,12 +4,21 @@
 
 import { describe, it, expect } from 'vitest';
 import { generateERD, generateERDCodeBlock, generatePartialERD } from './erd-generator';
-import type { PrismaSchema, PrismaModel, PrismaRelationship } from './prisma-parser';
+import type { PrismaParserOutput, PrismaSchema } from './prisma-parser';
+
+/** Helper to wrap a PrismaSchema in PrismaParserOutput format */
+function wrapSchema(schema: PrismaSchema): PrismaParserOutput {
+  return {
+    source: 'prisma-parser',
+    generatedAt: new Date().toISOString(),
+    data: schema,
+  };
+}
 
 describe('ERD Generator', () => {
   describe('generateERD', () => {
     it('should generate basic ERD with single entity', () => {
-      const schema: PrismaSchema = {
+      const input = wrapSchema({
         models: [
           {
             name: 'User',
@@ -41,9 +50,9 @@ describe('ERD Generator', () => {
         ],
         enums: [],
         relationships: [],
-      };
+      });
 
-      const result = generateERD(result);
+      const result = generateERD(input);
 
       expect(result).toContain('erDiagram');
       expect(result).toContain('User {');
@@ -53,7 +62,7 @@ describe('ERD Generator', () => {
     });
 
     it('should generate ERD with multiple entities', () => {
-      const schema: PrismaSchema = {
+      const input = wrapSchema({
         models: [
           {
             name: 'User',
@@ -102,9 +111,9 @@ describe('ERD Generator', () => {
         ],
         enums: [],
         relationships: [],
-      };
+      });
 
-      const result = generateERD(result);
+      const result = generateERD(input);
 
       expect(result).toContain('User {');
       expect(result).toContain('Post {');
@@ -113,7 +122,7 @@ describe('ERD Generator', () => {
     });
 
     it('should generate ERD with one-to-many relationship', () => {
-      const schema: PrismaSchema = {
+      const input = wrapSchema({
         models: [
           {
             name: 'User',
@@ -160,15 +169,15 @@ describe('ERD Generator', () => {
             toField: 'posts',
           },
         ],
-      };
+      });
 
-      const result = generateERD(result);
+      const result = generateERD(input);
 
       expect(result).toContain('User ||--o{ Post : "posts"');
     });
 
     it('should generate ERD with many-to-one relationship', () => {
-      const schema: PrismaSchema = {
+      const input = wrapSchema({
         models: [
           {
             name: 'Post',
@@ -214,15 +223,15 @@ describe('ERD Generator', () => {
             fromField: 'author',
           },
         ],
-      };
+      });
 
-      const result = generateERD(result);
+      const result = generateERD(input);
 
       expect(result).toContain('Post }o--|| User : "author"');
     });
 
     it('should handle various Prisma field types', () => {
-      const schema: PrismaSchema = {
+      const input = wrapSchema({
         models: [
           {
             name: 'Entity',
@@ -294,9 +303,9 @@ describe('ERD Generator', () => {
         ],
         enums: [],
         relationships: [],
-      };
+      });
 
-      const result = generateERD(result);
+      const result = generateERD(input);
 
       expect(result).toContain('string id PK');
       expect(result).toContain('int count');
@@ -307,7 +316,7 @@ describe('ERD Generator', () => {
     });
 
     it('should handle array fields', () => {
-      const schema: PrismaSchema = {
+      const input = wrapSchema({
         models: [
           {
             name: 'Entity',
@@ -339,15 +348,15 @@ describe('ERD Generator', () => {
         ],
         enums: [],
         relationships: [],
-      };
+      });
 
-      const result = generateERD(result);
+      const result = generateERD(input);
 
       expect(result).toContain('string[] tags');
     });
 
     it('should handle enum fields', () => {
-      const schema: PrismaSchema = {
+      const input = wrapSchema({
         models: [
           {
             name: 'Template',
@@ -384,15 +393,15 @@ describe('ERD Generator', () => {
           },
         ],
         relationships: [],
-      };
+      });
 
-      const result = generateERD(result);
+      const result = generateERD(input);
 
       expect(result).toContain('templatestatus status');
     });
 
     it('should exclude relation fields from entity definitions', () => {
-      const schema: PrismaSchema = {
+      const input = wrapSchema({
         models: [
           {
             name: 'User',
@@ -425,9 +434,9 @@ describe('ERD Generator', () => {
         ],
         enums: [],
         relationships: [],
-      };
+      });
 
-      const result = generateERD(result);
+      const result = generateERD(input);
 
       expect(result).toContain('User {');
       expect(result).toContain('string id PK');
@@ -435,19 +444,19 @@ describe('ERD Generator', () => {
     });
 
     it('should handle empty schema', () => {
-      const schema: PrismaSchema = {
+      const input = wrapSchema({
         models: [],
         enums: [],
         relationships: [],
-      };
+      });
 
-      const result = generateERD(result);
+      const result = generateERD(input);
 
       expect(result).toBe('erDiagram\n');
     });
 
     it('should handle one-to-one relationship', () => {
-      const schema: PrismaSchema = {
+      const input = wrapSchema({
         models: [
           {
             name: 'User',
@@ -493,15 +502,15 @@ describe('ERD Generator', () => {
             fromField: 'profile',
           },
         ],
-      };
+      });
 
-      const result = generateERD(result);
+      const result = generateERD(input);
 
       expect(result).toContain('User ||--|| Profile : "profile"');
     });
 
     it('should handle many-to-many relationship', () => {
-      const schema: PrismaSchema = {
+      const input = wrapSchema({
         models: [
           {
             name: 'User',
@@ -547,9 +556,9 @@ describe('ERD Generator', () => {
             fromField: 'roles',
           },
         ],
-      };
+      });
 
-      const result = generateERD(result);
+      const result = generateERD(input);
 
       expect(result).toContain('User }o--o{ Role : "roles"');
     });
@@ -557,7 +566,7 @@ describe('ERD Generator', () => {
 
   describe('generateERDCodeBlock', () => {
     it('should wrap ERD in markdown code block', () => {
-      const schema: PrismaSchema = {
+      const input = wrapSchema({
         models: [
           {
             name: 'User',
@@ -579,9 +588,9 @@ describe('ERD Generator', () => {
         ],
         enums: [],
         relationships: [],
-      };
+      });
 
-      const result = generateERDCodeBlock(schema);
+      const result = generateERDCodeBlock(input);
 
       expect(result).toMatch(/^```mermaid\n/);
       expect(result).toMatch(/\n```\n$/);
@@ -592,7 +601,7 @@ describe('ERD Generator', () => {
 
   describe('generatePartialERD', () => {
     it('should generate ERD for subset of models', () => {
-      const schema: PrismaSchema = {
+      const input = wrapSchema({
         models: [
           {
             name: 'User',
@@ -661,9 +670,9 @@ describe('ERD Generator', () => {
             fromField: 'comments',
           },
         ],
-      };
+      });
 
-      const result = generatePartialERD(schema, ['User', 'Post']);
+      const result = generatePartialERD(input, ['User', 'Post']);
 
       expect(result).toContain('User {');
       expect(result).toContain('Post {');
@@ -673,7 +682,7 @@ describe('ERD Generator', () => {
     });
 
     it('should exclude relationships to models not in subset', () => {
-      const schema: PrismaSchema = {
+      const input = wrapSchema({
         models: [
           {
             name: 'User',
@@ -719,9 +728,9 @@ describe('ERD Generator', () => {
             fromField: 'posts',
           },
         ],
-      };
+      });
 
-      const result = generatePartialERD(schema, ['User']);
+      const result = generatePartialERD(input, ['User']);
 
       expect(result).toContain('User {');
       expect(result).not.toContain('Post {');

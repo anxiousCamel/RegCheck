@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Plus, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button, Spinner, Badge, cn } from '@regcheck/ui';
+import { Button, Spinner, Badge } from '@regcheck/ui';
 import { api } from '@/lib/api';
 import { EquipmentFilters } from '@/components/equipment/equipment-filters';
 import type { EquipamentoDTO, LojaDTO, SetorDTO, TipoEquipamentoDTO } from '@regcheck/shared';
@@ -53,12 +53,17 @@ export default function EquipamentosPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b pb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
-             <h1 className="text-2xl sm:text-3xl font-black tracking-tighter uppercase">Equipamentos</h1>
-             {data && (
-                <Badge variant="outline" className="font-bold border-primary/20 text-primary bg-primary/5">
-                  {data.total}
-                </Badge>
-             )}
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tighter uppercase">
+              Equipamentos
+            </h1>
+            {data && (
+              <Badge
+                variant="outline"
+                className="font-bold border-primary/20 text-primary bg-primary/5"
+              >
+                {data.total}
+              </Badge>
+            )}
           </div>
           <p className="text-sm text-muted-foreground font-medium">
             Gerencie o inventário técnico de todas as unidades
@@ -85,7 +90,9 @@ export default function EquipamentosPage() {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4">
           <Spinner className="h-10 w-10 text-primary" />
-          <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Sincronizando inventário...</span>
+          <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+            Sincronizando inventário...
+          </span>
         </div>
       ) : (
         <>
@@ -94,30 +101,55 @@ export default function EquipamentosPage() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b bg-muted/30">
-                  <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-muted-foreground">Localização / Setor</th>
-                  <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-muted-foreground">Tipo</th>
-                  <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-muted-foreground">Identificadores</th>
-                  <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-muted-foreground">Série / Pat.</th>
-                  <th className="text-right px-6 py-4 text-[11px] font-black uppercase tracking-wider text-muted-foreground w-48">Gestão</th>
+                  <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                    Localização / Setor
+                  </th>
+                  <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                    Tipo
+                  </th>
+                  <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                    Identificadores
+                  </th>
+                  <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                    Série / Pat.
+                  </th>
+                  <th className="text-right px-6 py-4 text-[11px] font-black uppercase tracking-wider text-muted-foreground w-48">
+                    Gestão
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((eq) => (
-                  <tr key={eq.id} className="border-b last:border-0 hover:bg-primary/[0.01] transition-colors group">
+                  <tr
+                    key={eq.id}
+                    className="border-b last:border-0 hover:bg-primary/[0.01] transition-colors group"
+                  >
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className="font-bold text-sm text-foreground">{eq.loja?.nome ?? '-'}</span>
-                        <span className="text-xs text-muted-foreground font-medium">{eq.setor?.nome ?? '-'}</span>
+                        <span className="font-bold text-sm text-foreground">
+                          {eq.loja?.nome ?? '-'}
+                        </span>
+                        <span className="text-xs text-muted-foreground font-medium">
+                          {eq.setor?.nome ?? '-'}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <Badge variant="secondary" className="font-bold text-[10px] uppercase">{eq.tipo?.nome ?? '-'}</Badge>
+                      <Badge variant="secondary" className="font-bold text-[10px] uppercase">
+                        {eq.tipo?.nome ?? '-'}
+                      </Badge>
                     </td>
                     <td className="px-6 py-4">
-                       <div className="flex flex-col">
-                         <span className="font-black text-primary text-sm tracking-tight">#{eq.numeroEquipamento}</span>
-                         {eq.glpiId && <span className="text-[10px] text-muted-foreground font-bold uppercase">GLPI: {eq.glpiId}</span>}
-                       </div>
+                      <div className="flex flex-col">
+                        <span className="font-black text-primary text-sm tracking-tight">
+                          #{eq.numeroEquipamento}
+                        </span>
+                        {eq.glpiId && (
+                          <span className="text-[10px] text-muted-foreground font-bold uppercase">
+                            GLPI: {eq.glpiId}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col font-mono text-[11px] text-muted-foreground">
@@ -128,7 +160,11 @@ export default function EquipamentosPage() {
                     <td className="px-6 py-4 text-right">
                       <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                         <Link href={`/equipamentos/${eq.id}/editar`}>
-                          <Button variant="outline" size="sm" className="h-9 border-2 font-bold gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 border-2 font-bold gap-2"
+                          >
                             <Edit className="h-4 w-4" />
                             Editar
                           </Button>
@@ -157,33 +193,53 @@ export default function EquipamentosPage() {
           {/* Mobile cards */}
           <div className="lg:hidden space-y-4">
             {items.map((eq) => (
-              <div key={eq.id} className="border-2 rounded-2xl p-5 bg-card space-y-4 shadow-sm relative overflow-hidden group">
+              <div
+                key={eq.id}
+                className="border-2 rounded-2xl p-5 bg-card space-y-4 shadow-sm relative overflow-hidden group"
+              >
                 <div className="flex justify-between items-start border-b pb-3">
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-black uppercase text-primary/70 tracking-widest">Identificação</span>
-                    <span className="text-xl font-black tracking-tighter text-primary">#{eq.numeroEquipamento}</span>
+                    <span className="text-[10px] font-black uppercase text-primary/70 tracking-widest">
+                      Identificação
+                    </span>
+                    <span className="text-xl font-black tracking-tighter text-primary">
+                      #{eq.numeroEquipamento}
+                    </span>
                   </div>
-                  <Badge variant="secondary" className="font-bold text-[10px] uppercase px-2 py-0.5">
+                  <Badge
+                    variant="secondary"
+                    className="font-bold text-[10px] uppercase px-2 py-0.5"
+                  >
                     {eq.tipo?.nome ?? '-'}
                   </Badge>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-0.5">
-                    <span className="text-[9px] font-black uppercase text-muted-foreground/60">Local</span>
+                    <span className="text-[9px] font-black uppercase text-muted-foreground/60">
+                      Local
+                    </span>
                     <p className="text-xs font-bold truncate">{eq.loja?.nome ?? '-'}</p>
                   </div>
                   <div className="space-y-0.5">
-                    <span className="text-[9px] font-black uppercase text-muted-foreground/60">Setor</span>
+                    <span className="text-[9px] font-black uppercase text-muted-foreground/60">
+                      Setor
+                    </span>
                     <p className="text-xs font-bold truncate">{eq.setor?.nome ?? '-'}</p>
                   </div>
                   <div className="space-y-0.5">
-                    <span className="text-[9px] font-black uppercase text-muted-foreground/60">Série</span>
+                    <span className="text-[9px] font-black uppercase text-muted-foreground/60">
+                      Série
+                    </span>
                     <p className="text-[11px] font-mono font-bold truncate">{eq.serie ?? '-'}</p>
                   </div>
                   <div className="space-y-0.5">
-                    <span className="text-[9px] font-black uppercase text-muted-foreground/60">Patrimônio</span>
-                    <p className="text-[11px] font-mono font-bold truncate">{eq.patrimonio ?? '-'}</p>
+                    <span className="text-[9px] font-black uppercase text-muted-foreground/60">
+                      Patrimônio
+                    </span>
+                    <p className="text-[11px] font-mono font-bold truncate">
+                      {eq.patrimonio ?? '-'}
+                    </p>
                   </div>
                 </div>
 
@@ -215,7 +271,8 @@ export default function EquipamentosPage() {
           {totalPages > 1 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-tight">
-                Página <span className="text-foreground">{page}</span> de <span className="text-foreground">{totalPages}</span>
+                Página <span className="text-foreground">{page}</span> de{' '}
+                <span className="text-foreground">{totalPages}</span>
               </p>
               <div className="flex gap-2 w-full sm:w-auto">
                 <Button

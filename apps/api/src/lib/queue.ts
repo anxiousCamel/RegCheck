@@ -1,9 +1,13 @@
-import { Queue, Worker } from 'bullmq';
+import { Queue, Worker, type ConnectionOptions } from 'bullmq';
 import Redis from 'ioredis';
 
-const connection = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
+const redisInstance = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
 });
+
+// BullMQ ConnectionOptions includes IORedis.Redis, but exactOptionalPropertyTypes
+// causes structural incompatibility between the ioredis instance and the type.
+const connection = redisInstance as ConnectionOptions;
 
 /** Queue for PDF generation jobs */
 export const pdfGenerationQueue = new Queue('pdf-generation', { connection });
@@ -14,9 +18,7 @@ export interface PdfGenerationJobData {
 }
 
 /** Create the PDF generation worker (call once at startup) */
-export function createPdfWorker(
-  processor: (data: PdfGenerationJobData) => Promise<void>,
-): Worker {
+export function createPdfWorker(processor: (data: PdfGenerationJobData) => Promise<void>): Worker {
   return new Worker<PdfGenerationJobData>(
     'pdf-generation',
     async (job) => {
@@ -35,7 +37,13 @@ export async function getJobStatus(documentId: string): Promise<{
   progress: number;
   failedReason?: string;
 } | null> {
-  const jobs = await pdfGenerationQueue.getJobs(['active', 'waiting', 'delayed', 'failed', 'completed']);
+  const jobs = await pdfGenerationQueue.getJobs([
+    'active',
+    'waiting',
+    'delayed',
+    'failed',
+    'completed',
+  ]);
   const job = jobs.find((j) => j.data.documentId === documentId);
   if (!job) return null;
 

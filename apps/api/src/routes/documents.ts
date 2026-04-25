@@ -1,7 +1,13 @@
 import { Router } from 'express';
 import { prisma } from '@regcheck/database';
 import { DocumentService } from '../services/document-service';
-import { createDocumentSchema, updateDocumentSchema, saveFilledDataSchema, populateDocumentSchema, manualSelectSchema } from '@regcheck/validators';
+import {
+  createDocumentSchema,
+  updateDocumentSchema,
+  saveFilledDataSchema,
+  populateDocumentSchema,
+  manualSelectSchema,
+} from '@regcheck/validators';
 import { paginationSchema, idParamSchema } from '@regcheck/validators';
 import type { ApiResponse } from '@regcheck/shared';
 import { getPresignedUrl } from '../lib/s3';
@@ -132,7 +138,8 @@ documentRouter.delete('/:id', async (req, res, next) => {
 });
 
 /** GET /api/documents/:id/download - Download generated PDF */
-documentRouter.get('/:id/download', async (req, res, next) => {  try {
+documentRouter.get('/:id/download', async (req, res, next) => {
+  try {
     const { id } = idParamSchema.parse(req.params);
     const doc = await DocumentService.getById(id);
 
@@ -145,7 +152,9 @@ documentRouter.get('/:id/download', async (req, res, next) => {  try {
     }
 
     const url = await getPresignedUrl(doc.generatedPdfKey);
-    res.json({ success: true, data: { downloadUrl: url } } satisfies ApiResponse<{ downloadUrl: string }>);
+    res.json({ success: true, data: { downloadUrl: url } } satisfies ApiResponse<{
+      downloadUrl: string;
+    }>);
   } catch (err) {
     next(err);
   }

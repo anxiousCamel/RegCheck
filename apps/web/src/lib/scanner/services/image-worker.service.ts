@@ -15,10 +15,9 @@ let workerReady = false;
 
 function getWorker(): Worker {
   if (!worker) {
-    worker = new Worker(
-      new URL('../workers/preprocess.worker.ts', import.meta.url),
-      { type: 'module' },
-    );
+    worker = new Worker(new URL('../workers/preprocess.worker.ts', import.meta.url), {
+      type: 'module',
+    });
     workerReady = true;
   }
   return worker;
@@ -26,7 +25,11 @@ function getWorker(): Worker {
 
 export const ImageWorkerService = {
   /** Preprocess image data in a Web Worker. Returns processed ImageData. */
-  process(imageData: ImageData, params: PreprocessParams, signal?: AbortSignal): Promise<ImageData> {
+  process(
+    imageData: ImageData,
+    params: PreprocessParams,
+    signal?: AbortSignal,
+  ): Promise<ImageData> {
     return new Promise((resolve, reject) => {
       if (signal?.aborted) {
         reject(new DOMException('Cancelled', 'AbortError'));
@@ -94,11 +97,14 @@ function preprocessMainThread(imageData: ImageData, params: PreprocessParams): I
   // Grayscale
   for (let i = 0; i < pixels.length; i += 4) {
     const gray = pixels[i]! * 0.299 + pixels[i + 1]! * 0.587 + pixels[i + 2]! * 0.114;
-    pixels[i] = gray; pixels[i + 1] = gray; pixels[i + 2] = gray;
+    pixels[i] = gray;
+    pixels[i + 1] = gray;
+    pixels[i + 2] = gray;
   }
 
   // Contrast stretch
-  let min = 255, max = 0;
+  let min = 255,
+    max = 0;
   for (let i = 0; i < pixels.length; i += 4) {
     const v = pixels[i]!;
     if (v < min) min = v;
@@ -109,18 +115,20 @@ function preprocessMainThread(imageData: ImageData, params: PreprocessParams): I
     let val = ((pixels[i]! - min) / range) * 255;
     val = (val - 128) * contrast + 128;
     pixels[i] = Math.max(0, Math.min(255, val));
-    pixels[i + 1] = pixels[i]!; pixels[i + 2] = pixels[i]!;
+    pixels[i + 1] = pixels[i]!;
+    pixels[i + 2] = pixels[i]!;
   }
 
   // Binary threshold
   let sum = 0;
   for (let i = 0; i < pixels.length; i += 4) sum += pixels[i]!;
-  const threshold = thresholdOverride && thresholdOverride > 0
-    ? thresholdOverride
-    : sum / (pixels.length / 4);
+  const threshold =
+    thresholdOverride && thresholdOverride > 0 ? thresholdOverride : sum / (pixels.length / 4);
   for (let i = 0; i < pixels.length; i += 4) {
     const val = pixels[i]! > threshold ? 255 : 0;
-    pixels[i] = val; pixels[i + 1] = val; pixels[i + 2] = val;
+    pixels[i] = val;
+    pixels[i + 1] = val;
+    pixels[i + 2] = val;
   }
 
   return new ImageData(pixels, imageData.width, imageData.height);

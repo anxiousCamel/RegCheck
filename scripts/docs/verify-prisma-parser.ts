@@ -10,17 +10,17 @@ try {
   // Read the actual Prisma schema
   const schemaPath = join(process.cwd(), 'packages/database/prisma/schema.prisma');
   const schemaContent = readFileSync(schemaPath, 'utf-8');
-  
+
   const schema = parsePrismaSchema(schemaContent);
-  
+
   const report = {
     success: true,
-    models: schema.models.map(m => ({
+    models: schema.data.models.map((m) => ({
       name: m.name,
       tableName: m.tableName,
       comment: m.comment,
       fieldCount: m.fields.length,
-      fields: m.fields.map(f => ({
+      fields: m.fields.map((f) => ({
         name: f.name,
         type: f.type,
         isPrimaryKey: f.isPrimaryKey,
@@ -29,18 +29,19 @@ try {
         relationTo: f.relationTo,
       })),
     })),
-    enums: schema.enums,
-    relationships: schema.relationships,
+    enums: schema.data.enums,
+    relationships: schema.data.relationships,
   };
-  
+
   writeFileSync(
     join(process.cwd(), 'scripts/docs/parser-test-output.json'),
-    JSON.stringify(report, null, 2)
+    JSON.stringify(report, null, 2),
   );
-  
+
   console.log('✅ Parser test successful! Output written to parser-test-output.json');
-  console.log(`Found ${schema.models.length} models, ${schema.enums.length} enums, ${schema.relationships.length} relationships`);
-  
+  console.log(
+    `Found ${schema.data.models.length} models, ${schema.data.enums.length} enums, ${schema.data.relationships.length} relationships`,
+  );
 } catch (error) {
   console.error('❌ Parser test failed:', error);
   process.exit(1);

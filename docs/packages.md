@@ -64,8 +64,8 @@ const config = {
   itemsPerPage: 4,
   columns: 2,
   rows: 2,
-  offsetX: 0.5,   // cada coluna ocupa 50% da largura
-  offsetY: 0.45,  // cada linha ocupa 45% da altura
+  offsetX: 0.5, // cada coluna ocupa 50% da largura
+  offsetY: 0.45, // cada linha ocupa 45% da altura
   startX: 0.02,
   startY: 0.05,
 };
@@ -89,7 +89,7 @@ Valida se a configuração é internamente consistente. Retorna array de mensage
 const errors = RepetitionEngine.validate({
   itemsPerPage: 10,
   columns: 2,
-  rows: 2,  // capacidade = 4, mas itemsPerPage = 10
+  rows: 2, // capacidade = 4, mas itemsPerPage = 10
   offsetX: 0.5,
   offsetY: 0.45,
 });
@@ -121,7 +121,7 @@ const baseField = {
   id: 'field-numero',
   type: 'text',
   pageIndex: 0,
-  position: { x: 0.05, y: 0.10, width: 0.40, height: 0.05 },
+  position: { x: 0.05, y: 0.1, width: 0.4, height: 0.05 },
   config: { label: 'Número do Equipamento', required: true },
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
@@ -153,19 +153,19 @@ Implementa snap-to-grid para o editor visual. Coordenadas em pixels são arredon
 const grid = new SnapGrid({ cellSize: 10, enabled: true });
 
 // Snap de um valor único
-grid.snap(23);           // → 20
-grid.snap(26);           // → 30
+grid.snap(23); // → 20
+grid.snap(26); // → 30
 
 // Snap de posição x,y
-grid.snapPosition(23, 47);  // → { x: 20, y: 50 }
+grid.snapPosition(23, 47); // → { x: 20, y: 50 }
 
 // Snap de dimensões
-grid.snapSize(43, 18);   // → { width: 40, height: 20 }
+grid.snapSize(43, 18); // → { width: 40, height: 20 }
 
 // Controle em tempo de execução
-grid.setEnabled(false);  // desativa snap
-grid.setCellSize(5);     // muda tamanho da célula
-grid.getConfig();        // → { cellSize: 5, enabled: false }
+grid.setEnabled(false); // desativa snap
+grid.setCellSize(5); // muda tamanho da célula
+grid.getConfig(); // → { cellSize: 5, enabled: false }
 ```
 
 ---
@@ -384,7 +384,13 @@ Pacote de tipos TypeScript compartilhados entre `apps/api`, `apps/web` e os dema
 **Importação:**
 
 ```typescript
-import type { TemplateField, RepetitionConfig, FilledFieldData, FieldPosition, ApiResponse } from '@regcheck/shared';
+import type {
+  TemplateField,
+  RepetitionConfig,
+  FilledFieldData,
+  FieldPosition,
+  ApiResponse,
+} from '@regcheck/shared';
 ```
 
 ---
@@ -396,12 +402,12 @@ Define um campo posicionado sobre uma página do template.
 ```typescript
 interface TemplateField {
   id: string;
-  type: FieldType;           // 'text' | 'image' | 'signature' | 'checkbox'
-  pageIndex: number;         // página base (0-based)
-  position: FieldPosition;   // coordenadas relativas (0–1)
-  config: FieldConfig;       // label, required, fontSize, fontColor, etc.
+  type: FieldType; // 'text' | 'image' | 'signature' | 'checkbox'
+  pageIndex: number; // página base (0-based)
+  position: FieldPosition; // coordenadas relativas (0–1)
+  config: FieldConfig; // label, required, fontSize, fontColor, etc.
   repetitionGroupId?: string; // UUID do grupo de repetição
-  repetitionIndex?: number;   // ordem dentro do grupo
+  repetitionIndex?: number; // ordem dentro do grupo
   createdAt: string;
   updatedAt: string;
 }
@@ -414,7 +420,7 @@ const field: TemplateField = {
   id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   type: 'text',
   pageIndex: 0,
-  position: { x: 0.05, y: 0.12, width: 0.40, height: 0.04 },
+  position: { x: 0.05, y: 0.12, width: 0.4, height: 0.04 },
   config: {
     label: 'Número do Equipamento',
     required: true,
@@ -437,13 +443,13 @@ Configuração do grid de repetição de itens por página.
 
 ```typescript
 interface RepetitionConfig {
-  itemsPerPage: number;  // quantos itens cabem por página
-  columns: number;       // colunas do grid
-  rows: number;          // linhas do grid
-  offsetX: number;       // deslocamento horizontal entre itens (0–1)
-  offsetY: number;       // deslocamento vertical entre itens (0–1)
-  startX?: number;       // posição X inicial do grid (0–1)
-  startY?: number;       // posição Y inicial do grid (0–1)
+  itemsPerPage: number; // quantos itens cabem por página
+  columns: number; // colunas do grid
+  rows: number; // linhas do grid
+  offsetX: number; // deslocamento horizontal entre itens (0–1)
+  offsetY: number; // deslocamento vertical entre itens (0–1)
+  startX?: number; // posição X inicial do grid (0–1)
+  startY?: number; // posição Y inicial do grid (0–1)
 }
 ```
 
@@ -454,7 +460,7 @@ const config: RepetitionConfig = {
   itemsPerPage: 4,
   columns: 2,
   rows: 2,
-  offsetX: 0.50,
+  offsetX: 0.5,
   offsetY: 0.45,
   startX: 0.02,
   startY: 0.05,
@@ -469,10 +475,10 @@ Dado preenchido por um usuário para um campo específico em um item específico
 
 ```typescript
 interface FilledFieldData {
-  fieldId: string;          // UUID do TemplateField
-  itemIndex: number;        // índice do item (0-based)
-  value: string | boolean;  // texto, 'true'/'false' para checkbox
-  fileKey?: string;         // chave S3 para campos image/signature
+  fieldId: string; // UUID do TemplateField
+  itemIndex: number; // índice do item (0-based)
+  value: string | boolean; // texto, 'true'/'false' para checkbox
+  fileKey?: string; // chave S3 para campos image/signature
 }
 ```
 
@@ -510,9 +516,9 @@ Coordenadas relativas de um campo na página. Todos os valores são frações de
 
 ```typescript
 interface FieldPosition {
-  x: number;      // distância da borda esquerda (0 = esquerda, 1 = direita)
-  y: number;      // distância do topo (0 = topo, 1 = base)
-  width: number;  // largura como fração da largura da página
+  x: number; // distância da borda esquerda (0 = esquerda, 1 = direita)
+  y: number; // distância do topo (0 = topo, 1 = base)
+  width: number; // largura como fração da largura da página
   height: number; // altura como fração da altura da página
 }
 ```
@@ -520,7 +526,7 @@ interface FieldPosition {
 **Exemplo — campo ocupando 40% da largura, 5% da altura, posicionado no canto superior esquerdo:**
 
 ```typescript
-const position: FieldPosition = { x: 0.05, y: 0.10, width: 0.40, height: 0.05 };
+const position: FieldPosition = { x: 0.05, y: 0.1, width: 0.4, height: 0.05 };
 ```
 
 > Ver [docs/architecture.md](./architecture.md) e [docs/adr/002-coordenadas-relativas.md](./adr/002-coordenadas-relativas.md) para a justificativa desta decisão.
@@ -653,8 +659,8 @@ Valida a criação de um campo no template.
 const createFieldSchema = z.object({
   type: z.enum(['text', 'image', 'signature', 'checkbox']),
   pageIndex: z.number().int().min(0),
-  position: fieldPositionSchema,  // x, y, width, height todos entre 0 e 1
-  config: fieldConfigSchema,      // label, required, fontSize, fontColor, etc.
+  position: fieldPositionSchema, // x, y, width, height todos entre 0 e 1
+  config: fieldConfigSchema, // label, required, fontSize, fontColor, etc.
   repetitionGroupId: z.string().uuid().optional(),
 });
 ```
@@ -663,7 +669,7 @@ const createFieldSchema = z.object({
 const field = createFieldSchema.parse({
   type: 'text',
   pageIndex: 0,
-  position: { x: 0.05, y: 0.12, width: 0.40, height: 0.04 },
+  position: { x: 0.05, y: 0.12, width: 0.4, height: 0.04 },
   config: { label: 'Número do Equipamento', required: true, fontSize: 11 },
 });
 ```

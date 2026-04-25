@@ -13,6 +13,7 @@ O RegCheck precisa armazenar três categorias de arquivos binários:
 3. **PDFs gerados** — PDFs finais produzidos pelo worker `pdf-generation-worker.ts`. O worker baixa o PDF base via `downloadFile(fileKey)`, aplica os overlays com `pdf-lib` e faz upload do resultado via `uploadFile(key, buffer, 'application/pdf')`. O `fileKey` do PDF gerado é salvo no campo `generatedFileKey` do registro `Document`.
 
 Esses arquivos precisam ser:
+
 - **Persistentes** — sobreviver a reinicializações do servidor
 - **Acessíveis pelo worker** — o `pdf-generation-worker.ts` roda em processo separado e precisa baixar e fazer upload de arquivos sem acesso ao filesystem da API
 - **Servidos com segurança** — o download pelo usuário final deve usar URLs pré-assinadas com expiração, sem expor credenciais
@@ -59,15 +60,16 @@ const url = await getPresignedUrl('pdfs/abc-123.pdf', 3600);
 
 ### Estrutura de chaves no bucket `regcheck`
 
-| Prefixo | Conteúdo | Exemplo |
-|---|---|---|
-| `pdfs/` | PDFs base enviados pelo usuário | `pdfs/550e8400-e29b-41d4-a716-446655440000.pdf` |
-| `images/` | Imagens de campos comprimidas | `images/7c9e6679-7425-40de-944b-e07fc1f90ae7.jpg` |
-| `signatures/` | Assinaturas PNG comprimidas | `signatures/3f2504e0-4f89-11d3-9a0c-0305e82c3301.png` |
+| Prefixo       | Conteúdo                        | Exemplo                                               |
+| ------------- | ------------------------------- | ----------------------------------------------------- |
+| `pdfs/`       | PDFs base enviados pelo usuário | `pdfs/550e8400-e29b-41d4-a716-446655440000.pdf`       |
+| `images/`     | Imagens de campos comprimidas   | `images/7c9e6679-7425-40de-944b-e07fc1f90ae7.jpg`     |
+| `signatures/` | Assinaturas PNG comprimidas     | `signatures/3f2504e0-4f89-11d3-9a0c-0305e82c3301.png` |
 
 ### Configuração local (MinIO via Docker)
 
 O MinIO é iniciado via `pnpm infra:up` (definido em `infra/docker-compose.yml`):
+
 - API S3: `http://localhost:9000`
 - Console web: `http://localhost:9001`
 - Credenciais padrão: `minioadmin` / `minioadmin`

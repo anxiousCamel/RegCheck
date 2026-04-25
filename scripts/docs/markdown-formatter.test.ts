@@ -1,19 +1,12 @@
 /**
  * Unit tests for Markdown Formatter Utilities
- * 
+ *
  * Tests all markdown generation functions to ensure they produce valid,
  * well-formatted Markdown output.
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  heading,
-  codeBlock,
-  table,
-  list,
-  link,
-  mermaidDiagram,
-} from './markdown-formatter';
+import { heading, codeBlock, table, list, link, mermaidDiagram } from './markdown-formatter';
 
 describe('Markdown Formatter', () => {
   describe('heading', () => {
@@ -83,14 +76,14 @@ describe('Markdown Formatter', () => {
   describe('table', () => {
     it('should generate table with headers and rows', () => {
       const headers = ['Name', 'Type'];
-      const rows = [['id', 'string'], ['name', 'string']];
+      const rows = [
+        ['id', 'string'],
+        ['name', 'string'],
+      ];
       const result = table(headers, rows);
-      
+
       expect(result).toBe(
-        '| Name | Type |\n' +
-        '|---|---|\n' +
-        '| id | string |\n' +
-        '| name | string |\n\n'
+        '| Name | Type |\n' + '|---|---|\n' + '| id | string |\n' + '| name | string |\n\n',
       );
     });
 
@@ -102,7 +95,7 @@ describe('Markdown Formatter', () => {
         ['age', 'number', 'no'],
       ];
       const result = table(headers, rows);
-      
+
       expect(result).toContain('| Field | Type | Required |');
       expect(result).toContain('|---|---|---|');
       expect(result).toContain('| id | string | yes |');
@@ -114,30 +107,23 @@ describe('Markdown Formatter', () => {
       const headers = ['Name', 'Value'];
       const rows = [['status', 'active']];
       const result = table(headers, rows);
-      
-      expect(result).toBe(
-        '| Name | Value |\n' +
-        '|---|---|\n' +
-        '| status | active |\n\n'
-      );
+
+      expect(result).toBe('| Name | Value |\n' + '|---|---|\n' + '| status | active |\n\n');
     });
 
     it('should generate table with empty rows', () => {
       const headers = ['Column1', 'Column2'];
       const rows: string[][] = [];
       const result = table(headers, rows);
-      
-      expect(result).toBe(
-        '| Column1 | Column2 |\n' +
-        '|---|---|\n\n'
-      );
+
+      expect(result).toBe('| Column1 | Column2 |\n' + '|---|---|\n\n');
     });
 
     it('should handle cells with special characters', () => {
       const headers = ['Name', 'Description'];
       const rows = [['API & SDK', 'REST | GraphQL']];
       const result = table(headers, rows);
-      
+
       expect(result).toContain('| API & SDK | REST | GraphQL |');
     });
   });
@@ -146,53 +132,42 @@ describe('Markdown Formatter', () => {
     it('should generate unordered list', () => {
       const items = ['First', 'Second', 'Third'];
       const result = list(items, false);
-      
-      expect(result).toBe(
-        '- First\n' +
-        '- Second\n' +
-        '- Third\n\n'
-      );
+
+      expect(result).toBe('- First\n' + '- Second\n' + '- Third\n\n');
     });
 
     it('should generate ordered list', () => {
       const items = ['First', 'Second', 'Third'];
       const result = list(items, true);
-      
-      expect(result).toBe(
-        '1. First\n' +
-        '2. Second\n' +
-        '3. Third\n\n'
-      );
+
+      expect(result).toBe('1. First\n' + '2. Second\n' + '3. Third\n\n');
     });
 
     it('should default to unordered list when ordered parameter is omitted', () => {
       const items = ['Item A', 'Item B'];
       const result = list(items);
-      
-      expect(result).toBe(
-        '- Item A\n' +
-        '- Item B\n\n'
-      );
+
+      expect(result).toBe('- Item A\n' + '- Item B\n\n');
     });
 
     it('should handle single item list', () => {
       const items = ['Only one'];
       const result = list(items, false);
-      
+
       expect(result).toBe('- Only one\n\n');
     });
 
     it('should handle empty list', () => {
       const items: string[] = [];
       const result = list(items, false);
-      
+
       expect(result).toBe('\n\n');
     });
 
     it('should handle items with special characters', () => {
       const items = ['Item with & ampersand', 'Item with | pipe'];
       const result = list(items, false);
-      
+
       expect(result).toContain('- Item with & ampersand');
       expect(result).toContain('- Item with | pipe');
     });
@@ -230,26 +205,17 @@ describe('Markdown Formatter', () => {
       const type = 'graph TB';
       const content = 'A --> B\nB --> C';
       const result = mermaidDiagram(type, content);
-      
-      expect(result).toBe(
-        '```mermaid\n' +
-        'graph TB\n' +
-        'A --> B\n' +
-        'B --> C\n' +
-        '```\n\n'
-      );
+
+      expect(result).toBe('```mermaid\n' + 'graph TB\n' + 'A --> B\n' + 'B --> C\n' + '```\n\n');
     });
 
     it('should generate erDiagram', () => {
       const type = 'erDiagram';
       const content = 'USER ||--o{ ORDER : places';
       const result = mermaidDiagram(type, content);
-      
+
       expect(result).toBe(
-        '```mermaid\n' +
-        'erDiagram\n' +
-        'USER ||--o{ ORDER : places\n' +
-        '```\n\n'
+        '```mermaid\n' + 'erDiagram\n' + 'USER ||--o{ ORDER : places\n' + '```\n\n',
       );
     });
 
@@ -257,13 +223,13 @@ describe('Markdown Formatter', () => {
       const type = 'sequenceDiagram';
       const content = 'Alice->>Bob: Hello\nBob-->>Alice: Hi';
       const result = mermaidDiagram(type, content);
-      
+
       expect(result).toBe(
         '```mermaid\n' +
-        'sequenceDiagram\n' +
-        'Alice->>Bob: Hello\n' +
-        'Bob-->>Alice: Hi\n' +
-        '```\n\n'
+          'sequenceDiagram\n' +
+          'Alice->>Bob: Hello\n' +
+          'Bob-->>Alice: Hi\n' +
+          '```\n\n',
       );
     });
 
@@ -278,7 +244,7 @@ describe('Markdown Formatter', () => {
         'WEB --> API',
       ].join('\n');
       const result = mermaidDiagram(type, content);
-      
+
       expect(result).toContain('```mermaid');
       expect(result).toContain('graph TB');
       expect(result).toContain('subgraph Apps');

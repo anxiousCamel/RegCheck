@@ -3,14 +3,7 @@
  * Demonstrates all functions and their output
  */
 
-import {
-  heading,
-  codeBlock,
-  table,
-  list,
-  link,
-  mermaidDiagram,
-} from './markdown-formatter';
+import { heading, codeBlock, table, list, link, mermaidDiagram } from './markdown-formatter';
 
 console.log('=== Markdown Formatter Verification ===\n');
 

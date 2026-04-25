@@ -116,9 +116,11 @@ This generates a complete API reference document with all resources sorted alpha
 Formats a single API endpoint into Markdown documentation.
 
 **Parameters:**
+
 - `endpoint` - The API endpoint to format
 
 **Returns:** Formatted Markdown string with:
+
 - Heading (level 3) with method and path
 - Description
 - Parameters section (table or "Nenhum")
@@ -130,9 +132,11 @@ Formats a single API endpoint into Markdown documentation.
 Formats parameters into a Markdown table.
 
 **Parameters:**
+
 - `parameters` - Array of parameters to format
 
 **Returns:** Markdown table with columns:
+
 - Nome (Name)
 - Localização (Location: path, query, header)
 - Tipo (Type)
@@ -144,9 +148,11 @@ Formats parameters into a Markdown table.
 Formats request body information.
 
 **Parameters:**
+
 - `requestBody` - Request body information
 
 **Returns:** Markdown with:
+
 - Content-Type
 - Schema name (if available)
 - Description
@@ -156,9 +162,11 @@ Formats request body information.
 Formats response information.
 
 **Parameters:**
+
 - `responses` - Array of responses to format
 
 **Returns:** Markdown with each response showing:
+
 - Status label (Sucesso for 2xx, Erro for others)
 - Status code
 - Description
@@ -169,10 +177,12 @@ Formats response information.
 Formats multiple endpoints grouped by resource.
 
 **Parameters:**
+
 - `resourceName` - Name of the resource (e.g., 'templates', 'documents')
 - `endpoints` - Array of endpoints for this resource
 
 **Returns:** Markdown with:
+
 - Resource heading (level 2)
 - All endpoints formatted with `formatEndpoint()`
 
@@ -181,10 +191,12 @@ Formats multiple endpoints grouped by resource.
 Generates an example request for an endpoint.
 
 **Parameters:**
+
 - `endpoint` - The API endpoint
 - `exampleData` - Example data object
 
 **Returns:** Markdown with:
+
 - Example heading
 - HTTP request line in code block
 - Request body JSON (if applicable)
@@ -194,10 +206,12 @@ Generates an example request for an endpoint.
 Generates an example response.
 
 **Parameters:**
+
 - `statusCode` - HTTP status code
 - `exampleData` - Example response data object
 
 **Returns:** Markdown with:
+
 - Response heading with status code
 - JSON response in code block
 
@@ -206,6 +220,7 @@ Generates an example response.
 Formats complete API documentation with all resources.
 
 **Parameters:**
+
 - `endpointsByResource` - Map of resource names to their endpoints
 
 **Returns:** Complete formatted API documentation with resources sorted alphabetically

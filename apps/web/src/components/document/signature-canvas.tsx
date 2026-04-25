@@ -14,7 +14,12 @@ interface SignatureCanvasProps {
  * Canvas-based signature drawing component.
  * Captures mouse/touch input and outputs a PNG data URL.
  */
-export function SignatureCanvas({ value, onChange, width = 400, height = 150 }: SignatureCanvasProps) {
+export function SignatureCanvas({
+  value,
+  onChange,
+  width = 400,
+  height = 150,
+}: SignatureCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasContent, setHasContent] = useState(false);
@@ -36,22 +41,19 @@ export function SignatureCanvas({ value, onChange, width = 400, height = 150 }: 
     }
   }, [value, width, height]);
 
-  const getPosition = useCallback(
-    (e: React.MouseEvent | React.TouchEvent) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return { x: 0, y: 0 };
-      const rect = canvas.getBoundingClientRect();
+  const getPosition = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
 
-      if ('touches' in e) {
-        const touch = e.touches[0];
-        if (!touch) return { x: 0, y: 0 };
-        return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
-      }
+    if ('touches' in e) {
+      const touch = e.touches[0];
+      if (!touch) return { x: 0, y: 0 };
+      return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+    }
 
-      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    },
-    [],
-  );
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }, []);
 
   const startDrawing = useCallback(
     (e: React.MouseEvent | React.TouchEvent) => {

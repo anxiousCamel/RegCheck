@@ -73,7 +73,7 @@ describe('CacheService', () => {
         'test-key',
         JSON.stringify({ data: 'value' }),
         'EX',
-        300
+        300,
       );
     });
 
@@ -86,16 +86,14 @@ describe('CacheService', () => {
         'test-key',
         JSON.stringify({ data: 'value' }),
         'EX',
-        600
+        600,
       );
     });
 
     it('should handle Redis errors gracefully without throwing', async () => {
       vi.mocked(redis.set).mockRejectedValue(new Error('Connection lost'));
 
-      await expect(
-        cacheService.set('test-key', { data: 'value' })
-      ).resolves.toBeUndefined();
+      await expect(cacheService.set('test-key', { data: 'value' })).resolves.toBeUndefined();
     });
 
     it('should serialize complex objects correctly', async () => {
@@ -109,12 +107,7 @@ describe('CacheService', () => {
 
       await cacheService.set('test-key', complexData);
 
-      expect(redis.set).toHaveBeenCalledWith(
-        'test-key',
-        JSON.stringify(complexData),
-        'EX',
-        300
-      );
+      expect(redis.set).toHaveBeenCalledWith('test-key', JSON.stringify(complexData), 'EX', 300);
     });
   });
 
@@ -149,7 +142,7 @@ describe('CacheService', () => {
       expect(redis.del).toHaveBeenCalledWith(
         'lojas:list:page:1',
         'lojas:list:page:2',
-        'lojas:list:page:3'
+        'lojas:list:page:3',
       );
     });
 
@@ -165,9 +158,7 @@ describe('CacheService', () => {
     it('should handle Redis errors gracefully', async () => {
       vi.mocked(redis.keys).mockRejectedValue(new Error('Connection lost'));
 
-      await expect(
-        cacheService.delPattern('test:*')
-      ).resolves.toBeUndefined();
+      await expect(cacheService.delPattern('test:*')).resolves.toBeUndefined();
     });
   });
 
@@ -196,16 +187,11 @@ describe('CacheService', () => {
 
       expect(result).toEqual(freshData);
       expect(fn).toHaveBeenCalledTimes(1);
-      
+
       // Wait for async set to complete
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
-      expect(redis.set).toHaveBeenCalledWith(
-        'test-key',
-        JSON.stringify(freshData),
-        'EX',
-        300
-      );
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(redis.set).toHaveBeenCalledWith('test-key', JSON.stringify(freshData), 'EX', 300);
     });
 
     it('should use custom TTL when provided', async () => {
@@ -218,14 +204,9 @@ describe('CacheService', () => {
       await cacheService.wrap('test-key', fn, 600);
 
       // Wait for async set to complete
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
-      expect(redis.set).toHaveBeenCalledWith(
-        'test-key',
-        JSON.stringify(freshData),
-        'EX',
-        600
-      );
+      expect(redis.set).toHaveBeenCalledWith('test-key', JSON.stringify(freshData), 'EX', 600);
     });
 
     it('should return fresh data even if cache set fails', async () => {
@@ -246,9 +227,7 @@ describe('CacheService', () => {
 
       const fn = vi.fn().mockRejectedValue(new Error('Function failed'));
 
-      await expect(cacheService.wrap('test-key', fn)).rejects.toThrow(
-        'Function failed'
-      );
+      await expect(cacheService.wrap('test-key', fn)).rejects.toThrow('Function failed');
     });
   });
 
@@ -264,9 +243,7 @@ describe('CacheService', () => {
       expect(getResult).toBeNull();
 
       // Set should not throw
-      await expect(
-        cacheService.set('test-key', { data: 'value' })
-      ).resolves.toBeUndefined();
+      await expect(cacheService.set('test-key', { data: 'value' })).resolves.toBeUndefined();
 
       // Del should not throw
       await expect(cacheService.del('test-key')).resolves.toBeUndefined();

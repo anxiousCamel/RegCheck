@@ -93,11 +93,7 @@ describe('TemplatePaginator.compute', () => {
 
 describe('TemplatePaginator.validate', () => {
   it('passes a well-formed template', () => {
-    const fields = [
-      makeField('a', 'item', 0),
-      makeField('b', 'item', 1),
-      makeField('c', 'global'),
-    ];
+    const fields = [makeField('a', 'item', 0), makeField('b', 'item', 1), makeField('c', 'global')];
     expect(TemplatePaginator.validate(fields)).toHaveLength(0);
   });
 

@@ -1,6 +1,6 @@
 /**
  * Markdown Validator
- * 
+ *
  * Validates Markdown syntax and structure to ensure generated documentation
  * is well-formed and follows best practices.
  */
@@ -19,39 +19,39 @@ export interface MarkdownValidationResult {
 
 /**
  * Validates Markdown content
- * 
+ *
  * @param content - Markdown content to validate
  * @param filename - Optional filename for better error messages
  * @returns Validation result with errors and warnings
  */
-export function validateMarkdown(content: string, filename?: string): MarkdownValidationResult {
+export function validateMarkdown(content: string, _filename?: string): MarkdownValidationResult {
   const errors: MarkdownValidationError[] = [];
   const warnings: string[] = [];
-  
+
   // Validate heading structure
   const headingErrors = validateHeadings(content);
   errors.push(...headingErrors);
-  
+
   // Validate code blocks
   const codeBlockErrors = validateCodeBlocks(content);
   errors.push(...codeBlockErrors);
-  
+
   // Validate tables
   const tableErrors = validateTables(content);
   errors.push(...tableErrors);
-  
+
   // Validate links
   const linkErrors = validateLinks(content);
   errors.push(...linkErrors);
-  
+
   // Validate basic structure
   const structureErrors = validateStructure(content);
   errors.push(...structureErrors);
-  
+
   // Check for common issues
   const commonWarnings = checkCommonIssues(content);
   warnings.push(...commonWarnings);
-  
+
   return {
     valid: errors.length === 0,
     errors,
@@ -68,23 +68,23 @@ export function validateMarkdown(content: string, filename?: string): MarkdownVa
 function validateHeadings(content: string): MarkdownValidationError[] {
   const errors: MarkdownValidationError[] = [];
   const lines = content.split('\n');
-  
+
   let hasH1 = false;
   let previousLevel = 0;
-  
+
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i] ?? '';
     const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-    
+
     if (headingMatch) {
-      const level = headingMatch[1].length;
-      const text = headingMatch[2].trim();
-      
+      const level = headingMatch[1]?.length ?? 0;
+      const text = headingMatch[2]?.trim() ?? '';
+
       // Check for h1
       if (level === 1) {
         hasH1 = true;
       }
-      
+
       // Check for empty heading
       if (!text) {
         errors.push({
@@ -93,7 +93,7 @@ function validateHeadings(content: string): MarkdownValidationError[] {
           line: i + 1,
         });
       }
-      
+
       // Check for skipped levels
       if (previousLevel > 0 && level > previousLevel + 1) {
         errors.push({
@@ -102,11 +102,11 @@ function validateHeadings(content: string): MarkdownValidationError[] {
           line: i + 1,
         });
       }
-      
+
       previousLevel = level;
     }
   }
-  
+
   // Check if document has h1
   if (!hasH1) {
     errors.push({
@@ -114,7 +114,7 @@ function validateHeadings(content: string): MarkdownValidationError[] {
       message: 'Document must have at least one h1 heading',
     });
   }
-  
+
   return errors;
 }
 
@@ -124,13 +124,13 @@ function validateHeadings(content: string): MarkdownValidationError[] {
 function validateCodeBlocks(content: string): MarkdownValidationError[] {
   const errors: MarkdownValidationError[] = [];
   const lines = content.split('\n');
-  
+
   let inCodeBlock = false;
   let codeBlockStartLine = 0;
-  
+
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    
+    const line = lines[i] ?? '';
+
     if (line.startsWith('```')) {
       if (inCodeBlock) {
         // Closing code block
@@ -142,7 +142,7 @@ function validateCodeBlocks(content: string): MarkdownValidationError[] {
       }
     }
   }
-  
+
   // Check if code block is still open
   if (inCodeBlock) {
     errors.push({
@@ -151,7 +151,7 @@ function validateCodeBlocks(content: string): MarkdownValidationError[] {
       line: codeBlockStartLine,
     });
   }
-  
+
   return errors;
 }
 
@@ -163,27 +163,25 @@ function validateCodeBlocks(content: string): MarkdownValidationError[] {
 function validateTables(content: string): MarkdownValidationError[] {
   const errors: MarkdownValidationError[] = [];
   const lines = content.split('\n');
-  
+
   let inTable = false;
-  let tableStartLine = 0;
   let expectedColumns = 0;
-  
+
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    
+    const line = (lines[i] ?? '').trim();
+
     // Check if line is a table row
     if (line.startsWith('|') && line.endsWith('|')) {
-      const columns = line.split('|').filter(c => c.trim()).length;
-      
+      const columns = line.split('|').filter((c) => c.trim()).length;
+
       if (!inTable) {
         // First row of table
         inTable = true;
-        tableStartLine = i + 1;
         expectedColumns = columns;
-        
+
         // Next line should be separator
         if (i + 1 < lines.length) {
-          const nextLine = lines[i + 1].trim();
+          const nextLine = (lines[i + 1] ?? '').trim();
           if (!nextLine.match(/^\|[\s\-:|]+\|$/)) {
             errors.push({
               type: 'table',
@@ -207,7 +205,7 @@ function validateTables(content: string): MarkdownValidationError[] {
       inTable = false;
     }
   }
-  
+
   return errors;
 }
 
@@ -220,17 +218,17 @@ function validateTables(content: string): MarkdownValidationError[] {
 function validateLinks(content: string): MarkdownValidationError[] {
   const errors: MarkdownValidationError[] = [];
   const lines = content.split('\n');
-  
+
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    
+    const line = lines[i] ?? '';
+
     // Find all markdown links
     const linkMatches = line.matchAll(/\[([^\]]*)\]\(([^)]*)\)/g);
-    
+
     for (const match of linkMatches) {
-      const text = match[1];
-      const url = match[2];
-      
+      const text = match[1] ?? '';
+      const url = match[2] ?? '';
+
       // Check for empty link text
       if (!text.trim()) {
         errors.push({
@@ -239,7 +237,7 @@ function validateLinks(content: string): MarkdownValidationError[] {
           line: i + 1,
         });
       }
-      
+
       // Check for empty URL
       if (!url.trim()) {
         errors.push({
@@ -248,7 +246,7 @@ function validateLinks(content: string): MarkdownValidationError[] {
           line: i + 1,
         });
       }
-      
+
       // Check for malformed URLs
       if (url.includes(' ') && !url.startsWith('#')) {
         errors.push({
@@ -259,7 +257,7 @@ function validateLinks(content: string): MarkdownValidationError[] {
       }
     }
   }
-  
+
   return errors;
 }
 
@@ -268,7 +266,7 @@ function validateLinks(content: string): MarkdownValidationError[] {
  */
 function validateStructure(content: string): MarkdownValidationError[] {
   const errors: MarkdownValidationError[] = [];
-  
+
   // Check if document is empty
   if (!content.trim()) {
     errors.push({
@@ -277,7 +275,7 @@ function validateStructure(content: string): MarkdownValidationError[] {
     });
     return errors;
   }
-  
+
   // Check minimum length
   if (content.length < 100) {
     errors.push({
@@ -285,7 +283,7 @@ function validateStructure(content: string): MarkdownValidationError[] {
       message: 'Document is too short (less than 100 characters)',
     });
   }
-  
+
   // Check for at least one section (h2)
   if (!content.match(/^##\s+/m)) {
     errors.push({
@@ -293,7 +291,7 @@ function validateStructure(content: string): MarkdownValidationError[] {
       message: 'Document should have at least one section (h2)',
     });
   }
-  
+
   return errors;
 }
 
@@ -302,57 +300,62 @@ function validateStructure(content: string): MarkdownValidationError[] {
  */
 function checkCommonIssues(content: string): string[] {
   const warnings: string[] = [];
-  
+
   // Check for very long lines
   const lines = content.split('\n');
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i] ?? '';
     if (!line.startsWith('```') && !line.startsWith('|') && line.length > 120) {
       warnings.push(`Line ${i + 1} is very long (${line.length} characters)`);
     }
   }
-  
+
   // Check for multiple consecutive blank lines
   for (let i = 0; i < lines.length - 2; i++) {
-    if (!lines[i].trim() && !lines[i + 1].trim() && !lines[i + 2].trim()) {
+    if (!(lines[i] ?? '').trim() && !(lines[i + 1] ?? '').trim() && !(lines[i + 2] ?? '').trim()) {
       warnings.push(`Multiple consecutive blank lines at line ${i + 1}`);
       break;
     }
   }
-  
+
   // Check for trailing whitespace
-  const trailingWhitespaceCount = lines.filter(l => l !== l.trimEnd()).length;
+  const trailingWhitespaceCount = lines.filter((l) => l !== l.trimEnd()).length;
   if (trailingWhitespaceCount > 0) {
     warnings.push(`${trailingWhitespaceCount} lines have trailing whitespace`);
   }
-  
+
   return warnings;
 }
 
 /**
  * Validates multiple markdown files
  */
-export function validateMarkdownFiles(files: Array<{ path: string; content: string }>): Map<string, MarkdownValidationResult> {
+export function validateMarkdownFiles(
+  files: Array<{ path: string; content: string }>,
+): Map<string, MarkdownValidationResult> {
   const results = new Map<string, MarkdownValidationResult>();
-  
+
   for (const file of files) {
     const result = validateMarkdown(file.content, file.path);
     results.set(file.path, result);
   }
-  
+
   return results;
 }
 
 /**
  * Formats validation errors for display
  */
-export function formatValidationErrors(result: MarkdownValidationResult, filename?: string): string {
+export function formatValidationErrors(
+  result: MarkdownValidationResult,
+  filename?: string,
+): string {
   let output = '';
-  
+
   if (filename) {
     output += `\n${filename}:\n`;
   }
-  
+
   if (result.errors.length > 0) {
     output += `  ❌ ${result.errors.length} error(s):\n`;
     for (const error of result.errors) {
@@ -360,17 +363,17 @@ export function formatValidationErrors(result: MarkdownValidationResult, filenam
       output += `     - [${error.type}]${location} ${error.message}\n`;
     }
   }
-  
+
   if (result.warnings.length > 0) {
     output += `  ⚠️  ${result.warnings.length} warning(s):\n`;
     for (const warning of result.warnings) {
       output += `     - ${warning}\n`;
     }
   }
-  
+
   if (result.valid) {
     output += `  ✅ Valid\n`;
   }
-  
+
   return output;
 }

@@ -82,9 +82,7 @@ describe('DELETE /api/documents/:id', () => {
   });
 
   it('returns 500 INTERNAL_ERROR on database failure', async () => {
-    vi.mocked(DocumentService.delete).mockRejectedValueOnce(
-      new Error('Database connection lost'),
-    );
+    vi.mocked(DocumentService.delete).mockRejectedValueOnce(new Error('Database connection lost'));
 
     const res = await request(app).delete(`/api/documents/${VALID_UUID}`);
 

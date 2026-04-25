@@ -26,8 +26,9 @@ export function AppSidebar() {
       <nav className="flex-1 p-2 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-          
+          const isActive =
+            pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+
           return (
             <Link
               key={item.href}
@@ -40,7 +41,14 @@ export function AppSidebar() {
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               )}
             >
-              <Icon className={cn("h-4 w-4 transition-transform group-hover:scale-110", isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
+              <Icon
+                className={cn(
+                  'h-4 w-4 transition-transform group-hover:scale-110',
+                  isActive
+                    ? 'text-primary-foreground'
+                    : 'text-muted-foreground group-hover:text-foreground',
+                )}
+              />
               {item.label}
             </Link>
           );

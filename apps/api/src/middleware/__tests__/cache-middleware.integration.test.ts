@@ -6,7 +6,7 @@ import { redis } from '../../lib/redis';
 
 /**
  * Integration tests for cache middleware with real Redis
- * 
+ *
  * If Redis is not available, these tests will be skipped automatically.
  */
 
@@ -30,7 +30,7 @@ describe('cacheMiddleware integration', () => {
 
   beforeEach(async () => {
     if (!isRedisAvailable) return;
-    
+
     // Clear Redis before each test
     await redis.flushall();
 
@@ -41,71 +41,65 @@ describe('cacheMiddleware integration', () => {
 
   afterEach(async () => {
     if (!isRedisAvailable) return;
-    
+
     // Clean up Redis after tests
     await redis.flushall();
   });
 
-  it.skipIf(!isRedisAvailable)('should cache GET responses and return X-Cache headers', async () => {
-    let callCount = 0;
+  it.skipIf(!isRedisAvailable)(
+    'should cache GET responses and return X-Cache headers',
+    async () => {
+      let callCount = 0;
 
-    app.get(
-      '/api/test',
-      cacheMiddleware({ ttl: 60 }),
-      (req, res) => {
+      app.get('/api/test', cacheMiddleware({ ttl: 60 }), (req, res) => {
         callCount++;
         res.json({ data: 'test', timestamp: Date.now() });
-      }
-    );
+      });
 
-    // First request - cache miss
-    const response1 = await request(app).get('/api/test');
-    expect(response1.status).toBe(200);
-    expect(response1.headers['x-cache']).toBe('MISS');
-    expect(callCount).toBe(1);
+      // First request - cache miss
+      const response1 = await request(app).get('/api/test');
+      expect(response1.status).toBe(200);
+      expect(response1.headers['x-cache']).toBe('MISS');
+      expect(callCount).toBe(1);
 
-    // Second request - cache hit
-    const response2 = await request(app).get('/api/test');
-    expect(response2.status).toBe(200);
-    expect(response2.headers['x-cache']).toBe('HIT');
-    expect(response2.body).toEqual(response1.body); // Same response
-    expect(callCount).toBe(1); // Handler not called again
-  });
+      // Second request - cache hit
+      const response2 = await request(app).get('/api/test');
+      expect(response2.status).toBe(200);
+      expect(response2.headers['x-cache']).toBe('HIT');
+      expect(response2.body).toEqual(response1.body); // Same response
+      expect(callCount).toBe(1); // Handler not called again
+    },
+  );
 
-  it.skipIf(!isRedisAvailable)('should cache responses with query parameters separately', async () => {
-    app.get(
-      '/api/items',
-      cacheMiddleware({ ttl: 60 }),
-      (req, res) => {
+  it.skipIf(!isRedisAvailable)(
+    'should cache responses with query parameters separately',
+    async () => {
+      app.get('/api/items', cacheMiddleware({ ttl: 60 }), (req, res) => {
         res.json({ page: req.query.page, data: ['item1', 'item2'] });
-      }
-    );
+      });
 
-    // Request with page=1
-    const response1 = await request(app).get('/api/items?page=1');
-    expect(response1.headers['x-cache']).toBe('MISS');
+      // Request with page=1
+      const response1 = await request(app).get('/api/items?page=1');
+      expect(response1.headers['x-cache']).toBe('MISS');
 
-    // Request with page=2 - different cache key
-    const response2 = await request(app).get('/api/items?page=2');
-    expect(response2.headers['x-cache']).toBe('MISS');
+      // Request with page=2 - different cache key
+      const response2 = await request(app).get('/api/items?page=2');
+      expect(response2.headers['x-cache']).toBe('MISS');
 
-    // Request with page=1 again - cache hit
-    const response3 = await request(app).get('/api/items?page=1');
-    expect(response3.headers['x-cache']).toBe('HIT');
-    expect(response3.body).toEqual(response1.body);
-  });
+      // Request with page=1 again - cache hit
+      const response3 = await request(app).get('/api/items?page=1');
+      expect(response3.headers['x-cache']).toBe('HIT');
+      expect(response3.body).toEqual(response1.body);
+    },
+  );
 
   it.skipIf(!isRedisAvailable)('should not cache POST requests', async () => {
     let callCount = 0;
 
-    app.post(
-      '/api/create',
-      cacheMiddleware({ ttl: 60 }),
-      (req, res) => {
-        callCount++;
-        res.json({ created: true });
-      }
-    );
+    app.post('/api/create', cacheMiddleware({ ttl: 60 }), (req, res) => {
+      callCount++;
+      res.json({ created: true });
+    });
 
     // First POST
     const response1 = await request(app).post('/api/create').send({ data: 'test' });
@@ -123,14 +117,10 @@ describe('cacheMiddleware integration', () => {
   it.skipIf(!isRedisAvailable)('should not cache error responses by default', async () => {
     let callCount = 0;
 
-    app.get(
-      '/api/error',
-      cacheMiddleware({ ttl: 60 }),
-      (req, res) => {
-        callCount++;
-        res.status(500).json({ error: 'Internal error' });
-      }
-    );
+    app.get('/api/error', cacheMiddleware({ ttl: 60 }), (req, res) => {
+      callCount++;
+      res.status(500).json({ error: 'Internal error' });
+    });
 
     // First request
     const response1 = await request(app).get('/api/error');
@@ -154,7 +144,7 @@ describe('cacheMiddleware integration', () => {
       }),
       (req, res) => {
         res.json({ data: 'custom' });
-      }
+      },
     );
 
     // First request
@@ -185,7 +175,7 @@ describe('cacheMiddleware integration', () => {
       (req, res) => {
         callCount++;
         res.json({ data: 'conditional' });
-      }
+      },
     );
 
     // Request without cache=true - should not cache
@@ -210,14 +200,10 @@ describe('cacheMiddleware integration', () => {
   it.skipIf(!isRedisAvailable)('should handle Redis unavailability gracefully', async () => {
     let callCount = 0;
 
-    app.get(
-      '/api/resilient',
-      cacheMiddleware({ ttl: 60 }),
-      (req, res) => {
-        callCount++;
-        res.json({ data: 'resilient' });
-      }
-    );
+    app.get('/api/resilient', cacheMiddleware({ ttl: 60 }), (req, res) => {
+      callCount++;
+      res.json({ data: 'resilient' });
+    });
 
     // Disconnect Redis
     await redis.disconnect();

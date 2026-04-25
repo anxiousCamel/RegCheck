@@ -3,7 +3,7 @@
 Este documento descreve todos os endpoints da API REST do RegCheck.
 
 **Fonte:** route-parser
-**Gerado em:** 23/04/2026, 12:20:17
+**Gerado em:** 25/04/2026, 12:16:41
 
 ## URL Base
 
@@ -1236,6 +1236,55 @@ Resposta:
 
 ---
 
+#### POST /:id/select-equipment
+
+**Parâmetros:**
+
+| Nome | Localização | Tipo | Obrigatório | Descrição |
+|---|---|---|---|---|
+| id | Path | string | Sim | id parameter |
+
+**Corpo da Requisição:**
+
+- **Content-Type:** `application/json`
+- **Schema:** `manualSelectSchema`
+- **Descrição:** Request body validated by manualSelectSchema
+
+**Respostas:**
+
+| Status | Descrição |
+|---|---|
+| 201 | Created - Resource created successfully |
+| 404 | Not Found - Resource not found |
+
+**Exemplo:**
+
+Requisição:
+
+```http
+POST /api/123e4567-e89b-12d3-a456-426614174000/select-equipment HTTP/1.1
+Host: localhost:4000
+Content-Type: application/json
+
+{
+  "example": "data"
+}
+```
+
+Resposta:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "message": "Criado com sucesso"
+  }
+}
+```
+
+---
+
 #### GET /:id/status
 
 **Parâmetros:**
@@ -1393,6 +1442,45 @@ Resposta:
 
 ---
 
+#### POST /:id/unpublish
+
+**Parâmetros:**
+
+| Nome | Localização | Tipo | Obrigatório | Descrição |
+|---|---|---|---|---|
+| id | Path | string | Sim | id parameter |
+
+**Respostas:**
+
+| Status | Descrição |
+|---|---|
+| 201 | Created - Resource created successfully |
+| 404 | Not Found - Resource not found |
+
+**Exemplo:**
+
+Requisição:
+
+```http
+POST /api/123e4567-e89b-12d3-a456-426614174000/unpublish HTTP/1.1
+Host: localhost:4000
+Content-Type: application/json
+```
+
+Resposta:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "message": "Criado com sucesso"
+  }
+}
+```
+
+---
+
 ### Active
 
 Endpoints relacionados a **active**.
@@ -1506,6 +1594,7 @@ Endpoints relacionados a **file**.
 
 | Status | Descrição |
 |---|---|
+| 200 | OK - Request successful |
 | 400 | Bad Request - Validation error or business logic error |
 
 **Exemplo:**
@@ -1516,6 +1605,17 @@ Requisição:
 GET /api/file?key=example HTTP/1.1
 Host: localhost:4000
 Content-Type: application/json
+```
+
+Resposta:
+
+```json
+{
+  "success": true,
+  "data": {
+    "example": "data"
+  }
+}
 ```
 
 ---
@@ -1572,6 +1672,7 @@ Endpoints relacionados a **presigned**.
 
 | Status | Descrição |
 |---|---|
+| 200 | OK - Request successful |
 | 400 | Bad Request - Validation error or business logic error |
 
 **Exemplo:**
@@ -1582,6 +1683,17 @@ Requisição:
 GET /api/presigned?key=example HTTP/1.1
 Host: localhost:4000
 Content-Type: application/json
+```
+
+Resposta:
+
+```json
+{
+  "success": true,
+  "data": {
+    "example": "data"
+  }
+}
 ```
 
 ---

@@ -57,7 +57,7 @@ describe('EquipamentoService - Cache Integration', () => {
       expect(cacheService.wrap).toHaveBeenCalledWith(
         'equipamentos:list:page:1:size:10:filters:{}',
         expect.any(Function),
-        120 // 2 minutes TTL
+        120, // 2 minutes TTL
       );
     });
 
@@ -78,7 +78,7 @@ describe('EquipamentoService - Cache Integration', () => {
       expect(cacheService.wrap).toHaveBeenCalledWith(
         'equipamentos:list:page:2:size:20:filters:{}',
         expect.any(Function),
-        120
+        120,
       );
     });
 
@@ -99,7 +99,7 @@ describe('EquipamentoService - Cache Integration', () => {
       expect(cacheService.wrap).toHaveBeenCalledWith(
         `equipamentos:list:page:1:size:10:filters:${JSON.stringify(filters)}`,
         expect.any(Function),
-        120
+        120,
       );
     });
   });
@@ -126,7 +126,7 @@ describe('EquipamentoService - Cache Integration', () => {
       expect(cacheService.wrap).toHaveBeenCalledWith(
         'equipamento:test-id',
         expect.any(Function),
-        120 // 2 minutes TTL
+        120, // 2 minutes TTL
       );
     });
   });
@@ -146,9 +146,27 @@ describe('EquipamentoService - Cache Integration', () => {
         updatedAt: new Date(),
       };
 
-      const mockLoja = { id: 'loja-1', nome: 'Loja 1', ativo: true, createdAt: new Date(), updatedAt: new Date() };
-      const mockSetor = { id: 'setor-1', nome: 'Setor 1', ativo: true, createdAt: new Date(), updatedAt: new Date() };
-      const mockTipo = { id: 'tipo-1', nome: 'Tipo 1', ativo: true, createdAt: new Date(), updatedAt: new Date() };
+      const mockLoja = {
+        id: 'loja-1',
+        nome: 'Loja 1',
+        ativo: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const mockSetor = {
+        id: 'setor-1',
+        nome: 'Setor 1',
+        ativo: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const mockTipo = {
+        id: 'tipo-1',
+        nome: 'Tipo 1',
+        ativo: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
 
       vi.mocked(prisma.loja.findUnique).mockResolvedValue(mockLoja);
       vi.mocked(prisma.setor.findUnique).mockResolvedValue(mockSetor);

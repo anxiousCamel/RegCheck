@@ -68,7 +68,7 @@ describe('DocumentService - Query Optimization', () => {
       await DocumentService.list(1, 10);
 
       const call = vi.mocked(prisma.document.findMany).mock.calls[0][0];
-      
+
       // Verify only necessary fields are selected
       expect(call.select).toEqual({
         id: true,
@@ -94,7 +94,7 @@ describe('DocumentService - Query Optimization', () => {
       await DocumentService.list(1, 10);
 
       const call = vi.mocked(prisma.document.findMany).mock.calls[0][0];
-      
+
       // Verify heavy fields are not selected
       expect(call.select).not.toHaveProperty('metadata');
       expect(call.select).not.toHaveProperty('generatedPdfKey');
@@ -108,7 +108,7 @@ describe('DocumentService - Query Optimization', () => {
       await DocumentService.list(1, 10);
 
       const call = vi.mocked(prisma.document.findMany).mock.calls[0][0];
-      
+
       // Verify template is loaded with select (eager loading)
       expect(call.select).toHaveProperty('template');
       expect(call.select.template).toHaveProperty('select');
@@ -140,7 +140,7 @@ describe('DocumentService - Query Optimization', () => {
         },
         filledFields: [],
       };
-      
+
       vi.mocked(prisma.document.findUnique).mockResolvedValue(mockDocument);
 
       await DocumentService.getById('test-id');
@@ -174,13 +174,13 @@ describe('DocumentService - Query Optimization', () => {
         },
         filledFields: [],
       };
-      
+
       vi.mocked(prisma.document.findUnique).mockResolvedValue(mockDocument);
 
       await DocumentService.getById('test-id');
 
       const call = vi.mocked(prisma.document.findUnique).mock.calls[0][0];
-      
+
       // Verify all necessary document fields are selected
       expect(call.select).toHaveProperty('id');
       expect(call.select).toHaveProperty('name');
@@ -217,17 +217,17 @@ describe('DocumentService - Query Optimization', () => {
         },
         filledFields: [],
       };
-      
+
       vi.mocked(prisma.document.findUnique).mockResolvedValue(mockDocument);
 
       await DocumentService.getById('test-id');
 
       const call = vi.mocked(prisma.document.findUnique).mock.calls[0][0];
-      
+
       // Verify template is loaded with select (eager loading)
       expect(call.select).toHaveProperty('template');
       expect(call.select.template).toHaveProperty('select');
-      
+
       // Verify template fields are selected
       expect(call.select.template.select).toHaveProperty('id');
       expect(call.select.template.select).toHaveProperty('name');
@@ -266,13 +266,13 @@ describe('DocumentService - Query Optimization', () => {
         },
         filledFields: [],
       };
-      
+
       vi.mocked(prisma.document.findUnique).mockResolvedValue(mockDocument);
 
       await DocumentService.getById('test-id');
 
       const call = vi.mocked(prisma.document.findUnique).mock.calls[0][0];
-      
+
       // Verify pdfFile is loaded with select
       expect(call.select.template.select).toHaveProperty('pdfFile');
       expect(call.select.template.select.pdfFile).toHaveProperty('select');
@@ -307,19 +307,19 @@ describe('DocumentService - Query Optimization', () => {
         },
         filledFields: [],
       };
-      
+
       vi.mocked(prisma.document.findUnique).mockResolvedValue(mockDocument);
 
       await DocumentService.getById('test-id');
 
       const call = vi.mocked(prisma.document.findUnique).mock.calls[0][0];
-      
+
       // Verify fields are loaded with select and orderBy
       expect(call.select.template.select).toHaveProperty('fields');
       expect(call.select.template.select.fields).toHaveProperty('select');
       expect(call.select.template.select.fields).toHaveProperty('orderBy');
       expect(call.select.template.select.fields.orderBy).toEqual({ page: 'asc' });
-      
+
       // Verify only necessary field properties are selected
       expect(call.select.template.select.fields.select).toEqual({
         id: true,
@@ -356,13 +356,13 @@ describe('DocumentService - Query Optimization', () => {
         },
         filledFields: [],
       };
-      
+
       vi.mocked(prisma.document.findUnique).mockResolvedValue(mockDocument);
 
       await DocumentService.getById('test-id');
 
       const call = vi.mocked(prisma.document.findUnique).mock.calls[0][0];
-      
+
       // Verify filledFields are loaded with select
       expect(call.select).toHaveProperty('filledFields');
       expect(call.select.filledFields).toHaveProperty('select');
@@ -431,7 +431,7 @@ describe('DocumentService - Query Optimization', () => {
 
       // Should only call findUnique once (with all relations included via select)
       expect(prisma.document.findUnique).toHaveBeenCalledTimes(1);
-      
+
       // Should not make separate queries for template or filledFields
       expect(prisma.template.findUnique).not.toHaveBeenCalled();
       expect(prisma.filledField.deleteMany).not.toHaveBeenCalled();

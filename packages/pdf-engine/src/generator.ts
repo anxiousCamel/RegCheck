@@ -28,7 +28,8 @@ export class PdfGenerator {
 
       // Convert relative coordinates to absolute
       const absX = overlay.position.x * pageWidth;
-      const absY = pageHeight - (overlay.position.y * pageHeight) - (overlay.position.height * pageHeight);
+      const absY =
+        pageHeight - overlay.position.y * pageHeight - overlay.position.height * pageHeight;
       const absWidth = overlay.position.width * pageWidth;
       const absHeight = overlay.position.height * pageHeight;
 
@@ -76,7 +77,7 @@ export class PdfGenerator {
 
   private static renderCheckbox(
     page: ReturnType<PDFDocument['getPage']>,
-    font: Awaited<ReturnType<PDFDocument['embedFont']>>,
+    _font: Awaited<ReturnType<PDFDocument['embedFont']>>,
     overlay: FieldOverlay,
     x: number,
     y: number,

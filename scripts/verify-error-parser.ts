@@ -35,7 +35,7 @@ console.log('Error Codes Extracted:');
 console.log('-'.repeat(80));
 const codes = getErrorCodes(output);
 for (const code of codes) {
-  const error = output.data.find(e => e.code === code)!;
+  const error = output.data.find((e) => e.code === code)!;
   console.log(`  ${code} (${error.httpStatus}): ${error.message}`);
   if (error.context) {
     console.log(`    Context: ${error.context}`);
@@ -75,7 +75,7 @@ const criticalErrors = [
 
 let allFound = true;
 for (const code of criticalErrors) {
-  const found = output.data.find(e => e.code === code);
+  const found = output.data.find((e) => e.code === code);
   if (found) {
     console.log(`  ✓ ${code} (${found.httpStatus})`);
   } else {
@@ -87,10 +87,10 @@ console.log();
 
 console.log('Source File Coverage:');
 console.log('-'.repeat(80));
-const sourceFiles = new Set(output.data.map(e => e.sourceFile));
+const sourceFiles = new Set(output.data.map((e) => e.sourceFile));
 console.log(`  Errors found in ${sourceFiles.size} file(s):`);
 for (const file of sourceFiles) {
-  const count = output.data.filter(e => e.sourceFile === file).length;
+  const count = output.data.filter((e) => e.sourceFile === file).length;
   console.log(`    - ${file}: ${count} error(s)`);
 }
 console.log();

@@ -7,6 +7,7 @@ This document describes the comprehensive integration tests for the cached servi
 ## Test Coverage
 
 The integration tests cover all six cached services:
+
 1. **LojaService** - Store/location management
 2. **SetorService** - Department/sector management
 3. **TipoEquipamentoService** - Equipment type management
@@ -24,6 +25,7 @@ The integration tests cover all six cached services:
 ### 1. Cache Hit/Miss Behavior
 
 Tests verify that:
+
 - First request fetches from database (cache miss)
 - Second identical request uses cached data (cache hit)
 - Responses are identical between cache hit and miss
@@ -31,6 +33,7 @@ Tests verify that:
 - Different filters use different cache keys (for EquipamentoService)
 
 **Example Tests:**
+
 - `should cache list responses`
 - `should use different cache keys for different pagination parameters`
 - `should use different cache keys for different filters`
@@ -38,12 +41,14 @@ Tests verify that:
 ### 2. Cache Invalidation on Mutations
 
 Tests verify that cache is properly invalidated when data changes:
+
 - **CREATE operations**: List caches are cleared
 - **UPDATE operations**: Both list and detail caches are cleared
 - **DELETE operations**: Both list and detail caches are cleared
 - **Toggle operations**: Active list caches are cleared
 
 **Example Tests:**
+
 - `should invalidate cache after creating a [entity]`
 - `should invalidate cache after updating a [entity]`
 - `should invalidate cache after deleting a [entity]`
@@ -51,12 +56,14 @@ Tests verify that cache is properly invalidated when data changes:
 ### 3. Graceful Degradation
 
 Tests verify the system continues working when Redis is unavailable:
+
 - Read operations work without caching
 - Write operations (create/update/delete) work without cache invalidation
 - No errors are thrown to the client
 - System automatically reconnects when Redis becomes available
 
 **Example Tests:**
+
 - `should continue working when Redis is unavailable`
 - `should handle Redis errors gracefully during write operations`
 - `should handle Redis errors gracefully during update operations`
@@ -64,22 +71,26 @@ Tests verify the system continues working when Redis is unavailable:
 ### 4. Cache Performance
 
 Tests verify caching improves performance:
+
 - Cache hits are faster than cache misses
 - Concurrent requests for the same data are handled efficiently
 - Multiple concurrent requests return identical data
 
 **Example Tests:**
+
 - `should improve response time on cache hit`
 - `should handle concurrent requests efficiently`
 
 ### 5. Cross-Service Cache Invalidation
 
 Tests verify cache invalidation is properly scoped:
+
 - Creating/updating one entity type doesn't invalidate unrelated caches
 - Each service maintains independent cache keys
 - Cache invalidation is precise and doesn't clear unrelated data
 
 **Example Tests:**
+
 - `should not invalidate unrelated service caches`
 
 ## Cache Key Patterns
@@ -87,6 +98,7 @@ Tests verify cache invalidation is properly scoped:
 The tests verify these cache key patterns are used correctly:
 
 ### List Caches
+
 - `lojas:list:page:{page}:size:{pageSize}`
 - `setores:list:page:{page}:size:{pageSize}`
 - `tipos:list:page:{page}:size:{pageSize}`
@@ -95,6 +107,7 @@ The tests verify these cache key patterns are used correctly:
 - `templates:list:page:{page}:size:{pageSize}`
 
 ### Detail Caches
+
 - `loja:{id}`
 - `setor:{id}`
 - `tipo:{id}`
@@ -103,6 +116,7 @@ The tests verify these cache key patterns are used correctly:
 - `template:{id}`
 
 ### Active List Caches
+
 - `lojas:active`
 - `setores:active`
 - `tipos:active`
@@ -111,28 +125,31 @@ The tests verify these cache key patterns are used correctly:
 
 Tests verify these TTL (Time To Live) values:
 
-| Service | List TTL | Detail TTL | Reason |
-|---------|----------|------------|--------|
-| Loja | 5 min (300s) | 2 min (120s) | Relatively static data |
-| Setor | 5 min (300s) | 2 min (120s) | Relatively static data |
+| Service         | List TTL     | Detail TTL   | Reason                 |
+| --------------- | ------------ | ------------ | ---------------------- |
+| Loja            | 5 min (300s) | 2 min (120s) | Relatively static data |
+| Setor           | 5 min (300s) | 2 min (120s) | Relatively static data |
 | TipoEquipamento | 5 min (300s) | 2 min (120s) | Relatively static data |
-| Equipamento | 2 min (120s) | 2 min (120s) | More dynamic data |
-| Document | 1 min (60s) | 1 min (60s) | Highly dynamic data |
-| Template | 5 min (300s) | 2 min (120s) | Relatively static data |
+| Equipamento     | 2 min (120s) | 2 min (120s) | More dynamic data      |
+| Document        | 1 min (60s)  | 1 min (60s)  | Highly dynamic data    |
+| Template        | 5 min (300s) | 2 min (120s) | Relatively static data |
 
 ## Running the Tests
 
 ### Run all cache integration tests:
+
 ```bash
 npm test -- src/services/__tests__/services-cache.integration.test.ts
 ```
 
 ### Run with watch mode:
+
 ```bash
 npm run test:watch -- src/services/__tests__/services-cache.integration.test.ts
 ```
 
 ### Run from workspace root:
+
 ```bash
 pnpm --filter @regcheck/api test src/services/__tests__/services-cache.integration.test.ts
 ```
@@ -180,20 +197,24 @@ Potential improvements for the test suite:
 ## Troubleshooting
 
 ### Tests fail with "Redis connection refused"
+
 - Ensure Redis is running: `redis-cli ping` should return `PONG`
 - Check Redis connection string in `.env` file
 
 ### Tests fail with "Database connection error"
+
 - Ensure PostgreSQL is running
 - Check database connection string in `.env` file
 - Run migrations: `pnpm db:migrate`
 
 ### Tests are slow
+
 - Check Redis and PostgreSQL are running locally (not remote)
 - Ensure test database is properly indexed
 - Consider running tests in parallel with `--pool=threads`
 
 ### Flaky performance tests
+
 - Performance tests may fail in CI or slow environments
 - Consider increasing timeout thresholds
 - Run tests multiple times to verify consistency

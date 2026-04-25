@@ -30,6 +30,10 @@ export interface FieldConfig {
   borderWidth?: number;
   textAlign?: 'left' | 'center' | 'right';
   maxLength?: number;
+  /** Equipment type filter for SELECAO_MANUAL fill mode */
+  tipoEquipamentoId?: string;
+  /** Display name of the equipment type filter */
+  tipoEquipamentoNome?: string;
 }
 
 /** A field definition within a template */

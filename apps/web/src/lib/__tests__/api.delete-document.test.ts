@@ -18,9 +18,7 @@ describe('ApiClient.deleteDocument — example tests', () => {
   it('makes a DELETE request to /api/documents/:id', async () => {
     const id = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(null, { status: 204 }),
-    );
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
 
     await client.deleteDocument(id);
 
@@ -33,9 +31,7 @@ describe('ApiClient.deleteDocument — example tests', () => {
   it('resolves as void when server returns 204', async () => {
     const id = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(null, { status: 204 }),
-    );
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
 
     const result = await client.deleteDocument(id);
 

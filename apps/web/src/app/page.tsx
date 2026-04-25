@@ -1,6 +1,13 @@
 import Link from 'next/link';
 import { Button } from '@regcheck/ui';
-import { LayoutTemplate, FileText, UploadCloud, MousePointer2, FileCheck, Check } from 'lucide-react';
+import {
+  LayoutTemplate,
+  FileText,
+  UploadCloud,
+  MousePointer2,
+  FileCheck,
+  Check,
+} from 'lucide-react';
 
 export const metadata = {
   title: 'RegCheck ✓ | Preenchimento Inteligente',
@@ -26,7 +33,7 @@ export default function HomePage() {
           <h1 className="text-5xl sm:text-7xl font-black tracking-tighter text-foreground leading-tight flex items-center gap-1 sm:gap-3">
             Reg<span className="text-primary italic">Check</span>
             <div className="p-1 sm:p-2 bg-green-500 rounded-2xl shadow-lg shadow-green-500/20 rotate-3">
-               <Check className="h-8 w-8 sm:h-12 sm:w-12 text-white stroke-[4px]" />
+              <Check className="h-8 w-8 sm:h-12 sm:w-12 text-white stroke-[4px]" />
             </div>
           </h1>
         </div>
@@ -38,13 +45,20 @@ export default function HomePage() {
       {/* Main Actions */}
       <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm mx-auto sm:max-w-none sm:justify-center">
         <Link href="/templates" className="w-full sm:w-auto">
-          <Button size="lg" className="w-full sm:px-10 h-14 sm:h-12 text-base font-bold shadow-lg shadow-primary/20 gap-2">
+          <Button
+            size="lg"
+            className="w-full sm:px-10 h-14 sm:h-12 text-base font-bold shadow-lg shadow-primary/20 gap-2"
+          >
             <LayoutTemplate className="h-5 w-5" />
             Templates
           </Button>
         </Link>
         <Link href="/documents" className="w-full sm:w-auto">
-          <Button size="lg" variant="outline" className="w-full sm:px-10 h-14 sm:h-12 text-base font-bold border-2 gap-2 bg-background">
+          <Button
+            size="lg"
+            variant="outline"
+            className="w-full sm:px-10 h-14 sm:h-12 text-base font-bold border-2 gap-2 bg-background"
+          >
             <FileText className="h-5 w-5" />
             Documentos
           </Button>

@@ -7,9 +7,9 @@ import { prisma } from '@regcheck/database';
 /**
  * Integration tests for cached services
  * Tests cache hit/miss behavior, cache invalidation, and graceful degradation
- * 
+ *
  * Requirements: 6.3, 6.5
- * 
+ *
  * These tests verify:
  * 1. Cache hit/miss behavior - X-Cache header shows HIT on second request
  * 2. Cache invalidation on mutations - cache cleared after create/update/delete
@@ -31,12 +31,12 @@ describe('Services Cache Integration', () => {
       // First request - cache miss
       const response1 = await request(app).get('/api/lojas?page=1&pageSize=10');
       expect(response1.status).toBe(200);
-      
+
       // Second request - cache hit
       const response2 = await request(app).get('/api/lojas?page=1&pageSize=10');
       expect(response2.status).toBe(200);
       expect(response2.body).toEqual(response1.body);
-      
+
       // Verify cache was used (service layer caching doesn't set X-Cache header)
       // But we can verify the response is identical and fast
     });
@@ -61,9 +61,7 @@ describe('Services Cache Integration', () => {
 
     it('should invalidate cache after updating a loja', async () => {
       // Create a loja
-      const createResponse = await request(app)
-        .post('/api/lojas')
-        .send({ nome: 'Original Name' });
+      const createResponse = await request(app).post('/api/lojas').send({ nome: 'Original Name' });
       const lojaId = createResponse.body.data.id;
 
       // Get the loja to prime cache
@@ -71,9 +69,7 @@ describe('Services Cache Integration', () => {
       expect(response1.body.data.nome).toBe('Original Name');
 
       // Update the loja
-      await request(app)
-        .patch(`/api/lojas/${lojaId}`)
-        .send({ nome: 'Updated Name' });
+      await request(app).patch(`/api/lojas/${lojaId}`).send({ nome: 'Updated Name' });
 
       // Get again - should have updated name
       const response2 = await request(app).get(`/api/lojas/${lojaId}`);
@@ -82,9 +78,7 @@ describe('Services Cache Integration', () => {
 
     it('should invalidate cache after deleting a loja', async () => {
       // Create a loja
-      const createResponse = await request(app)
-        .post('/api/lojas')
-        .send({ nome: 'To Be Deleted' });
+      const createResponse = await request(app).post('/api/lojas').send({ nome: 'To Be Deleted' });
       const lojaId = createResponse.body.data.id;
 
       // Prime the cache
@@ -104,7 +98,7 @@ describe('Services Cache Integration', () => {
       // First request
       const response1 = await request(app).get('/api/setores?page=1&pageSize=10');
       expect(response1.status).toBe(200);
-      
+
       // Second request - should be cached
       const response2 = await request(app).get('/api/setores?page=1&pageSize=10');
       expect(response2.status).toBe(200);
@@ -117,9 +111,7 @@ describe('Services Cache Integration', () => {
       const initialCount = response1.body.data.total;
 
       // Create a new setor
-      await request(app)
-        .post('/api/setores')
-        .send({ nome: 'Test Setor Integration' });
+      await request(app).post('/api/setores').send({ nome: 'Test Setor Integration' });
 
       // Request again - should get fresh data
       const response2 = await request(app).get('/api/setores?page=1&pageSize=10');
@@ -138,9 +130,7 @@ describe('Services Cache Integration', () => {
       expect(response1.body.data.nome).toBe('Original Setor');
 
       // Update the setor
-      await request(app)
-        .patch(`/api/setores/${setorId}`)
-        .send({ nome: 'Updated Setor' });
+      await request(app).patch(`/api/setores/${setorId}`).send({ nome: 'Updated Setor' });
 
       // Get again - should have updated name
       const response2 = await request(app).get(`/api/setores/${setorId}`);
@@ -151,7 +141,7 @@ describe('Services Cache Integration', () => {
       // First request
       const response1 = await request(app).get('/api/setores/active');
       expect(response1.status).toBe(200);
-      
+
       // Second request - should be cached
       const response2 = await request(app).get('/api/setores/active');
       expect(response2.status).toBe(200);
@@ -163,7 +153,7 @@ describe('Services Cache Integration', () => {
     it('should cache list responses', async () => {
       const response1 = await request(app).get('/api/tipos-equipamento?page=1&pageSize=10');
       expect(response1.status).toBe(200);
-      
+
       const response2 = await request(app).get('/api/tipos-equipamento?page=1&pageSize=10');
       expect(response2.status).toBe(200);
       expect(response2.body).toEqual(response1.body);
@@ -173,9 +163,7 @@ describe('Services Cache Integration', () => {
       const response1 = await request(app).get('/api/tipos-equipamento?page=1&pageSize=10');
       const initialCount = response1.body.data.total;
 
-      await request(app)
-        .post('/api/tipos-equipamento')
-        .send({ nome: 'Test Tipo Integration' });
+      await request(app).post('/api/tipos-equipamento').send({ nome: 'Test Tipo Integration' });
 
       const response2 = await request(app).get('/api/tipos-equipamento?page=1&pageSize=10');
       expect(response2.body.data.total).toBe(initialCount + 1);
@@ -193,9 +181,7 @@ describe('Services Cache Integration', () => {
       expect(response1.body.data.nome).toBe('Original Tipo');
 
       // Update the tipo
-      await request(app)
-        .patch(`/api/tipos-equipamento/${tipoId}`)
-        .send({ nome: 'Updated Tipo' });
+      await request(app).patch(`/api/tipos-equipamento/${tipoId}`).send({ nome: 'Updated Tipo' });
 
       // Get again - should have updated name
       const response2 = await request(app).get(`/api/tipos-equipamento/${tipoId}`);
@@ -206,7 +192,7 @@ describe('Services Cache Integration', () => {
       // First request
       const response1 = await request(app).get('/api/tipos-equipamento/active');
       expect(response1.status).toBe(200);
-      
+
       // Second request - should be cached
       const response2 = await request(app).get('/api/tipos-equipamento/active');
       expect(response2.status).toBe(200);
@@ -234,7 +220,7 @@ describe('Services Cache Integration', () => {
     it('should cache list responses', async () => {
       const response1 = await request(app).get('/api/equipamentos?page=1&pageSize=10');
       expect(response1.status).toBe(200);
-      
+
       const response2 = await request(app).get('/api/equipamentos?page=1&pageSize=10');
       expect(response2.status).toBe(200);
       expect(response2.body).toEqual(response1.body);
@@ -244,16 +230,14 @@ describe('Services Cache Integration', () => {
       const response1 = await request(app).get('/api/equipamentos?page=1&pageSize=10');
       const initialCount = response1.body.data.total;
 
-      await request(app)
-        .post('/api/equipamentos')
-        .send({
-          numeroEquipamento: 'EQ-001',
-          serie: 'S001',
-          patrimonio: 'P001',
-          tipoId,
-          lojaId,
-          setorId,
-        });
+      await request(app).post('/api/equipamentos').send({
+        numeroEquipamento: 'EQ-001',
+        serie: 'S001',
+        patrimonio: 'P001',
+        tipoId,
+        lojaId,
+        setorId,
+      });
 
       const response2 = await request(app).get('/api/equipamentos?page=1&pageSize=10');
       expect(response2.body.data.total).toBe(initialCount + 1);
@@ -261,27 +245,29 @@ describe('Services Cache Integration', () => {
 
     it('should use different cache keys for different filters', async () => {
       // Create an equipamento
-      await request(app)
-        .post('/api/equipamentos')
-        .send({
-          numeroEquipamento: 'EQ-FILTER-TEST',
-          serie: 'S-FILTER',
-          patrimonio: 'P-FILTER',
-          tipoId,
-          lojaId,
-          setorId,
-        });
+      await request(app).post('/api/equipamentos').send({
+        numeroEquipamento: 'EQ-FILTER-TEST',
+        serie: 'S-FILTER',
+        patrimonio: 'P-FILTER',
+        tipoId,
+        lojaId,
+        setorId,
+      });
 
       // Request with no filters
       const response1 = await request(app).get('/api/equipamentos?page=1&pageSize=10');
       expect(response1.status).toBe(200);
 
       // Request with lojaId filter - should not use previous cache
-      const response2 = await request(app).get(`/api/equipamentos?page=1&pageSize=10&lojaId=${lojaId}`);
+      const response2 = await request(app).get(
+        `/api/equipamentos?page=1&pageSize=10&lojaId=${lojaId}`,
+      );
       expect(response2.status).toBe(200);
 
       // Request with tipoId filter - should not use previous cache
-      const response3 = await request(app).get(`/api/equipamentos?page=1&pageSize=10&tipoId=${tipoId}`);
+      const response3 = await request(app).get(
+        `/api/equipamentos?page=1&pageSize=10&tipoId=${tipoId}`,
+      );
       expect(response3.status).toBe(200);
 
       // All responses should be valid but potentially different
@@ -292,16 +278,14 @@ describe('Services Cache Integration', () => {
 
     it('should invalidate cache after updating an equipamento', async () => {
       // Create an equipamento
-      const createResponse = await request(app)
-        .post('/api/equipamentos')
-        .send({
-          numeroEquipamento: 'EQ-UPDATE',
-          serie: 'S-UPDATE',
-          patrimonio: 'P-UPDATE',
-          tipoId,
-          lojaId,
-          setorId,
-        });
+      const createResponse = await request(app).post('/api/equipamentos').send({
+        numeroEquipamento: 'EQ-UPDATE',
+        serie: 'S-UPDATE',
+        patrimonio: 'P-UPDATE',
+        tipoId,
+        lojaId,
+        setorId,
+      });
       const equipamentoId = createResponse.body.data.id;
 
       // Get the equipamento to prime cache
@@ -337,7 +321,7 @@ describe('Services Cache Integration', () => {
     it('should cache list responses', async () => {
       const response1 = await request(app).get('/api/documents?page=1&pageSize=10');
       expect(response1.status).toBe(200);
-      
+
       const response2 = await request(app).get('/api/documents?page=1&pageSize=10');
       expect(response2.status).toBe(200);
       expect(response2.body).toEqual(response1.body);
@@ -347,13 +331,11 @@ describe('Services Cache Integration', () => {
       const response1 = await request(app).get('/api/documents?page=1&pageSize=10');
       const initialCount = response1.body.data.total;
 
-      await request(app)
-        .post('/api/documents')
-        .send({
-          name: 'Test Document',
-          templateId,
-          totalItems: 1,
-        });
+      await request(app).post('/api/documents').send({
+        name: 'Test Document',
+        templateId,
+        totalItems: 1,
+      });
 
       const response2 = await request(app).get('/api/documents?page=1&pageSize=10');
       expect(response2.body.data.total).toBe(initialCount + 1);
@@ -361,13 +343,11 @@ describe('Services Cache Integration', () => {
 
     it('should invalidate cache after updating a document', async () => {
       // Create a document
-      const createResponse = await request(app)
-        .post('/api/documents')
-        .send({
-          name: 'Original Document',
-          templateId,
-          totalItems: 1,
-        });
+      const createResponse = await request(app).post('/api/documents').send({
+        name: 'Original Document',
+        templateId,
+        totalItems: 1,
+      });
       const documentId = createResponse.body.data.id;
 
       // Get the document to prime cache
@@ -375,9 +355,7 @@ describe('Services Cache Integration', () => {
       expect(response1.body.data.name).toBe('Original Document');
 
       // Update the document
-      await request(app)
-        .patch(`/api/documents/${documentId}`)
-        .send({ name: 'Updated Document' });
+      await request(app).patch(`/api/documents/${documentId}`).send({ name: 'Updated Document' });
 
       // Get again - should have updated name
       const response2 = await request(app).get(`/api/documents/${documentId}`);
@@ -389,7 +367,7 @@ describe('Services Cache Integration', () => {
     it('should cache list responses', async () => {
       const response1 = await request(app).get('/api/templates?page=1&pageSize=10');
       expect(response1.status).toBe(200);
-      
+
       const response2 = await request(app).get('/api/templates?page=1&pageSize=10');
       expect(response2.status).toBe(200);
       expect(response2.body).toEqual(response1.body);
@@ -399,9 +377,7 @@ describe('Services Cache Integration', () => {
       const response1 = await request(app).get('/api/templates?page=1&pageSize=10');
       const initialCount = response1.body.data.total;
 
-      await request(app)
-        .post('/api/templates')
-        .send({ name: 'Test Template Integration' });
+      await request(app).post('/api/templates').send({ name: 'Test Template Integration' });
 
       const response2 = await request(app).get('/api/templates?page=1&pageSize=10');
       expect(response2.body.data.total).toBe(initialCount + 1);
@@ -419,9 +395,7 @@ describe('Services Cache Integration', () => {
       expect(response1.body.data.name).toBe('Original Template');
 
       // Update the template
-      await request(app)
-        .patch(`/api/templates/${templateId}`)
-        .send({ name: 'Updated Template' });
+      await request(app).patch(`/api/templates/${templateId}`).send({ name: 'Updated Template' });
 
       // Get again - should have updated name
       const response2 = await request(app).get(`/api/templates/${templateId}`);
@@ -467,10 +441,8 @@ describe('Services Cache Integration', () => {
       await redis.disconnect();
 
       // Create operation should still work
-      const response = await request(app)
-        .post('/api/lojas')
-        .send({ nome: 'Test Loja No Redis' });
-      
+      const response = await request(app).post('/api/lojas').send({ nome: 'Test Loja No Redis' });
+
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
 
@@ -480,9 +452,7 @@ describe('Services Cache Integration', () => {
 
     it('should handle Redis errors gracefully during update operations', async () => {
       // Create a loja first (with Redis working)
-      const createResponse = await request(app)
-        .post('/api/lojas')
-        .send({ nome: 'Original' });
+      const createResponse = await request(app).post('/api/lojas').send({ nome: 'Original' });
       const lojaId = createResponse.body.data.id;
 
       // Disconnect Redis
@@ -492,7 +462,7 @@ describe('Services Cache Integration', () => {
       const updateResponse = await request(app)
         .patch(`/api/lojas/${lojaId}`)
         .send({ nome: 'Updated Without Redis' });
-      
+
       expect(updateResponse.status).toBe(200);
       expect(updateResponse.body.data.nome).toBe('Updated Without Redis');
 
@@ -554,7 +524,7 @@ describe('Services Cache Integration', () => {
     it('should handle concurrent requests efficiently', async () => {
       // Make 10 concurrent requests for the same data
       const promises = Array.from({ length: 10 }, () =>
-        request(app).get('/api/lojas?page=1&pageSize=10')
+        request(app).get('/api/lojas?page=1&pageSize=10'),
       );
 
       const start = Date.now();
@@ -582,14 +552,12 @@ describe('Services Cache Integration', () => {
       // Prime caches for both lojas and setores
       const lojasResponse1 = await request(app).get('/api/lojas?page=1&pageSize=10');
       const setoresResponse1 = await request(app).get('/api/setores?page=1&pageSize=10');
-      
+
       expect(lojasResponse1.status).toBe(200);
       expect(setoresResponse1.status).toBe(200);
 
       // Create a new loja (should only invalidate loja cache)
-      await request(app)
-        .post('/api/lojas')
-        .send({ nome: 'New Loja for Cross-Service Test' });
+      await request(app).post('/api/lojas').send({ nome: 'New Loja for Cross-Service Test' });
 
       // Lojas cache should be invalidated (new count)
       const lojasResponse2 = await request(app).get('/api/lojas?page=1&pageSize=10');

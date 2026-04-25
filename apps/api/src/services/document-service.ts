@@ -1,7 +1,18 @@
 import { prisma } from '@regcheck/database';
 import type { Prisma, DocumentStatus as PrismaDocStatus } from '@regcheck/database';
-import { TemplatePaginator, FieldBindingResolver, type BindingContext, type BindingScope } from '@regcheck/editor-engine';
-import type { TemplateField, FieldScope } from '@regcheck/shared';
+import {
+  TemplatePaginator,
+  FieldBindingResolver,
+  type BindingContext,
+  type BindingScope,
+} from '@regcheck/editor-engine';
+import type {
+  TemplateField,
+  FieldScope,
+  FieldPosition,
+  FieldConfig,
+  DocumentMetadata,
+} from '@regcheck/shared';
 import type {
   CreateDocumentInput,
   UpdateDocumentInput,
@@ -27,8 +38,10 @@ type DbField = {
   id: string;
   type: string;
   pageIndex: number;
-  position: unknown;
-  config: unknown;
+  /** Prisma JSON column — cast to FieldPosition at the service boundary */
+  position: FieldPosition | unknown;
+  /** Prisma JSON column — cast to FieldConfig at the service boundary */
+  config: FieldConfig | unknown;
   scope: string;
   slotIndex: number | null;
   bindingKey: string | null;
@@ -40,8 +53,10 @@ function toTemplateField(f: DbField): TemplateField {
     id: f.id,
     type: f.type.toLowerCase() as TemplateField['type'],
     pageIndex: f.pageIndex,
-    position: f.position as TemplateField['position'],
-    config: f.config as TemplateField['config'],
+    // Prisma JSON → FieldPosition: safe because the editor always writes this shape
+    position: f.position as FieldPosition,
+    // Prisma JSON → FieldConfig: safe because the editor always writes this shape
+    config: f.config as FieldConfig,
     scope: f.scope as FieldScope,
     slotIndex: f.slotIndex,
     bindingKey: f.bindingKey,
@@ -54,52 +69,56 @@ export class DocumentService {
   /** List documents with pagination */
   static async list(page: number, pageSize: number) {
     const cacheKey = `documents:list:page:${page}:size:${pageSize}`;
-    
-    return cacheService.wrap(cacheKey, async () => {
-      const skip = (page - 1) * pageSize;
 
-      const [items, total] = await Promise.all([
-        prisma.document.findMany({
-          skip,
-          take: pageSize,
-          orderBy: { createdAt: 'desc' },
-          select: {
-            id: true,
-            name: true,
-            status: true,
-            totalItems: true,
-            templateId: true,
-            createdAt: true,
-            updatedAt: true,
-            template: {
-              select: { name: true },
-            },
-            _count: {
-              select: { filledFields: true },
-            },
-          },
-        }),
-        prisma.document.count(),
-      ]);
+    return cacheService.wrap(
+      cacheKey,
+      async () => {
+        const skip = (page - 1) * pageSize;
 
-      return {
-        items: items.map((d) => ({
-          id: d.id,
-          templateId: d.templateId,
-          templateName: d.template.name,
-          name: d.name,
-          status: d.status.toLowerCase(),
-          totalItems: d.totalItems,
-          completedItems: d._count.filledFields,
-          createdAt: d.createdAt.toISOString(),
-          updatedAt: d.updatedAt.toISOString(),
-        })),
-        total,
-        page,
-        pageSize,
-        totalPages: Math.ceil(total / pageSize),
-      };
-    }, 60); // 1 minute TTL (highly dynamic data)
+        const [items, total] = await Promise.all([
+          prisma.document.findMany({
+            skip,
+            take: pageSize,
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              name: true,
+              status: true,
+              totalItems: true,
+              templateId: true,
+              createdAt: true,
+              updatedAt: true,
+              template: {
+                select: { name: true },
+              },
+              _count: {
+                select: { filledFields: true },
+              },
+            },
+          }),
+          prisma.document.count(),
+        ]);
+
+        return {
+          items: items.map((d) => ({
+            id: d.id,
+            templateId: d.templateId,
+            templateName: d.template.name,
+            name: d.name,
+            status: d.status.toLowerCase(),
+            totalItems: d.totalItems,
+            completedItems: d._count.filledFields,
+            createdAt: d.createdAt.toISOString(),
+            updatedAt: d.updatedAt.toISOString(),
+          })),
+          total,
+          page,
+          pageSize,
+          totalPages: Math.ceil(total / pageSize),
+        };
+      },
+      60,
+    ); // 1 minute TTL (highly dynamic data)
   }
 
   /** Create a new document from a template */
@@ -107,7 +126,11 @@ export class DocumentService {
     const template = await prisma.template.findUnique({ where: { id: input.templateId } });
     if (!template) throw new AppError(404, 'Template not found', 'NOT_FOUND');
     if (template.status !== 'PUBLISHED') {
-      throw new AppError(400, 'Template must be published before filling', 'TEMPLATE_NOT_PUBLISHED');
+      throw new AppError(
+        400,
+        'Template must be published before filling',
+        'TEMPLATE_NOT_PUBLISHED',
+      );
     }
 
     const doc = await prisma.document.create({
@@ -128,66 +151,70 @@ export class DocumentService {
   /** Get document by ID with filled data */
   static async getById(id: string) {
     const cacheKey = `document:${id}`;
-    
-    return cacheService.wrap(cacheKey, async () => {
-      const doc = await prisma.document.findUnique({
-        where: { id },
-        select: {
-          id: true,
-          name: true,
-          status: true,
-          totalItems: true,
-          templateId: true,
-          templateVersion: true,
-          generatedPdfKey: true,
-          metadata: true,
-          createdAt: true,
-          updatedAt: true,
-          template: {
-            select: {
-              id: true,
-              name: true,
-              status: true,
-              version: true,
-              fillMode: true,
-              pdfFile: {
-                select: {
-                  id: true,
-                  fileName: true,
-                  fileKey: true,
-                  pageCount: true,
-                },
-              },
-              fields: {
-                select: {
-                  id: true,
-                  type: true,
-                  config: true,
-                  pageIndex: true,
-                  position: true,
-                  scope: true,
-                  slotIndex: true,
-                  bindingKey: true,
-                },
-                orderBy: { pageIndex: 'asc' },
-              },
-            },
-          },
-          filledFields: {
-            select: {
-              id: true,
-              fieldId: true,
-              itemIndex: true,
-              value: true,
-              fileKey: true,
-            },
-          },
-        },
-      });
 
-      if (!doc) throw new AppError(404, 'Document not found', 'NOT_FOUND');
-      return doc;
-    }, 60); // 1 minute TTL (highly dynamic data)
+    return cacheService.wrap(
+      cacheKey,
+      async () => {
+        const doc = await prisma.document.findUnique({
+          where: { id },
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            totalItems: true,
+            templateId: true,
+            templateVersion: true,
+            generatedPdfKey: true,
+            metadata: true,
+            createdAt: true,
+            updatedAt: true,
+            template: {
+              select: {
+                id: true,
+                name: true,
+                status: true,
+                version: true,
+                fillMode: true,
+                pdfFile: {
+                  select: {
+                    id: true,
+                    fileName: true,
+                    fileKey: true,
+                    pageCount: true,
+                  },
+                },
+                fields: {
+                  select: {
+                    id: true,
+                    type: true,
+                    config: true,
+                    pageIndex: true,
+                    position: true,
+                    scope: true,
+                    slotIndex: true,
+                    bindingKey: true,
+                  },
+                  orderBy: { pageIndex: 'asc' },
+                },
+              },
+            },
+            filledFields: {
+              select: {
+                id: true,
+                fieldId: true,
+                itemIndex: true,
+                value: true,
+                fileKey: true,
+              },
+            },
+          },
+        });
+
+        if (!doc) throw new AppError(404, 'Document not found', 'NOT_FOUND');
+        return doc;
+      },
+      60,
+    ); // 1 minute TTL (highly dynamic data)
   }
 
   /** Save filled field data (autosave-friendly: upserts) */
@@ -209,11 +236,11 @@ export class DocumentService {
           fieldId: f.fieldId,
           itemIndex: f.itemIndex,
           value: String(f.value),
-          fileKey: f.fileKey,
+          ...(f.fileKey !== undefined ? { fileKey: f.fileKey } : {}),
         },
         update: {
           value: String(f.value),
-          fileKey: f.fileKey,
+          ...(f.fileKey !== undefined ? { fileKey: f.fileKey } : {}),
         },
       }),
     );
@@ -236,7 +263,10 @@ export class DocumentService {
   static async update(id: string, input: UpdateDocumentInput) {
     const data: Prisma.DocumentUpdateInput = {};
     if (input.name) data.name = input.name;
-    if (input.status) data.status = STATUS_MAP[input.status];
+    if (input.status) {
+      const mapped = STATUS_MAP[input.status];
+      if (mapped) data.status = mapped;
+    }
     if (input.totalItems) data.totalItems = input.totalItems;
 
     const result = await prisma.document.update({ where: { id }, data });
@@ -281,7 +311,11 @@ export class DocumentService {
     });
 
     if (equipamentos.length === 0) {
-      throw new AppError(400, 'Nenhum equipamento encontrado para os filtros selecionados', 'NO_EQUIPMENT');
+      throw new AppError(
+        400,
+        'Nenhum equipamento encontrado para os filtros selecionados',
+        'NO_EQUIPMENT',
+      );
     }
 
     if (itemsPerPage === 0) {
@@ -295,7 +329,12 @@ export class DocumentService {
     // Pack items: each setor starts on a new page. Within a page we just fill
     // slots left-to-right; remaining slots on the last page of a setor stay empty.
     const items: BindingScope[] = [];
-    const assignmentMeta: Array<{ itemIndex: number; setorId: string; setorNome: string; equipamentoId: string }> = [];
+    const assignmentMeta: Array<{
+      itemIndex: number;
+      setorId: string;
+      setorNome: string;
+      equipamentoId: string;
+    }> = [];
 
     let slotOnPage = 0;
     const pad = () => {
@@ -347,11 +386,11 @@ export class DocumentService {
     const layout = TemplatePaginator.compute(fields, totalItems);
 
     // Bind globals like the current store name
-    const ctx: BindingContext = { 
+    const ctx: BindingContext = {
       globals: {
-        'loja.nome': loja.nome
-      }, 
-      items 
+        'loja.nome': loja.nome,
+      },
+      items,
     };
 
     // Build pre-filled records for every field that has a bindingKey.
@@ -389,11 +428,12 @@ export class DocumentService {
       where: { id: documentId },
       data: {
         totalItems,
+        // Prisma JSON column: satisfies validates shape, cast bridges Prisma's InputJsonValue
         metadata: {
           assignments: publicAssignments,
           itemsPerPage,
           totalPages: layout.totalPages,
-        } as unknown as Prisma.InputJsonValue,
+        } satisfies DocumentMetadata as unknown as Prisma.InputJsonValue,
         status: 'IN_PROGRESS',
       },
     });
@@ -439,13 +479,21 @@ export class DocumentService {
       (f) => f.scope === 'item' && f.slotIndex === input.slotIndex,
     );
     if (slotFields.length === 0) {
-      throw new AppError(400, `Slot S${input.slotIndex} não encontrado no template`, 'SLOT_NOT_FOUND');
+      throw new AppError(
+        400,
+        `Slot S${input.slotIndex} não encontrado no template`,
+        'SLOT_NOT_FOUND',
+      );
     }
 
     // Get expected tipoEquipamentoId from slot config
+    // Prisma JSON → FieldConfig: config may contain extra keys set by the editor
     const expectedTipoId = slotFields
-      .map((f) => (f.config as any)?.tipoEquipamentoId)
-      .find((id: string | undefined) => !!id);
+      .map((f) => {
+        const config = f.config as Record<string, unknown> | null;
+        return config?.tipoEquipamentoId as string | undefined;
+      })
+      .find((id) => !!id);
 
     // Fetch the equipment
     const equipamento = await prisma.equipamento.findUnique({
@@ -458,7 +506,9 @@ export class DocumentService {
 
     // Validate equipment type matches the slot (only if slot has a type requirement)
     if (expectedTipoId && equipamento.tipoId !== expectedTipoId) {
-      const expectedTipo = await prisma.tipoEquipamento.findUnique({ where: { id: expectedTipoId } });
+      const expectedTipo = await prisma.tipoEquipamento.findUnique({
+        where: { id: expectedTipoId },
+      });
       throw new AppError(
         400,
         `Equipamento tipo "${equipamento.tipo.nome}" não é compatível com o slot S${input.slotIndex} (esperado: ${expectedTipo?.nome ?? expectedTipoId})`,
@@ -487,13 +537,14 @@ export class DocumentService {
 
     // Build filled field records for this slot
     const fieldsToUpsert: Prisma.FilledFieldCreateManyInput[] = [];
-    
+
     // 1. Fill global fields (if not already filled)
-    const globalFields = doc.template.fields.filter(f => f.scope === 'global');
+    const globalFields = doc.template.fields.filter((f) => f.scope === 'global');
     for (const field of globalFields) {
+      // Prisma model → DbField: structurally compatible, cast bridges generated vs local type
       const tf = toTemplateField(field as unknown as DbField);
       if (!tf.bindingKey) continue;
-      
+
       // Check if already filled
       const existing = await prisma.filledField.findUnique({
         where: {
@@ -504,9 +555,9 @@ export class DocumentService {
           },
         },
       });
-      
+
       if (existing) continue; // Skip if already filled
-      
+
       const value = FieldBindingResolver.resolve(tf.bindingKey, ctx);
       if (value === undefined) continue;
       fieldsToUpsert.push({
@@ -516,9 +567,10 @@ export class DocumentService {
         value,
       });
     }
-    
+
     // 2. Fill slot-specific fields
     for (const field of slotFields) {
+      // Prisma model → DbField: structurally compatible, cast bridges generated vs local type
       const tf = toTemplateField(field as unknown as DbField);
       if (!tf.bindingKey) continue;
       const value = FieldBindingResolver.resolve(tf.bindingKey, ctx, input.slotIndex);
@@ -559,8 +611,10 @@ export class DocumentService {
     };
 
     // Update metadata.assignments (add/replace entry for this slot)
-    const meta = (doc.metadata as any) ?? {};
-    const assignments: Array<typeof newAssignment> = meta.assignments ?? [];
+    // Prisma JSON → DocumentMetadata: safe because we always write this shape
+    const meta = (doc.metadata as DocumentMetadata | null) ?? {};
+    type Assignment = NonNullable<DocumentMetadata['assignments']>[number];
+    const assignments: Assignment[] = meta.assignments ?? [];
     const existingIdx = assignments.findIndex((a) => a.itemIndex === input.slotIndex);
     if (existingIdx >= 0) {
       assignments[existingIdx] = newAssignment;
@@ -579,12 +633,13 @@ export class DocumentService {
       where: { id: documentId },
       data: {
         totalItems: totalSlots,
+        // Prisma JSON column: satisfies validates shape, cast bridges Prisma's InputJsonValue
         metadata: {
           ...meta,
           assignments,
           fillMode: 'SELECAO_MANUAL',
           totalSlots,
-        } as unknown as Prisma.InputJsonValue,
+        } satisfies DocumentMetadata as unknown as Prisma.InputJsonValue,
         status: 'IN_PROGRESS',
       },
     });

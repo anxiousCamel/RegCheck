@@ -37,7 +37,9 @@ export class CacheService {
       if (!value) {
         return null;
       }
-      return JSON.parse(value) as T;
+      // JSON.parse returns unknown; caller is responsible for validating the shape
+      const parsed: unknown = JSON.parse(value);
+      return parsed as T;
     } catch (error) {
       console.error('[Cache] Get failed:', error);
       return null;

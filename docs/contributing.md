@@ -41,14 +41,14 @@ tipo(escopo): descrição curta em imperativo
 
 ### Tipos permitidos
 
-| Tipo | Quando usar |
-|---|---|
-| `feat` | Nova funcionalidade |
-| `fix` | Correção de bug |
-| `docs` | Mudanças apenas em documentação |
-| `refactor` | Refatoração sem mudança de comportamento |
-| `chore` | Tarefas de manutenção (deps, config, build) |
-| `test` | Adição ou correção de testes |
+| Tipo       | Quando usar                                 |
+| ---------- | ------------------------------------------- |
+| `feat`     | Nova funcionalidade                         |
+| `fix`      | Correção de bug                             |
+| `docs`     | Mudanças apenas em documentação             |
+| `refactor` | Refatoração sem mudança de comportamento    |
+| `chore`    | Tarefas de manutenção (deps, config, build) |
+| `test`     | Adição ou correção de testes                |
 
 ### Escopos comuns
 
@@ -125,7 +125,10 @@ export type EquipamentoHistoricoQuery = z.infer<typeof equipamentoHistoricoQuery
 Exporte o schema em `packages/validators/src/index.ts`:
 
 ```typescript
-export { equipamentoHistoricoQuerySchema, type EquipamentoHistoricoQuery } from './equipamento-historico-schema';
+export {
+  equipamentoHistoricoQuerySchema,
+  type EquipamentoHistoricoQuery,
+} from './equipamento-historico-schema';
 ```
 
 ### 2. Criar o service em `apps/api/src/services/`
@@ -283,18 +286,18 @@ pnpm setup:env
 
 O script lê o `.env` da raiz e gera três arquivos derivados com os hosts corretos:
 
-| Arquivo gerado | Usado por |
-|---|---|
-| `apps/api/.env` | API Express (DATABASE_URL, REDIS_URL, S3_ENDPOINT) |
-| `packages/database/.env` | Prisma CLI (migrations, studio) |
-| `apps/web/.env.local` | Next.js (NEXT_PUBLIC_API_URL) |
+| Arquivo gerado           | Usado por                                          |
+| ------------------------ | -------------------------------------------------- |
+| `apps/api/.env`          | API Express (DATABASE_URL, REDIS_URL, S3_ENDPOINT) |
+| `packages/database/.env` | Prisma CLI (migrations, studio)                    |
+| `apps/web/.env.local`    | Next.js (NEXT_PUBLIC_API_URL)                      |
 
 **Por que isso é necessário?** O `localhost` tem significado diferente dependendo de onde a aplicação roda:
 
-| Ambiente | Docker roda em | Host para serviços | Host para celular/browser |
-|---|---|---|---|
-| Linux nativo | Linux | `localhost` | `localhost` |
-| Windows (Docker no WSL2) | WSL2 | IP do WSL2 (`172.x.x.x`) | IP da rede local (`10.x.x.x`) |
+| Ambiente                 | Docker roda em | Host para serviços       | Host para celular/browser     |
+| ------------------------ | -------------- | ------------------------ | ----------------------------- |
+| Linux nativo             | Linux          | `localhost`              | `localhost`                   |
+| Windows (Docker no WSL2) | WSL2           | IP do WSL2 (`172.x.x.x`) | IP da rede local (`10.x.x.x`) |
 
 No Windows com Docker no WSL2, os containers expõem as portas dentro do WSL2. A API roda no Windows e precisa do IP do WSL2 para alcançar o PostgreSQL, Redis e MinIO. Esse IP muda a cada boot do WSL2, por isso o script detecta dinamicamente via `wsl hostname -I`.
 
@@ -304,11 +307,11 @@ O `NEXT_PUBLIC_API_URL` usa um IP diferente: o IP da rede local Wi-Fi/Ethernet (
 
 ### Comandos de reinstalação
 
-| Comando                | Descrição                                      |
-|------------------------|------------------------------------------------|
-| `pnpm reinstall`       | Detecta o OS automaticamente e reinstala       |
-| `pnpm reinstall:win`   | Força reinstalação via PowerShell (Windows)    |
-| `pnpm reinstall:linux` | Força reinstalação via bash (Linux/WSL)        |
+| Comando                | Descrição                                   |
+| ---------------------- | ------------------------------------------- |
+| `pnpm reinstall`       | Detecta o OS automaticamente e reinstala    |
+| `pnpm reinstall:win`   | Força reinstalação via PowerShell (Windows) |
+| `pnpm reinstall:linux` | Força reinstalação via bash (Linux/WSL)     |
 
 ### Regras importantes
 

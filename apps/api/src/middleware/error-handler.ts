@@ -15,12 +15,7 @@ export class AppError extends Error {
 }
 
 /** Central error handler middleware */
-export function errorHandler(
-  err: Error,
-  _req: Request,
-  res: Response,
-  _next: NextFunction,
-): void {
+export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction): void {
   console.error('[Error]', err);
 
   if (err instanceof AppError) {

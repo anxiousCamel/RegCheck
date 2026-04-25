@@ -51,7 +51,7 @@
 
 All functions are implemented exactly as specified in the design document:
 
-```typescript
+````typescript
 // From design.md:
 function heading(text: string, level: number): string {
   return '#'.repeat(level) + ' ' + text + '\n\n';
@@ -60,7 +60,7 @@ function heading(text: string, level: number): string {
 function table(headers: string[], rows: string[][]): string {
   const headerRow = '| ' + headers.join(' | ') + ' |';
   const separator = '|' + headers.map(() => '---').join('|') + '|';
-  const dataRows = rows.map(row => '| ' + row.join(' | ') + ' |');
+  const dataRows = rows.map((row) => '| ' + row.join(' | ') + ' |');
   return [headerRow, separator, ...dataRows].join('\n') + '\n\n';
 }
 
@@ -71,7 +71,7 @@ function codeBlock(code: string, language: string): string {
 function mermaidDiagram(type: string, content: string): string {
   return '```mermaid\n' + type + '\n' + content + '\n```\n\n';
 }
-```
+````
 
 ✅ All implementations match the design specification exactly.
 
@@ -96,6 +96,7 @@ Beyond the basic requirements, the implementation includes:
 ## Requirements Satisfied
 
 **Requirement 12.2**: Parser e Pretty Printer para Markdown
+
 - ✅ Markdown formatter utilities created
 - ✅ All required functions implemented
 - ✅ Consistent formatting ensured
@@ -104,6 +105,7 @@ Beyond the basic requirements, the implementation includes:
 ## Next Steps
 
 Task 2.1 is complete. The markdown formatter utilities are ready to be used by:
+
 - Task 2.2: Write unit tests (already completed as part of this task)
 - Task 3: Prisma schema parser
 - Task 4: API endpoint extractor

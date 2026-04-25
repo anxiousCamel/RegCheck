@@ -24,9 +24,9 @@ try {
   const output = `# ERD Generator Verification
 
 ## Summary
-- Models: ${schema.models.length}
-- Enums: ${schema.enums.length}
-- Relationships: ${schema.relationships.length}
+- Models: ${schema.data.models.length}
+- Enums: ${schema.data.enums.length}
+- Relationships: ${schema.data.relationships.length}
 
 ## Generated ERD
 
@@ -39,10 +39,10 @@ ${erd}
 \`\`\`
 
 ## Models Found
-${schema.models.map(m => `- ${m.name} (${m.fields.length} fields)`).join('\n')}
+${schema.data.models.map((m: { name: string; fields: unknown[] }) => `- ${m.name} (${m.fields.length} fields)`).join('\n')}
 
 ## Relationships Found
-${schema.relationships.map(r => `- ${r.from} ${r.type} ${r.to}`).join('\n')}
+${schema.data.relationships.map((r: { from: string; type: string; to: string }) => `- ${r.from} ${r.type} ${r.to}`).join('\n')}
 
 ✓ ERD generation completed successfully!
 `;

@@ -4,19 +4,17 @@
  * This script manually tests all the key functionality required by Task 3.3
  */
 
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import {
   parsePrismaSchema,
   getModels,
   getEnums,
-  getRelationships,
   getModelByName,
   getPrimaryKeys,
   getUniqueFields,
   getRelationFields,
   getDataFields,
 } from './docs/prisma-parser';
+import type { PrismaField, PrismaModel } from './docs/prisma-parser';
 
 console.log('='.repeat(70));
 console.log('PRISMA PARSER COMPREHENSIVE TEST VERIFICATION');
@@ -47,6 +45,12 @@ function assert(condition: boolean, message: string) {
   }
 }
 
+function getFirstModel(result: ReturnType<typeof parsePrismaSchema>): PrismaModel {
+  const model = result.data.models[0];
+  if (!model) throw new Error('No models found in parse result');
+  return model;
+}
+
 console.log('TEST CATEGORY: Model Extraction with Various Field Types');
 console.log('-'.repeat(70));
 
@@ -62,13 +66,28 @@ model Document {
 }
 `;
   const result = parsePrismaSchema(schema);
-  const model = result.models[0];
-  
-  assert(model.fields.find(f => f.name === 'name' && f.type === 'String') !== undefined, 'String type not parsed');
-  assert(model.fields.find(f => f.name === 'count' && f.type === 'Int') !== undefined, 'Int type not parsed');
-  assert(model.fields.find(f => f.name === 'active' && f.type === 'Boolean') !== undefined, 'Boolean type not parsed');
-  assert(model.fields.find(f => f.name === 'metadata' && f.type === 'Json') !== undefined, 'Json type not parsed');
-  assert(model.fields.find(f => f.name === 'createdAt' && f.type === 'DateTime') !== undefined, 'DateTime type not parsed');
+  const model = getFirstModel(result);
+
+  assert(
+    model.fields.find((f: PrismaField) => f.name === 'name' && f.type === 'String') !== undefined,
+    'String type not parsed',
+  );
+  assert(
+    model.fields.find((f: PrismaField) => f.name === 'count' && f.type === 'Int') !== undefined,
+    'Int type not parsed',
+  );
+  assert(
+    model.fields.find((f: PrismaField) => f.name === 'active' && f.type === 'Boolean') !== undefined,
+    'Boolean type not parsed',
+  );
+  assert(
+    model.fields.find((f: PrismaField) => f.name === 'metadata' && f.type === 'Json') !== undefined,
+    'Json type not parsed',
+  );
+  assert(
+    model.fields.find((f: PrismaField) => f.name === 'createdAt' && f.type === 'DateTime') !== undefined,
+    'DateTime type not parsed',
+  );
 });
 
 test('Parse Float, Decimal, BigInt, Bytes field types', () => {
@@ -82,12 +101,24 @@ model ComplexModel {
 }
 `;
   const result = parsePrismaSchema(schema);
-  const model = result.models[0];
-  
-  assert(model.fields.find(f => f.name === 'price' && f.type === 'Float') !== undefined, 'Float type not parsed');
-  assert(model.fields.find(f => f.name === 'amount' && f.type === 'Decimal') !== undefined, 'Decimal type not parsed');
-  assert(model.fields.find(f => f.name === 'bigNum' && f.type === 'BigInt') !== undefined, 'BigInt type not parsed');
-  assert(model.fields.find(f => f.name === 'binary' && f.type === 'Bytes') !== undefined, 'Bytes type not parsed');
+  const model = getFirstModel(result);
+
+  assert(
+    model.fields.find((f: PrismaField) => f.name === 'price' && f.type === 'Float') !== undefined,
+    'Float type not parsed',
+  );
+  assert(
+    model.fields.find((f: PrismaField) => f.name === 'amount' && f.type === 'Decimal') !== undefined,
+    'Decimal type not parsed',
+  );
+  assert(
+    model.fields.find((f: PrismaField) => f.name === 'bigNum' && f.type === 'BigInt') !== undefined,
+    'BigInt type not parsed',
+  );
+  assert(
+    model.fields.find((f: PrismaField) => f.name === 'binary' && f.type === 'Bytes') !== undefined,
+    'Bytes type not parsed',
+  );
 });
 
 test('Parse optional fields (with ? modifier)', () => {
@@ -100,11 +131,11 @@ model User {
 }
 `;
   const result = parsePrismaSchema(schema);
-  const model = result.models[0];
-  
-  const ageField = model.fields.find(f => f.name === 'age');
-  const bioField = model.fields.find(f => f.name === 'bio');
-  
+  const model = getFirstModel(result);
+
+  const ageField = model.fields.find((f: PrismaField) => f.name === 'age');
+  const bioField = model.fields.find((f: PrismaField) => f.name === 'bio');
+
   assert(ageField?.isOptional === true, 'Optional Int field not detected');
   assert(bioField?.isOptional === true, 'Optional String field not detected');
 });
@@ -118,11 +149,11 @@ model User {
 }
 `;
   const result = parsePrismaSchema(schema);
-  const model = result.models[0];
-  
-  const tagsField = model.fields.find(f => f.name === 'tags');
-  const codesField = model.fields.find(f => f.name === 'codes');
-  
+  const model = getFirstModel(result);
+
+  const tagsField = model.fields.find((f: PrismaField) => f.name === 'tags');
+  const codesField = model.fields.find((f: PrismaField) => f.name === 'codes');
+
   assert(tagsField?.isArray === true && tagsField?.type === 'String', 'String array not parsed');
   assert(codesField?.isArray === true && codesField?.type === 'Int', 'Int array not parsed');
 });
@@ -137,12 +168,12 @@ model User {
 }
 `;
   const result = parsePrismaSchema(schema);
-  const model = result.models[0];
-  
-  const idField = model.fields.find(f => f.name === 'id');
-  const emailField = model.fields.find(f => f.name === 'email');
-  const createdAtField = model.fields.find(f => f.name === 'createdAt');
-  
+  const model = getFirstModel(result);
+
+  const idField = model.fields.find((f: PrismaField) => f.name === 'id');
+  const emailField = model.fields.find((f: PrismaField) => f.name === 'email');
+  const createdAtField = model.fields.find((f: PrismaField) => f.name === 'createdAt');
+
   assert(idField?.defaultValue === 'uuid()', '@default(uuid()) not parsed');
   assert(emailField?.isUnique === true, '@unique not detected');
   assert(createdAtField?.defaultValue === 'now()', '@default(now()) not parsed');
@@ -161,13 +192,15 @@ enum Status {
 }
 `;
   const result = parsePrismaSchema(schema);
-  
-  assert(result.enums.length === 1, 'Enum not extracted');
-  assert(result.enums[0].name === 'Status', 'Enum name incorrect');
-  assert(result.enums[0].values.length === 3, 'Enum values count incorrect');
-  assert(result.enums[0].values.includes('DRAFT'), 'DRAFT value missing');
-  assert(result.enums[0].values.includes('PUBLISHED'), 'PUBLISHED value missing');
-  assert(result.enums[0].values.includes('ARCHIVED'), 'ARCHIVED value missing');
+  const firstEnum = result.data.enums[0];
+  if (!firstEnum) throw new Error('No enums found');
+
+  assert(result.data.enums.length === 1, 'Enum not extracted');
+  assert(firstEnum.name === 'Status', 'Enum name incorrect');
+  assert(firstEnum.values.length === 3, 'Enum values count incorrect');
+  assert(firstEnum.values.includes('DRAFT'), 'DRAFT value missing');
+  assert(firstEnum.values.includes('PUBLISHED'), 'PUBLISHED value missing');
+  assert(firstEnum.values.includes('ARCHIVED'), 'ARCHIVED value missing');
 });
 
 test('Parse multiple enums', () => {
@@ -184,10 +217,13 @@ enum DocumentStatus {
 }
 `;
   const result = parsePrismaSchema(schema);
-  
-  assert(result.enums.length === 2, 'Multiple enums not extracted');
-  assert(result.enums[0].name === 'TemplateStatus', 'First enum name incorrect');
-  assert(result.enums[1].name === 'DocumentStatus', 'Second enum name incorrect');
+  const first = result.data.enums[0];
+  const second = result.data.enums[1];
+  if (!first || !second) throw new Error('Expected 2 enums');
+
+  assert(result.data.enums.length === 2, 'Multiple enums not extracted');
+  assert(first.name === 'TemplateStatus', 'First enum name incorrect');
+  assert(second.name === 'DocumentStatus', 'Second enum name incorrect');
 });
 
 test('Parse enum field in model', () => {
@@ -203,9 +239,9 @@ model User {
 }
 `;
   const result = parsePrismaSchema(schema);
-  const model = result.models[0];
-  const statusField = model.fields.find(f => f.name === 'status');
-  
+  const model = getFirstModel(result);
+  const statusField = model.fields.find((f: PrismaField) => f.name === 'status');
+
   assert(statusField?.type === 'Status', 'Enum field type not parsed');
   assert(statusField?.isRelation === false, 'Enum field incorrectly marked as relation');
   assert(statusField?.defaultValue === 'ACTIVE', 'Enum default value not parsed');
@@ -229,22 +265,22 @@ model Post {
 }
 `;
   const result = parsePrismaSchema(schema);
-  
-  const userModel = result.models.find(m => m.name === 'User');
-  const postModel = result.models.find(m => m.name === 'Post');
-  
-  const postsField = userModel?.fields.find(f => f.name === 'posts');
+
+  const userModel = result.data.models.find((m: PrismaModel) => m.name === 'User');
+  const postModel = result.data.models.find((m: PrismaModel) => m.name === 'Post');
+
+  const postsField = userModel?.fields.find((f: PrismaField) => f.name === 'posts');
   assert(postsField?.isRelation === true, 'One-to-many relation not detected');
   assert(postsField?.relationTo === 'Post', 'Relation target incorrect');
   assert(postsField?.isArray === true, 'Array relation not detected');
-  
-  const userField = postModel?.fields.find(f => f.name === 'user');
+
+  const userField = postModel?.fields.find((f: PrismaField) => f.name === 'user');
   assert(userField?.isRelation === true, 'Many-to-one relation not detected');
   assert(userField?.relationTo === 'User', 'Reverse relation target incorrect');
   assert(userField?.relationFields?.[0] === 'userId', 'Relation fields not parsed');
   assert(userField?.relationReferences?.[0] === 'id', 'Relation references not parsed');
-  
-  assert(result.relationships.length > 0, 'Relationships not extracted');
+
+  assert(result.data.relationships.length > 0, 'Relationships not extracted');
 });
 
 test('Parse many-to-one relationship', () => {
@@ -261,10 +297,10 @@ model PdfFile {
 }
 `;
   const result = parsePrismaSchema(schema);
-  
-  const templateModel = result.models.find(m => m.name === 'Template');
-  const pdfFileField = templateModel?.fields.find(f => f.name === 'pdfFile');
-  
+
+  const templateModel = result.data.models.find((m: PrismaModel) => m.name === 'Template');
+  const pdfFileField = templateModel?.fields.find((f: PrismaField) => f.name === 'pdfFile');
+
   assert(pdfFileField?.isRelation === true, 'Many-to-one relation not detected');
   assert(pdfFileField?.relationTo === 'PdfFile', 'Relation target incorrect');
   assert(pdfFileField?.relationFields?.[0] === 'pdfFileId', 'Foreign key field not parsed');
@@ -299,14 +335,24 @@ model Document {
 }
 `;
   const result = parsePrismaSchema(schema);
-  
-  const templateModel = result.models.find(m => m.name === 'Template');
-  const relationFields = templateModel?.fields.filter(f => f.isRelation);
-  
-  assert(relationFields && relationFields.length >= 3, 'Multiple relationships not detected');
-  assert(relationFields?.some(f => f.relationTo === 'PdfFile'), 'PdfFile relation missing');
-  assert(relationFields?.some(f => f.relationTo === 'TemplateField'), 'TemplateField relation missing');
-  assert(relationFields?.some(f => f.relationTo === 'Document'), 'Document relation missing');
+
+  const templateModel = result.data.models.find((m: PrismaModel) => m.name === 'Template');
+  if (!templateModel) throw new Error('Template model not found');
+  const relationFieldsList = templateModel.fields.filter((f: PrismaField) => f.isRelation);
+
+  assert(relationFieldsList.length >= 3, 'Multiple relationships not detected');
+  assert(
+    relationFieldsList.some((f: PrismaField) => f.relationTo === 'PdfFile'),
+    'PdfFile relation missing',
+  );
+  assert(
+    relationFieldsList.some((f: PrismaField) => f.relationTo === 'TemplateField'),
+    'TemplateField relation missing',
+  );
+  assert(
+    relationFieldsList.some((f: PrismaField) => f.relationTo === 'Document'),
+    'Document relation missing',
+  );
 });
 
 test('Parse optional relationship', () => {
@@ -323,10 +369,10 @@ model Profile {
 }
 `;
   const result = parsePrismaSchema(schema);
-  
-  const userModel = result.models.find(m => m.name === 'User');
-  const profileField = userModel?.fields.find(f => f.name === 'profile');
-  
+
+  const userModel = result.data.models.find((m: PrismaModel) => m.name === 'User');
+  const profileField = userModel?.fields.find((f: PrismaField) => f.name === 'profile');
+
   assert(profileField?.isRelation === true, 'Optional relation not detected');
   assert(profileField?.isOptional === true, 'Optional modifier not detected on relation');
 });
@@ -345,10 +391,10 @@ model Child {
 }
 `;
   const result = parsePrismaSchema(schema);
-  
-  const childModel = result.models.find(m => m.name === 'Child');
-  const parentField = childModel?.fields.find(f => f.name === 'parent');
-  
+
+  const childModel = result.data.models.find((m: PrismaModel) => m.name === 'Child');
+  const parentField = childModel?.fields.find((f: PrismaField) => f.name === 'parent');
+
   assert(parentField?.isRelation === true, 'Cascade relation not detected');
   assert(parentField?.relationTo === 'Parent', 'Cascade relation target incorrect');
 });
@@ -366,12 +412,14 @@ model User {
 }
 `;
   const result = parsePrismaSchema(schema);
-  const model = result.models[0];
+  const model = getFirstModel(result);
   const primaryKeys = getPrimaryKeys(model);
-  
+
   assert(primaryKeys.length === 1, 'Primary key not identified');
-  assert(primaryKeys[0].name === 'id', 'Primary key name incorrect');
-  assert(primaryKeys[0].isPrimaryKey === true, 'isPrimaryKey flag not set');
+  const pk = primaryKeys[0];
+  if (!pk) throw new Error('Primary key not found');
+  assert(pk.name === 'id', 'Primary key name incorrect');
+  assert(pk.isPrimaryKey === true, 'isPrimaryKey flag not set');
 });
 
 test('Identify unique constraints with @unique', () => {
@@ -383,12 +431,18 @@ model User {
 }
 `;
   const result = parsePrismaSchema(schema);
-  const model = result.models[0];
+  const model = getFirstModel(result);
   const uniqueFields = getUniqueFields(model);
-  
+
   assert(uniqueFields.length === 2, 'Unique fields not identified');
-  assert(uniqueFields.some(f => f.name === 'email'), 'Email unique constraint missing');
-  assert(uniqueFields.some(f => f.name === 'phone'), 'Phone unique constraint missing');
+  assert(
+    uniqueFields.some((f: PrismaField) => f.name === 'email'),
+    'Email unique constraint missing',
+  );
+  assert(
+    uniqueFields.some((f: PrismaField) => f.name === 'phone'),
+    'Phone unique constraint missing',
+  );
 });
 
 test('Parse @@map table name attribute', () => {
@@ -401,8 +455,8 @@ model PdfFile {
 }
 `;
   const result = parsePrismaSchema(schema);
-  const model = result.models[0];
-  
+  const model = getFirstModel(result);
+
   assert(model.name === 'PdfFile', 'Model name incorrect');
   assert(model.tableName === 'pdf_files', '@@map table name not parsed');
 });
@@ -419,11 +473,17 @@ model Document {
 }
 `;
   const result = parsePrismaSchema(schema);
-  const model = result.models[0];
-  
+  const model = getFirstModel(result);
+
   assert(model.indexes.length === 2, 'Indexes not parsed');
-  assert(model.indexes.some(idx => idx.includes('status')), 'Status index missing');
-  assert(model.indexes.some(idx => idx.includes('createdAt')), 'CreatedAt index missing');
+  assert(
+    model.indexes.some((idx: string) => idx.includes('status')),
+    'Status index missing',
+  );
+  assert(
+    model.indexes.some((idx: string) => idx.includes('createdAt')),
+    'CreatedAt index missing',
+  );
 });
 
 console.log();
@@ -442,10 +502,16 @@ model Post {
 `;
   const result = parsePrismaSchema(schema);
   const models = getModels(result);
-  
+
   assert(models.length === 2, 'getModels() count incorrect');
-  assert(models.some(m => m.name === 'User'), 'User model missing');
-  assert(models.some(m => m.name === 'Post'), 'Post model missing');
+  assert(
+    models.some((m: PrismaModel) => m.name === 'User'),
+    'User model missing',
+  );
+  assert(
+    models.some((m: PrismaModel) => m.name === 'Post'),
+    'Post model missing',
+  );
 });
 
 test('getEnums() returns all enums', () => {
@@ -461,10 +527,16 @@ enum Priority {
 `;
   const result = parsePrismaSchema(schema);
   const enums = getEnums(result);
-  
+
   assert(enums.length === 2, 'getEnums() count incorrect');
-  assert(enums.some(e => e.name === 'Status'), 'Status enum missing');
-  assert(enums.some(e => e.name === 'Priority'), 'Priority enum missing');
+  assert(
+    enums.some((e) => e.name === 'Status'),
+    'Status enum missing',
+  );
+  assert(
+    enums.some((e) => e.name === 'Priority'),
+    'Priority enum missing',
+  );
 });
 
 test('getModelByName() finds specific model', () => {
@@ -480,7 +552,7 @@ model Post {
   const result = parsePrismaSchema(schema);
   const user = getModelByName(result, 'User');
   const notFound = getModelByName(result, 'NonExistent');
-  
+
   assert(user !== undefined, 'getModelByName() failed to find model');
   assert(user?.name === 'User', 'getModelByName() returned wrong model');
   assert(notFound === undefined, 'getModelByName() should return undefined for non-existent model');
@@ -502,10 +574,13 @@ model Post {
 `;
   const result = parsePrismaSchema(schema);
   const user = getModelByName(result, 'User')!;
-  const relationFields = getRelationFields(user);
-  
-  assert(relationFields.length >= 1, 'getRelationFields() count incorrect');
-  assert(relationFields.some(f => f.name === 'posts'), 'Relation field not found');
+  const relFields = getRelationFields(user);
+
+  assert(relFields.length >= 1, 'getRelationFields() count incorrect');
+  assert(
+    relFields.some((f: PrismaField) => f.name === 'posts'),
+    'Relation field not found',
+  );
 });
 
 test('getDataFields() filters non-relation fields', () => {
@@ -526,11 +601,23 @@ model Post {
   const result = parsePrismaSchema(schema);
   const user = getModelByName(result, 'User')!;
   const dataFields = getDataFields(user);
-  
-  assert(dataFields.some(f => f.name === 'id'), 'Data field id missing');
-  assert(dataFields.some(f => f.name === 'name'), 'Data field name missing');
-  assert(dataFields.some(f => f.name === 'email'), 'Data field email missing');
-  assert(!dataFields.some(f => f.name === 'posts'), 'Relation field should not be in data fields');
+
+  assert(
+    dataFields.some((f: PrismaField) => f.name === 'id'),
+    'Data field id missing',
+  );
+  assert(
+    dataFields.some((f: PrismaField) => f.name === 'name'),
+    'Data field name missing',
+  );
+  assert(
+    dataFields.some((f: PrismaField) => f.name === 'email'),
+    'Data field email missing',
+  );
+  assert(
+    !dataFields.some((f: PrismaField) => f.name === 'posts'),
+    'Relation field should not be in data fields',
+  );
 });
 
 console.log();

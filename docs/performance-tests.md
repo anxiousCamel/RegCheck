@@ -60,33 +60,37 @@ Tests database query execution times to ensure optimal performance:
 ## Running the Tests
 
 ### Run all performance tests:
+
 ```bash
 npm test src/__tests__/performance-benchmarks.test.ts
 npm test src/__tests__/database-query-performance.test.ts
 ```
 
 ### Run specific test suite:
+
 ```bash
 npx vitest run src/__tests__/performance-benchmarks.test.ts
 ```
 
 ### Run in watch mode:
+
 ```bash
 npx vitest src/__tests__/performance-benchmarks.test.ts
 ```
 
 ## Performance Targets
 
-| Metric | Target | Requirement |
-|--------|--------|-------------|
-| Listing API Response | < 200ms | 1.1 |
-| Detail API Response | < 150ms | 1.2 |
-| Database Query Execution | < 50ms | 5.5 |
-| Max Page Size | 100 items | 5.2 |
+| Metric                   | Target    | Requirement |
+| ------------------------ | --------- | ----------- |
+| Listing API Response     | < 200ms   | 1.1         |
+| Detail API Response      | < 150ms   | 1.2         |
+| Database Query Execution | < 50ms    | 5.5         |
+| Max Page Size            | 100 items | 5.2         |
 
 ## Test Approach
 
 These tests use **mocked services** to measure:
+
 1. **API layer overhead**: Express routing, middleware, serialization
 2. **Service layer overhead**: Business logic, cache checks
 3. **Query construction overhead**: Prisma query building
@@ -103,10 +107,12 @@ The performance benchmark tests use mocked services for several reasons:
 ### Integration Testing
 
 For **real database performance testing**, see:
+
 - `src/services/__tests__/*-optimization.test.ts` - Query optimization tests with real Prisma
 - `src/services/__tests__/*-cache.integration.test.ts` - Cache integration tests with real Redis
 
 These integration tests verify:
+
 - Actual database query execution times
 - Real cache hit/miss behavior
 - Actual network overhead
@@ -117,18 +123,21 @@ These integration tests verify:
 ### If Tests Fail
 
 **API Response Time Failures**:
+
 - Check middleware overhead (logging, caching, validation)
 - Review service layer complexity
 - Verify mocks are properly configured
 - Check for synchronous blocking operations
 
 **Database Query Time Failures**:
+
 - Review Prisma query construction
 - Verify select/include usage
 - Check for N+1 query patterns
 - Validate pagination implementation
 
 **Concurrent Request Failures**:
+
 - Check for blocking operations
 - Review async/await patterns
 - Verify no shared mutable state
@@ -137,6 +146,7 @@ These integration tests verify:
 ### Performance Regression
 
 If tests that previously passed start failing:
+
 1. Review recent code changes
 2. Check for added middleware
 3. Verify no new synchronous operations
@@ -161,11 +171,13 @@ If tests that previously passed start failing:
 ## Troubleshooting
 
 ### Tests are flaky
+
 - Increase timeout values if running on slow hardware
 - Check for race conditions in concurrent tests
 - Verify mocks are properly reset between tests
 
 ### Tests pass but production is slow
+
 - Run integration tests with real database
 - Check production database indexes
 - Verify Redis cache is working
@@ -173,6 +185,7 @@ If tests that previously passed start failing:
 - Check network latency between services
 
 ### Need to adjust targets
+
 - Document the reason for adjustment
 - Update requirements document
 - Get stakeholder approval

@@ -37,7 +37,9 @@ export class FieldService {
         templateId,
         type: FIELD_TYPE_MAP[input.type] as PrismaFieldType,
         pageIndex: input.pageIndex,
+        // FieldPosition → Prisma JSON: validated by Zod, cast bridges Prisma's JsonObject
         position: input.position as unknown as Prisma.JsonObject,
+        // FieldConfig → Prisma JSON: validated by Zod, cast bridges Prisma's JsonObject
         config: input.config as unknown as Prisma.JsonObject,
         scope: input.scope,
         slotIndex: normalizeSlotFor(input.scope, input.slotIndex),
@@ -60,7 +62,9 @@ export class FieldService {
     const data: Prisma.TemplateFieldUpdateInput = {};
     if (input.type) data.type = FIELD_TYPE_MAP[input.type] as PrismaFieldType;
     if (input.pageIndex !== undefined) data.pageIndex = input.pageIndex;
+    // FieldPosition → Prisma JSON: validated by Zod, cast bridges Prisma's JsonObject
     if (input.position) data.position = input.position as unknown as Prisma.JsonObject;
+    // FieldConfig → Prisma JSON: validated by Zod, cast bridges Prisma's JsonObject
     if (input.config) data.config = input.config as unknown as Prisma.JsonObject;
     if (input.scope !== undefined) {
       data.scope = input.scope;
@@ -114,8 +118,10 @@ export class FieldService {
 
     const operations = validUpdates.map((u) => {
       const data: Prisma.TemplateFieldUpdateInput = {
+        // FieldPosition → Prisma JSON: validated upstream, cast bridges Prisma's JsonObject
         position: u.position as unknown as Prisma.JsonObject,
       };
+      // FieldConfig → Prisma JSON: validated upstream, cast bridges Prisma's JsonObject
       if (u.config) data.config = u.config as unknown as Prisma.JsonObject;
       if (u.scope !== undefined) {
         data.scope = u.scope;

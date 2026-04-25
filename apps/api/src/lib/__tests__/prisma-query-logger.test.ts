@@ -52,12 +52,7 @@ describe('Prisma Query Logger', () => {
 
       requestContext.run({ requestId }, () => {
         // Simulate a query being recorded
-        performanceMonitor.recordQuery(
-          requestId,
-          'SELECT * FROM "Loja"',
-          45,
-          '[]'
-        );
+        performanceMonitor.recordQuery(requestId, 'SELECT * FROM "Loja"', 45, '[]');
       });
 
       const metrics = performanceMonitor.endRequest(requestId);
@@ -75,7 +70,7 @@ describe('Prisma Query Logger', () => {
           requestId,
           'SELECT * FROM "Equipamento" JOIN "Loja" ON ...',
           150,
-          '[1, 2, 3]'
+          '[1, 2, 3]',
         );
       });
 
@@ -84,7 +79,7 @@ describe('Prisma Query Logger', () => {
         expect.objectContaining({
           requestId,
           duration: '150ms',
-        })
+        }),
       );
 
       const metrics = performanceMonitor.endRequest(requestId);
@@ -114,7 +109,7 @@ describe('Prisma Query Logger', () => {
     it('should handle queries without request context gracefully', () => {
       // This simulates queries from background jobs or startup
       // They should not crash, but should log slow queries differently
-      
+
       // No request context, so this should not throw
       expect(() => {
         const context = requestContext.getStore();
@@ -126,7 +121,7 @@ describe('Prisma Query Logger', () => {
 
 /**
  * **Validates: Requirements 8.2**
- * 
+ *
  * These tests verify that:
  * 1. Prisma query events are properly captured
  * 2. Slow queries (> 100ms) are logged with duration and parameters

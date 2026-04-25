@@ -3,11 +3,11 @@
 Este documento descreve o modelo de dados do sistema RegCheck, incluindo todas as entidades, relacionamentos e enumerações.
 
 **Fonte:** prisma-parser
-**Gerado em:** 23/04/2026, 12:20:17
+**Gerado em:** 25/04/2026, 12:16:41
 
 ## Visão Geral
 
-O sistema possui **10 entidades** e **3 enumerações**.
+O sistema possui **10 entidades** e **4 enumerações**.
 
 ### Entidades
 
@@ -61,6 +61,7 @@ erDiagram
         string description
         templatestatus status
         int version
+        fillmode fillMode
         string pdfFileId
         datetime createdAt
         datetime updatedAt
@@ -181,6 +182,7 @@ Document template definitions
 | description | Texto | Não | Descrição |
 | status | TemplateStatus | Sim | Status. Padrão: DRAFT |
 | version | Inteiro | Sim | Padrão: 1 |
+| fillMode | FillMode | Sim | Padrão: AUTOMATICO |
 | pdfFileId | Texto | Sim | - |
 | createdAt | Data/Hora | Sim | Data de criação. Padrão: now() |
 | updatedAt | Data/Hora | Sim | Data de atualização |
@@ -380,6 +382,13 @@ Valores possíveis:
 - **DRAFT**: Rascunho, em edição
 - **PUBLISHED**: Publicado, disponível para uso
 - **ARCHIVED**: não identificado
+
+### FillMode
+
+Valores possíveis:
+
+- **AUTOMATICO**: não identificado
+- **SELECAO_MANUAL**: não identificado
 
 ### FieldType
 

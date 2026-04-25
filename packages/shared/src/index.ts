@@ -1,3 +1,4 @@
+export * from './types/common';
 export * from './types/field';
 export * from './types/template';
 export * from './types/document';

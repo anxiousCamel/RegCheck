@@ -1,6 +1,7 @@
 # ERD Generator Verification
 
 ## Summary
+
 - Models: 10
 - Enums: 3
 - Relationships: 18
@@ -125,7 +126,6 @@ erDiagram
     }
 ```
 
-
 ## Raw ERD Syntax
 
 ```
@@ -248,6 +248,7 @@ erDiagram
 ```
 
 ## Models Found
+
 - PdfFile (8 fields)
 - Template (12 fields)
 - TemplateVersion (6 fields)
@@ -260,6 +261,7 @@ erDiagram
 - Equipamento (15 fields)
 
 ## Relationships Found
+
 - Template one-to-many PdfFile
 - Template many-to-one PdfFile
 - TemplateField one-to-many Template

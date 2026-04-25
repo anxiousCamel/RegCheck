@@ -6,7 +6,6 @@ if (typeof OffscreenCanvas === 'undefined') {
   class OffscreenCanvasStub {
     width: number;
     height: number;
-    private _ctx: CanvasRenderingContext2D | null = null;
 
     constructor(width: number, height: number) {
       this.width = width;
@@ -37,11 +36,13 @@ if (typeof OffscreenCanvas === 'undefined') {
 
 // createImageBitmap stub
 if (typeof createImageBitmap === 'undefined') {
-  (globalThis as unknown as Record<string, unknown>).createImageBitmap = vi.fn(async (source: { width?: number; height?: number }) => ({
-    width: source?.width ?? 100,
-    height: source?.height ?? 100,
-    close: vi.fn(),
-  }));
+  (globalThis as unknown as Record<string, unknown>).createImageBitmap = vi.fn(
+    async (source: { width?: number; height?: number }) => ({
+      width: source?.width ?? 100,
+      height: source?.height ?? 100,
+      close: vi.fn(),
+    }),
+  );
 }
 
 // performance.now stub
@@ -70,7 +71,10 @@ if (typeof indexedDB === 'undefined') {
             store.set(entry.hash, val);
             return {};
           }),
-          delete: vi.fn((key: string) => { store.delete(key); return {}; }),
+          delete: vi.fn((key: string) => {
+            store.delete(key);
+            return {};
+          }),
         })),
         oncomplete: null as (() => void) | null,
         onerror: null,

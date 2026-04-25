@@ -39,7 +39,9 @@ equipamentoRouter.post('/', async (req, res, next) => {
   try {
     const input = createEquipamentoSchema.parse(req.body);
     const equipamento = await EquipamentoService.create(input);
-    res.status(201).json({ success: true, data: equipamento } satisfies ApiResponse<typeof equipamento>);
+    res
+      .status(201)
+      .json({ success: true, data: equipamento } satisfies ApiResponse<typeof equipamento>);
   } catch (err) {
     next(err);
   }

@@ -40,7 +40,9 @@ export function EquipmentFilters({
           >
             <option value="">Todas</option>
             {lojas.map((l) => (
-              <option key={l.id} value={l.id}>{l.nome}</option>
+              <option key={l.id} value={l.id}>
+                {l.nome}
+              </option>
             ))}
           </select>
         </div>
@@ -53,7 +55,9 @@ export function EquipmentFilters({
           >
             <option value="">Todos</option>
             {setores.map((s) => (
-              <option key={s.id} value={s.id}>{s.nome}</option>
+              <option key={s.id} value={s.id}>
+                {s.nome}
+              </option>
             ))}
           </select>
         </div>
@@ -66,12 +70,16 @@ export function EquipmentFilters({
           >
             <option value="">Todos</option>
             {tipos.map((t) => (
-              <option key={t.id} value={t.id}>{t.nome}</option>
+              <option key={t.id} value={t.id}>
+                {t.nome}
+              </option>
             ))}
           </select>
         </div>
         <div>
-          <label className="text-xs font-medium mb-1 block text-muted-foreground">Nº Equipamento</label>
+          <label className="text-xs font-medium mb-1 block text-muted-foreground">
+            Nº Equipamento
+          </label>
           <Input
             value={filters.numeroEquipamento ?? ''}
             onChange={(e) => updateFilter('numeroEquipamento', e.target.value)}

@@ -57,7 +57,7 @@ describe('PerformanceMonitor', () => {
           requestId: 'req-1',
           query: 'SELECT * FROM lojas',
           duration: '150ms',
-        })
+        }),
       );
 
       const metrics = monitor.getMetrics('req-1');
@@ -74,7 +74,7 @@ describe('PerformanceMonitor', () => {
         '[Slow Query]',
         expect.objectContaining({
           params,
-        })
+        }),
       );
 
       const metrics = monitor.getMetrics('req-1');

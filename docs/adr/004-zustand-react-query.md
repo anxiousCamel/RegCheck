@@ -7,6 +7,7 @@
 O frontend do RegCheck (`apps/web`) lida com dois tipos distintos de estado:
 
 **Estado local do editor visual** — ao abrir um template no editor (`/editor/[templateId]`), o usuário interage com campos Konva sobre o PDF renderizado. Esse estado inclui:
+
 - Lista de campos posicionados (`fields: EditorField[]`)
 - Campos selecionados para edição (`selectedFieldIds: string[]`)
 - Histórico de undo/redo gerenciado pelo `HistoryManager` do `@regcheck/editor-engine` (até 50 snapshots)

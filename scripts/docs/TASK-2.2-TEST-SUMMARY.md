@@ -9,6 +9,7 @@
 The unit test file `scripts/docs/markdown-formatter.test.ts` contains **50+ comprehensive test cases** covering all markdown formatter functions:
 
 ### 1. Heading Generation (7 tests)
+
 - ✅ Level 1 heading generation
 - ✅ Level 2 heading generation
 - ✅ Level 3 heading generation
@@ -18,6 +19,7 @@ The unit test file `scripts/docs/markdown-formatter.test.ts` contains **50+ comp
 - ✅ Special characters in heading text
 
 ### 2. Code Block Formatting (5 tests)
+
 - ✅ TypeScript language tag
 - ✅ JavaScript language tag
 - ✅ JSON language tag
@@ -25,6 +27,7 @@ The unit test file `scripts/docs/markdown-formatter.test.ts` contains **50+ comp
 - ✅ Empty code blocks
 
 ### 3. Table Generation (5 tests)
+
 - ✅ Two-column tables with headers and rows
 - ✅ Three-column tables
 - ✅ Single row tables
@@ -32,6 +35,7 @@ The unit test file `scripts/docs/markdown-formatter.test.ts` contains **50+ comp
 - ✅ Cells with special characters (& and |)
 
 ### 4. List Formatting (6 tests)
+
 - ✅ Unordered lists
 - ✅ Ordered lists
 - ✅ Default to unordered when parameter omitted
@@ -40,6 +44,7 @@ The unit test file `scripts/docs/markdown-formatter.test.ts` contains **50+ comp
 - ✅ Items with special characters
 
 ### 5. Link Formatting (5 tests)
+
 - ✅ Internal links (relative paths)
 - ✅ External links (HTTPS URLs)
 - ✅ Link text with special characters
@@ -47,6 +52,7 @@ The unit test file `scripts/docs/markdown-formatter.test.ts` contains **50+ comp
 - ✅ URLs with anchors
 
 ### 6. Mermaid Diagram Wrapping (5 tests)
+
 - ✅ Graph diagrams (graph TB)
 - ✅ Entity-relationship diagrams (erDiagram)
 - ✅ Sequence diagrams (sequenceDiagram)
@@ -58,12 +64,14 @@ The unit test file `scripts/docs/markdown-formatter.test.ts` contains **50+ comp
 **Requirements 12.1 and 12.2 are fully satisfied:**
 
 ✅ **Requirement 12.1**: Markdown syntax validation
+
 - All generated markdown is syntactically valid
 - Proper heading hierarchy (levels 1-6)
 - Properly closed code blocks
 - Valid link formatting
 
 ✅ **Requirement 12.2**: Consistent formatting
+
 - Consistent indentation and spacing
 - Trailing newlines after all elements
 - Proper table alignment

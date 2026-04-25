@@ -52,10 +52,14 @@ export const OCRService = {
       worker.recognize(blob),
       new Promise<never>((_, reject) => {
         const timer = setTimeout(() => reject(new Error('OCR timeout')), OCR_TIMEOUT);
-        signal?.addEventListener('abort', () => {
-          clearTimeout(timer);
-          reject(new DOMException('Cancelled', 'AbortError'));
-        }, { once: true });
+        signal?.addEventListener(
+          'abort',
+          () => {
+            clearTimeout(timer);
+            reject(new DOMException('Cancelled', 'AbortError'));
+          },
+          { once: true },
+        );
       }),
     ]);
 

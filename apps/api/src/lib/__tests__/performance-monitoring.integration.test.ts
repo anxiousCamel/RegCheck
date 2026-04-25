@@ -3,9 +3,9 @@ import { PerformanceMonitor } from '../performance';
 
 /**
  * Integration tests for performance monitoring
- * 
+ *
  * **Validates: Requirements 8.1, 8.2**
- * 
+ *
  * These tests verify:
  * - Slow query detection (> 100ms threshold)
  * - Request duration tracking
@@ -37,7 +37,7 @@ describe('Performance Monitoring Integration', () => {
         requestId,
         'SELECT * FROM "Loja" WHERE "ativo" = true ORDER BY "nome"',
         150,
-        { ativo: true }
+        { ativo: true },
       );
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -47,7 +47,7 @@ describe('Performance Monitoring Integration', () => {
           query: 'SELECT * FROM "Loja" WHERE "ativo" = true ORDER BY "nome"',
           duration: '150ms',
           params: { ativo: true },
-        })
+        }),
       );
 
       const metrics = monitor.endRequest(requestId);
@@ -79,21 +79,9 @@ describe('Performance Monitoring Integration', () => {
       monitor.startRequest(requestId, 'GET', '/api/equipamentos');
 
       // Simulate multiple slow queries
-      monitor.recordQuery(
-        requestId,
-        'SELECT * FROM "Equipamento" JOIN "Loja" ON ...',
-        120
-      );
-      monitor.recordQuery(
-        requestId,
-        'SELECT * FROM "Equipamento" JOIN "Setor" ON ...',
-        150
-      );
-      monitor.recordQuery(
-        requestId,
-        'SELECT * FROM "TipoEquipamento"',
-        30
-      );
+      monitor.recordQuery(requestId, 'SELECT * FROM "Equipamento" JOIN "Loja" ON ...', 120);
+      monitor.recordQuery(requestId, 'SELECT * FROM "Equipamento" JOIN "Setor" ON ...', 150);
+      monitor.recordQuery(requestId, 'SELECT * FROM "TipoEquipamento"', 30);
 
       expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
 
@@ -111,18 +99,13 @@ describe('Performance Monitoring Integration', () => {
         include: { loja: true, setor: true, tipo: true },
       };
 
-      monitor.recordQuery(
-        requestId,
-        'SELECT * FROM "Equipamento" WHERE "id" = $1',
-        110,
-        params
-      );
+      monitor.recordQuery(requestId, 'SELECT * FROM "Equipamento" WHERE "id" = $1', 110, params);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         '[Slow Query]',
         expect.objectContaining({
           params,
-        })
+        }),
       );
 
       const metrics = monitor.endRequest(requestId);
@@ -132,20 +115,18 @@ describe('Performance Monitoring Integration', () => {
     it('should track timestamp for each slow query', () => {
       const requestId = 'req-timestamp';
       const beforeTime = new Date();
-      
+
       monitor.startRequest(requestId, 'GET', '/api/lojas');
       monitor.recordQuery(requestId, 'SELECT * FROM "Loja"', 150);
-      
+
       const afterTime = new Date();
       const metrics = monitor.endRequest(requestId);
 
       expect(metrics?.slowQueries[0].timestamp).toBeInstanceOf(Date);
       expect(metrics?.slowQueries[0].timestamp.getTime()).toBeGreaterThanOrEqual(
-        beforeTime.getTime()
+        beforeTime.getTime(),
       );
-      expect(metrics?.slowQueries[0].timestamp.getTime()).toBeLessThanOrEqual(
-        afterTime.getTime()
-      );
+      expect(metrics?.slowQueries[0].timestamp.getTime()).toBeLessThanOrEqual(afterTime.getTime());
     });
   });
 
@@ -225,26 +206,18 @@ describe('Performance Monitoring Integration', () => {
 
       // Simulate realistic query pattern
       await new Promise((resolve) => setTimeout(resolve, 10));
-      monitor.recordQuery(
-        requestId,
-        'SELECT COUNT(*) FROM "Equipamento"',
-        25
-      );
+      monitor.recordQuery(requestId, 'SELECT COUNT(*) FROM "Equipamento"', 25);
 
       await new Promise((resolve) => setTimeout(resolve, 20));
       monitor.recordQuery(
         requestId,
         'SELECT * FROM "Equipamento" JOIN "Loja" JOIN "Setor" JOIN "TipoEquipamento"',
         120, // Slow query
-        { page: 1, pageSize: 50 }
+        { page: 1, pageSize: 50 },
       );
 
       await new Promise((resolve) => setTimeout(resolve, 10));
-      monitor.recordQuery(
-        requestId,
-        'SELECT * FROM "Loja" WHERE "id" IN (...)',
-        30
-      );
+      monitor.recordQuery(requestId, 'SELECT * FROM "Loja" WHERE "id" IN (...)', 30);
 
       const metrics = monitor.endRequest(requestId);
 
@@ -266,7 +239,7 @@ describe('Performance Monitoring Integration', () => {
         '[Slow Query]',
         expect.objectContaining({
           duration: '120ms',
-        })
+        }),
       );
     });
 
@@ -306,7 +279,7 @@ describe('Performance Monitoring Integration', () => {
         '[Slow Query]',
         expect.objectContaining({
           requestId: req2,
-        })
+        }),
       );
     });
 
@@ -416,7 +389,7 @@ describe('Performance Monitoring Integration', () => {
         '[Slow Query]',
         expect.objectContaining({
           duration: '5000ms',
-        })
+        }),
       );
 
       const metrics = monitor.endRequest(requestId);

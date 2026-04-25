@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 
 import { parseRouteFile, groupEndpointsByResource } from './docs/route-parser';
+import type { RouteParserOutput } from './docs/route-parser';
 import * as path from 'path';
 
 console.log('Testing Route Parser...\n');
@@ -18,15 +19,22 @@ for (const endpoint of endpoints) {
   console.log(`  Description: ${endpoint.description || '(none)'}`);
   console.log(`  Parameters: ${endpoint.parameters.length}`);
   if (endpoint.requestBody) {
-    console.log(`  Request Body: ${endpoint.requestBody.schemaName || endpoint.requestBody.contentType}`);
+    console.log(
+      `  Request Body: ${endpoint.requestBody.schemaName || endpoint.requestBody.contentType}`,
+    );
   }
-  console.log(`  Responses: ${endpoint.responses.map(r => r.statusCode).join(', ')}`);
+  console.log(`  Responses: ${endpoint.responses.map((r) => r.statusCode).join(', ')}`);
   console.log('');
 }
 
 // Test grouping
 console.log('\n--- Testing Grouping ---\n');
-const groups = groupEndpointsByResource(endpoints);
+const wrappedOutput: RouteParserOutput = {
+  source: 'route-parser',
+  generatedAt: new Date().toISOString(),
+  data: endpoints,
+};
+const groups = groupEndpointsByResource(wrappedOutput);
 console.log(`Grouped into ${groups.size} resource(s):`);
 for (const [resource, eps] of groups) {
   console.log(`  ${resource}: ${eps.length} endpoints`);

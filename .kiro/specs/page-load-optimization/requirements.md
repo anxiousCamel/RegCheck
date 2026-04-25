@@ -138,4 +138,3 @@ Este documento define os requisitos para otimização do tempo de carregamento d
 3. THE Frontend SHALL carregar CSS não-crítico de forma assíncrona
 4. WHEN componentes de UI são usados, THE Frontend SHALL importar apenas os estilos necessários
 5. THE Frontend SHALL minimizar o uso de CSS-in-JS runtime em favor de soluções build-time
-

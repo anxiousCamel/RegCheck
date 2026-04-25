@@ -39,8 +39,8 @@ The middleware extends the Express Request object with:
 
 ```typescript
 interface RequestWithPerformance extends Request {
-  requestId: string;  // Unique UUID for this request
-  startTime: number;  // Timestamp when request started
+  requestId: string; // Unique UUID for this request
+  startTime: number; // Timestamp when request started
 }
 ```
 
@@ -124,17 +124,13 @@ import { RequestWithPerformance } from '../middleware/performance-middleware';
 
 app.get('/api/lojas', async (req: Request, res: Response) => {
   const { requestId } = req as RequestWithPerformance;
-  
+
   const startQuery = Date.now();
   const lojas = await prisma.loja.findMany();
   const queryDuration = Date.now() - startQuery;
-  
-  performanceMonitor.recordQuery(
-    requestId,
-    'SELECT * FROM lojas',
-    queryDuration
-  );
-  
+
+  performanceMonitor.recordQuery(requestId, 'SELECT * FROM lojas', queryDuration);
+
   res.json(lojas);
 });
 ```
@@ -232,16 +228,19 @@ npm test src/middleware/__tests__/performance-middleware
 The performance middleware replaces the simple `request-logger` middleware with enhanced functionality:
 
 **Before:**
+
 ```typescript
 app.use(requestLogger);
 ```
 
 **After:**
+
 ```typescript
 app.use(performanceMiddleware);
 ```
 
 The new middleware provides:
+
 - ✅ Request IDs for correlation
 - ✅ Performance headers
 - ✅ Cache status tracking

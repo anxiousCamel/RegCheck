@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ProcessingQueue } from '@/lib/scanner/core/processing-queue';
 
 beforeEach(() => {
@@ -43,7 +43,9 @@ describe('ProcessingQueue', () => {
 
   it('propagates task errors', async () => {
     await expect(
-      ProcessingQueue.enqueue(async () => { throw new Error('task error'); })
+      ProcessingQueue.enqueue(async () => {
+        throw new Error('task error');
+      }),
     ).rejects.toThrow('task error');
   });
 
@@ -61,8 +63,12 @@ describe('ProcessingQueue', () => {
     );
 
     // Now queue tasks with different priorities — they'll wait for a slot
-    const low = ProcessingQueue.enqueue(async () => { order.push(1); }, 1);
-    const high = ProcessingQueue.enqueue(async () => { order.push(10); }, 10);
+    const low = ProcessingQueue.enqueue(async () => {
+      order.push(1);
+    }, 1);
+    const high = ProcessingQueue.enqueue(async () => {
+      order.push(10);
+    }, 10);
 
     await Promise.all([blocker1, blocker2, low, high]);
     // High priority should have run before low

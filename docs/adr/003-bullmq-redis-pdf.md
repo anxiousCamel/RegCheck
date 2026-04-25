@@ -7,6 +7,7 @@
 O RegCheck permite que o usuário preencha um documento e solicite a geração do PDF final. Esse processo é CPU e IO intensivo: envolve download do PDF base do S3/MinIO, download paralelo de imagens e assinaturas preenchidas, processamento com `pdf-lib` para duplicar páginas (quando há repetição) e aplicar overlays de campos, e upload do PDF gerado de volta ao S3/MinIO.
 
 Em um template com repetição de 20 itens, por exemplo, o worker precisa:
+
 1. Baixar o PDF base (`downloadFile` via `@aws-sdk/client-s3`)
 2. Duplicar páginas com `PdfProcessor.duplicatePages`
 3. Baixar em paralelo todas as imagens/assinaturas dos campos preenchidos (`Promise.all`)
@@ -27,9 +28,13 @@ export const pdfGenerationQueue = new Queue('pdf-generation', { connection });
 
 // Worker com concorrência 2 — processa até 2 jobs simultaneamente
 export function createPdfWorker(processor): Worker {
-  return new Worker('pdf-generation', async (job) => {
-    await processor(job.data);
-  }, { connection, concurrency: 2 });
+  return new Worker(
+    'pdf-generation',
+    async (job) => {
+      await processor(job.data);
+    },
+    { connection, concurrency: 2 },
+  );
 }
 ```
 

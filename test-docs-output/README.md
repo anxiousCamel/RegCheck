@@ -2,7 +2,7 @@
 
 Documentação completa do sistema RegCheck gerada automaticamente.
 
-**Última atualização:** 23/04/2026, 12:20:17
+**Última atualização:** 25/04/2026, 12:16:41
 
 ## Como Usar Esta Documentação
 

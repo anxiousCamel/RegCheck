@@ -16,6 +16,7 @@ The tests verify parsing of all Prisma field types:
 - **Field attributes**: `@id`, `@unique`, `@default()`, `@updatedAt`
 
 **Test cases:**
+
 - `should parse a simple model with basic fields`
 - `should parse DateTime and Json types`
 - `should parse array fields`
@@ -31,6 +32,7 @@ The tests verify parsing of enum definitions:
 - Optional enum fields
 
 **Test cases:**
+
 - `should parse a simple enum`
 - `should parse multiple enums`
 - `should parse enum fields correctly`
@@ -48,6 +50,7 @@ The tests verify parsing of all relationship types:
 - **Self-referential**: Models that reference themselves
 
 **Test cases:**
+
 - `should parse one-to-many relationship`
 - `should parse multiple relationships`
 - `should parse cascade delete relationships`
@@ -65,6 +68,7 @@ The tests verify identification of:
 - Composite unique constraints with `@@unique()`
 
 **Test cases:**
+
 - `should get primary keys`
 - `should get unique fields`
 - `should parse model with @@map attribute`
@@ -75,15 +79,18 @@ The tests verify identification of:
 ## Requirements Coverage
 
 ✅ **Requirement 4.2**: Document all database entities
+
 - Parser extracts all model definitions from Prisma schema
 - Tests verify model extraction with various configurations
 
 ✅ **Requirement 4.4**: Document all entity attributes with types and constraints
+
 - Parser extracts field names, types, modifiers (optional, array)
 - Parser extracts constraints (@id, @unique, @default)
 - Tests verify all field types and attributes are parsed correctly
 
 ✅ **Requirement 4.5**: Document all relationships with cardinality
+
 - Parser extracts one-to-many, many-to-one, and one-to-one relationships
 - Parser identifies relationship fields, foreign keys, and references
 - Tests verify relationship detection and cardinality
@@ -93,10 +100,12 @@ The tests verify identification of:
 During test implementation, two bugs were discovered and fixed:
 
 ### Bug 1: @default with nested parentheses
+
 **Issue**: `@default(uuid())` was parsed as `uuid(` instead of `uuid()`
 **Fix**: Updated regex to handle nested parentheses: `/@default\((.+?)\)(?:\s|$)/`
 
 ### Bug 2: Optional reverse relations
+
 **Issue**: Optional relations without `@relation` attribute (e.g., `profile Profile?`) were not marked as relations
 **Fix**: Added logic to detect optional reverse relations based on type and optional modifier
 
@@ -104,7 +113,7 @@ During test implementation, two bugs were discovered and fixed:
 
 - **Total test suites**: 8 describe blocks
 - **Total test cases**: 30+ individual tests
-- **Coverage areas**: 
+- **Coverage areas**:
   - Model parsing
   - Enum parsing
   - Relationship extraction
@@ -116,11 +125,13 @@ During test implementation, two bugs were discovered and fixed:
 ## Running the Tests
 
 ### Using vitest:
+
 ```bash
 pnpm exec vitest run scripts/docs/prisma-parser.test.ts
 ```
 
 ### Using the verification script:
+
 ```bash
 pnpm tsx scripts/verify-prisma-parser-tests.ts
 ```

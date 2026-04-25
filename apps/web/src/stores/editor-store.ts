@@ -77,7 +77,12 @@ interface EditorState {
   markClean: () => void;
   setBatchOperation: (active: boolean) => void;
 
-  setReplicationPreview: (sourceFieldIds: string[], copies: number, offsetX: number, offsetY: number) => void;
+  setReplicationPreview: (
+    sourceFieldIds: string[],
+    copies: number,
+    offsetX: number,
+    offsetY: number,
+  ) => void;
   clearReplicationPreview: () => void;
   applyReplication: () => EditorField[];
 
@@ -221,7 +226,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (!idSet.has(f.id)) return f;
       if (scope === 'global') return { ...f, scope, slotIndex: null };
       // scope='item': preserve existing slot if present, else default to 0
-      const nextSlot = slotIndex ?? (f.slotIndex ?? 0);
+      const nextSlot = slotIndex ?? f.slotIndex ?? 0;
       return { ...f, scope, slotIndex: nextSlot };
     });
     set({ fields, isDirty: true });
@@ -342,7 +347,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
 
     const fields = [...updatedFields, ...newFields];
-    set({ fields, isDirty: true, replicationPreview: null, selectedFieldIds: newFields.map((f) => f.id) });
+    set({
+      fields,
+      isDirty: true,
+      replicationPreview: null,
+      selectedFieldIds: newFields.map((f) => f.id),
+    });
     get().history.push(fields);
     return newFields;
   },

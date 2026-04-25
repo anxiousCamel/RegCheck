@@ -4,7 +4,13 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { TemplateField, ItemAssignment } from '@regcheck/shared';
 import { Button, Badge, Spinner } from '@regcheck/ui';
-import { IconChevronLeft, IconChevronRight, IconCheck, IconSearch, IconRefresh } from '@/components/ui/icons'; 
+import {
+  IconChevronLeft,
+  IconChevronRight,
+  IconCheck,
+  IconSearch,
+  IconRefresh,
+} from '@/components/ui/icons';
 import { EquipmentStep } from './fill-wizard';
 import { EquipmentSelectModal } from './equipment-select-modal';
 import { api } from '@/lib/api';
@@ -77,9 +83,7 @@ export function ManualEquipmentStep({
               {slotIndex + 1} de {totalSlots}
             </span>
           </div>
-          <h2 className="text-xl font-extrabold text-foreground leading-tight">
-            {slotName}
-          </h2>
+          <h2 className="text-xl font-extrabold text-foreground leading-tight">{slotName}</h2>
           {!tipoEquipamentoNome && (
             <p className="text-muted-foreground text-xs font-medium mt-0.5">
               Todos os tipos de equipamento
@@ -99,17 +103,21 @@ export function ManualEquipmentStep({
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-foreground">Selecionar Equipamento</h3>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-              {tipoEquipamentoId 
+              {tipoEquipamentoId
                 ? `Escolha qual equipamento do tipo "${tipoEquipamentoNome}" irá preencher este slot.`
                 : 'Escolha qual equipamento irá preencher este slot no documento.'}
             </p>
           </div>
-          <Button 
+          <Button
             onClick={() => setIsModalOpen(true)}
             className="mt-2 font-bold px-8 rounded-full"
             disabled={selectMutation.isPending}
           >
-            {selectMutation.isPending ? <Spinner className="mr-2" /> : <IconSearch className="mr-2 h-4 w-4" />}
+            {selectMutation.isPending ? (
+              <Spinner className="mr-2" />
+            ) : (
+              <IconSearch className="mr-2 h-4 w-4" />
+            )}
             Buscar Equipamento
           </Button>
         </div>
@@ -118,7 +126,9 @@ export function ManualEquipmentStep({
           <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 flex items-center justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <p className="text-[10px] font-black uppercase text-primary tracking-wider">Equipamento Selecionado</p>
+                <p className="text-[10px] font-black uppercase text-primary tracking-wider">
+                  Equipamento Selecionado
+                </p>
                 {tipoEquipamentoNome && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-primary/20 text-primary">
                     {tipoEquipamentoNome}
@@ -135,7 +145,11 @@ export function ManualEquipmentStep({
               className="rounded-full bg-white text-primary border-primary/20 hover:bg-primary/10"
               disabled={selectMutation.isPending}
             >
-              {selectMutation.isPending ? <Spinner className="w-4 h-4" /> : <IconRefresh className="w-4 h-4 mr-2" />}
+              {selectMutation.isPending ? (
+                <Spinner className="w-4 h-4" />
+              ) : (
+                <IconRefresh className="w-4 h-4 mr-2" />
+              )}
               Trocar
             </Button>
           </div>
@@ -174,7 +188,12 @@ export function ManualEquipmentStep({
             onClick={onNext}
             className="font-bold bg-primary text-white hover:bg-primary/90 rounded-full px-8"
           >
-            {isLast ? 'Finalizar' : 'Próximo'} {isLast ? <IconCheck className="ml-2 h-4 w-4" /> : <IconChevronRight className="ml-2 h-4 w-4" />}
+            {isLast ? 'Finalizar' : 'Próximo'}{' '}
+            {isLast ? (
+              <IconCheck className="ml-2 h-4 w-4" />
+            ) : (
+              <IconChevronRight className="ml-2 h-4 w-4" />
+            )}
           </Button>
         </div>
       )}
@@ -182,7 +201,7 @@ export function ManualEquipmentStep({
       <EquipmentSelectModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        tipoEquipamentoId={tipoEquipamentoId}
+        {...(tipoEquipamentoId !== undefined ? { tipoEquipamentoId } : {})}
         onSelect={(id) => selectMutation.mutate(id)}
       />
     </div>

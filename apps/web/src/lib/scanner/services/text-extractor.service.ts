@@ -21,10 +21,33 @@ const PATRIMONIO_PATTERNS = [
 ];
 
 const NOISE_WORDS = new Set([
-  'MODEL', 'MODELO', 'INPUT', 'OUTPUT', 'WARRANTY', 'POWER',
-  'VOLTAGE', 'WATTS', 'AMPS', 'HERTZ', 'MADE', 'CHINA', 'BRAZIL',
-  'BRASIL', 'FABRICADO', 'TYPE', 'TIPO', 'CLASS', 'RATING', 'DATE',
-  'DATA', 'BATCH', 'LOTE', 'WEIGHT', 'PESO', 'CAUTION', 'WARNING',
+  'MODEL',
+  'MODELO',
+  'INPUT',
+  'OUTPUT',
+  'WARRANTY',
+  'POWER',
+  'VOLTAGE',
+  'WATTS',
+  'AMPS',
+  'HERTZ',
+  'MADE',
+  'CHINA',
+  'BRAZIL',
+  'BRASIL',
+  'FABRICADO',
+  'TYPE',
+  'TIPO',
+  'CLASS',
+  'RATING',
+  'DATE',
+  'DATA',
+  'BATCH',
+  'LOTE',
+  'WEIGHT',
+  'PESO',
+  'CAUTION',
+  'WARNING',
 ]);
 
 // ─── Service ─────────────────────────────────────────────────────────────────
@@ -112,7 +135,10 @@ export const TextExtractorService = {
     if (/[A-Z]/.test(value) && /\d/.test(value)) score += 1;
 
     for (const word of NOISE_WORDS) {
-      if (value.includes(word)) { score -= 2; break; }
+      if (value.includes(word)) {
+        score -= 2;
+        break;
+      }
     }
 
     if (value.length < 6) score -= 1;

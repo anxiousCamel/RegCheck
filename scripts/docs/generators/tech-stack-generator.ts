@@ -1,6 +1,6 @@
 /**
  * Technology Stack Documentation Generator
- * 
+ *
  * Generates comprehensive technology stack documentation listing all
  * technologies, libraries, and their purposes.
  */
@@ -21,13 +21,14 @@ export interface TechStackInput {
  */
 export const generateTechStackDocs: DocGenerator<TechStackInput> = (input) => {
   let markdown = '';
-  
+
   // Title and introduction
   markdown += heading('Stack Tecnológica', 1);
-  markdown += 'Este documento descreve todas as tecnologias, bibliotecas e ferramentas utilizadas no projeto RegCheck.\n\n';
-  
+  markdown +=
+    'Este documento descreve todas as tecnologias, bibliotecas e ferramentas utilizadas no projeto RegCheck.\n\n';
+
   markdown += `**Gerado em:** ${new Date(input.generatedAt).toLocaleString('pt-BR')}\n\n`;
-  
+
   // Backend technologies
   markdown += heading('Backend', 2);
   markdown += generateTechnologyTable([
@@ -42,7 +43,7 @@ export const generateTechStackDocs: DocGenerator<TechStackInput> = (input) => {
     ['zod', '3.x', 'Validação de schemas', 'Validação de entrada de dados'],
     ['MinIO', 'latest', 'Object storage S3-compatible', 'Armazenamento de PDFs e imagens'],
   ]);
-  
+
   // Frontend technologies
   markdown += heading('Frontend', 2);
   markdown += generateTechnologyTable([
@@ -57,7 +58,7 @@ export const generateTechStackDocs: DocGenerator<TechStackInput> = (input) => {
     ['Tailwind CSS', '3.x', 'Framework CSS utility-first', 'Estilização de componentes'],
     ['Radix UI', 'latest', 'Componentes acessíveis', 'Primitivos UI headless'],
   ]);
-  
+
   // Infrastructure
   markdown += heading('Infraestrutura', 2);
   markdown += generateTechnologyTable([
@@ -66,15 +67,18 @@ export const generateTechStackDocs: DocGenerator<TechStackInput> = (input) => {
     ['pnpm', '9.x', 'Gerenciador de pacotes', 'Instalação rápida, monorepo workspace'],
     ['Turbo', '2.x', 'Build system para monorepos', 'Cache de builds, execução paralela'],
   ]);
-  
+
   // Shared packages
   markdown += heading('Pacotes Compartilhados', 2);
-  markdown += list([
-    '**@regcheck/database**: Cliente Prisma e tipos do banco',
-    '**@regcheck/types**: Tipos TypeScript compartilhados',
-    '**@regcheck/utils**: Funções utilitárias reutilizáveis',
-  ], false);
-  
+  markdown += list(
+    [
+      '**@regcheck/database**: Cliente Prisma e tipos do banco',
+      '**@regcheck/types**: Tipos TypeScript compartilhados',
+      '**@regcheck/utils**: Funções utilitárias reutilizáveis',
+    ],
+    false,
+  );
+
   // Development tools
   markdown += heading('Ferramentas de Desenvolvimento', 2);
   markdown += generateTechnologyTable([
@@ -83,35 +87,38 @@ export const generateTechStackDocs: DocGenerator<TechStackInput> = (input) => {
     ['Prettier', '3.x', 'Formatador de código', 'Formatação automática'],
     ['tsx', '4.x', 'Executor TypeScript', 'Execução de scripts TS'],
   ]);
-  
+
   // Architectural patterns
   markdown += heading('Padrões Arquiteturais', 2);
-  
+
   markdown += heading('Monorepo', 3);
   markdown += 'Organização de múltiplos pacotes em um único repositório com workspaces pnpm.\n\n';
-  
+
   markdown += heading('Service Layer', 3);
   markdown += 'Lógica de negócio encapsulada em services, separada das rotas.\n\n';
-  
+
   markdown += heading('Repository Pattern', 3);
   markdown += 'Acesso a dados através do Prisma Client, abstraindo queries SQL.\n\n';
-  
+
   markdown += heading('State Management', 3);
-  markdown += list([
-    '**Zustand**: Estado local da aplicação (UI, preferências)',
-    '**TanStack Query**: Estado servidor (cache de API)',
-  ], false);
-  
+  markdown += list(
+    [
+      '**Zustand**: Estado local da aplicação (UI, preferências)',
+      '**TanStack Query**: Estado servidor (cache de API)',
+    ],
+    false,
+  );
+
   markdown += heading('Validation', 3);
   markdown += 'Schemas Zod para validação de entrada em rotas e formulários.\n\n';
-  
+
   // References
   markdown += heading('Referências', 2);
-  markdown += list([
-    'package.json: Dependências completas',
-    'Documentação oficial de cada tecnologia',
-  ], false);
-  
+  markdown += list(
+    ['package.json: Dependências completas', 'Documentação oficial de cada tecnologia'],
+    false,
+  );
+
   return markdown;
 };
 

@@ -84,12 +84,12 @@ graph LR
 
 ## URLs de Acesso Local
 
-| Serviço          | URL                          | Descrição                        |
-|------------------|------------------------------|----------------------------------|
-| Frontend         | http://localhost:3000        | Interface Next.js                |
-| API              | http://localhost:4000        | API Express                      |
-| MinIO Console    | http://localhost:9001        | Painel de administração do MinIO |
-| Prisma Studio    | http://localhost:5555        | Visualizador do banco de dados   |
+| Serviço       | URL                   | Descrição                        |
+| ------------- | --------------------- | -------------------------------- |
+| Frontend      | http://localhost:3000 | Interface Next.js                |
+| API           | http://localhost:4000 | API Express                      |
+| MinIO Console | http://localhost:9001 | Painel de administração do MinIO |
+| Prisma Studio | http://localhost:5555 | Visualizador do banco de dados   |
 
 ---
 
@@ -131,60 +131,60 @@ pnpm dev
 
 ### Desenvolvimento
 
-| Comando          | Descrição                                              |
-|------------------|--------------------------------------------------------|
-| `pnpm dev`       | Inicia API + Web em modo desenvolvimento               |
-| `pnpm dev:api`   | Inicia apenas a API (`apps/api`)                       |
-| `pnpm dev:web`   | Inicia apenas o frontend (`apps/web`)                  |
+| Comando        | Descrição                                |
+| -------------- | ---------------------------------------- |
+| `pnpm dev`     | Inicia API + Web em modo desenvolvimento |
+| `pnpm dev:api` | Inicia apenas a API (`apps/api`)         |
+| `pnpm dev:web` | Inicia apenas o frontend (`apps/web`)    |
 
 ### Build e qualidade
 
-| Comando            | Descrição                                            |
-|--------------------|------------------------------------------------------|
-| `pnpm build`       | Build de produção de todos os pacotes e apps         |
-| `pnpm lint`        | Executa lint em todos os pacotes e apps              |
-| `pnpm type-check`  | Verifica tipos TypeScript em todos os pacotes e apps |
-| `pnpm format`      | Formata todos os arquivos com Prettier               |
-| `pnpm clean`       | Remove artefatos de build de todos os pacotes        |
+| Comando           | Descrição                                            |
+| ----------------- | ---------------------------------------------------- |
+| `pnpm build`      | Build de produção de todos os pacotes e apps         |
+| `pnpm lint`       | Executa lint em todos os pacotes e apps              |
+| `pnpm type-check` | Verifica tipos TypeScript em todos os pacotes e apps |
+| `pnpm format`     | Formata todos os arquivos com Prettier               |
+| `pnpm clean`      | Remove artefatos de build de todos os pacotes        |
 
 ### Infraestrutura (Docker)
 
-| Comando           | Descrição                                                    |
-|-------------------|--------------------------------------------------------------|
+| Comando           | Descrição                                                                     |
+| ----------------- | ----------------------------------------------------------------------------- |
 | `pnpm infra:up`   | Sobe os containers (PostgreSQL :5432, Redis :6379, MinIO :9000) em background |
-| `pnpm infra:down` | Para e remove os containers                                  |
-| `pnpm infra:logs` | Sobe os containers exibindo logs no terminal                 |
-| `pnpm wait:infra` | Aguarda Postgres e Redis estarem prontos (usado internamente) |
+| `pnpm infra:down` | Para e remove os containers                                                   |
+| `pnpm infra:logs` | Sobe os containers exibindo logs no terminal                                  |
+| `pnpm wait:infra` | Aguarda Postgres e Redis estarem prontos (usado internamente)                 |
 
 ### Banco de dados
 
-| Comando                | Descrição                                                  |
-|------------------------|------------------------------------------------------------|
-| `pnpm db:generate`     | Gera o Prisma Client                                       |
-| `pnpm db:push`         | Aplica o schema Prisma no banco sem criar migration        |
-| `pnpm db:migrate`      | Cria e aplica uma migration Prisma                         |
-| `pnpm db:studio`       | Abre o Prisma Studio na porta 5555                         |
-| `pnpm db:export`       | Exporta banco + arquivos para um `.zip` em `backups/`      |
-| `pnpm db:import`       | Importa um backup gerado por `db:export`                   |
-| `pnpm db:restore`      | Restaura o backup padrão definido no script                |
+| Comando                | Descrição                                                       |
+| ---------------------- | --------------------------------------------------------------- |
+| `pnpm db:generate`     | Gera o Prisma Client                                            |
+| `pnpm db:push`         | Aplica o schema Prisma no banco sem criar migration             |
+| `pnpm db:migrate`      | Cria e aplica uma migration Prisma                              |
+| `pnpm db:studio`       | Abre o Prisma Studio na porta 5555                              |
+| `pnpm db:export`       | Exporta banco + arquivos para um `.zip` em `backups/`           |
+| `pnpm db:import`       | Importa um backup gerado por `db:export`                        |
+| `pnpm db:restore`      | Restaura o backup padrão definido no script                     |
 | `pnpm db:restore-pdfs` | Restaura apenas os PDFs de um backup (sem sobrescrever o banco) |
 
 ### Atalhos de inicialização
 
-| Comando               | Descrição                                                              |
-|-----------------------|------------------------------------------------------------------------|
-| `pnpm up`             | Fluxo completo: `infra:up` → aguarda → configura env → `dev`           |
-| `pnpm up:studio`      | Igual ao `up`, mas também abre o Prisma Studio em paralelo             |
-| `pnpm start:fresh`    | Limpa `node_modules`, reinstala dependências e reinicia (detecta OS)   |
-| `pnpm start:restore`  | Sobe a infra, restaura um backup e inicia o dev                        |
-| `pnpm reinstall`      | Remove `node_modules` e reinstala todas as dependências (detecta OS)   |
+| Comando              | Descrição                                                            |
+| -------------------- | -------------------------------------------------------------------- |
+| `pnpm up`            | Fluxo completo: `infra:up` → aguarda → configura env → `dev`         |
+| `pnpm up:studio`     | Igual ao `up`, mas também abre o Prisma Studio em paralelo           |
+| `pnpm start:fresh`   | Limpa `node_modules`, reinstala dependências e reinicia (detecta OS) |
+| `pnpm start:restore` | Sobe a infra, restaura um backup e inicia o dev                      |
+| `pnpm reinstall`     | Remove `node_modules` e reinstala todas as dependências (detecta OS) |
 
 ### Utilitários
 
-| Comando              | Descrição                                          |
-|----------------------|----------------------------------------------------|
+| Comando              | Descrição                                            |
+| -------------------- | ---------------------------------------------------- |
 | `pnpm setup:env`     | Copia `.env.example` para os apps que não têm `.env` |
-| `pnpm seed:balanças` | Popula o banco com dados de balanças de exemplo    |
+| `pnpm seed:balanças` | Popula o banco com dados de balanças de exemplo      |
 
 ---
 
@@ -207,6 +207,7 @@ pnpm dev
 **Sintoma:** `Error: listen EADDRINUSE :::4000` ou `:::3000`
 
 **Solução:**
+
 ```bash
 # Encontre o processo usando a porta
 lsof -i :4000
@@ -215,6 +216,7 @@ kill -9 <PID>
 ```
 
 No Windows (PowerShell):
+
 ```powershell
 netstat -ano | findstr :4000
 taskkill /PID <PID> /F
@@ -227,6 +229,7 @@ taskkill /PID <PID> /F
 **Sintoma:** Container `minio` reinicia em loop ou `minio-init` falha com connection refused.
 
 **Solução:**
+
 ```bash
 # Verifique os logs do container
 pnpm infra:logs
@@ -244,6 +247,7 @@ pnpm infra:up
 **Sintoma:** `Error: P3009 migrate found failed migrations` ou `drift detected`.
 
 **Solução:**
+
 ```bash
 # Reseta o banco (apaga todos os dados) e reaaplica o schema
 pnpm --filter @regcheck/database db:push -- --force-reset
@@ -265,6 +269,7 @@ CORS_ORIGIN=http://localhost:3000
 ```
 
 Reinicie a API após alterar o `.env`:
+
 ```bash
 pnpm dev:api
 ```

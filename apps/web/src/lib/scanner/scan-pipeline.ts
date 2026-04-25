@@ -203,7 +203,6 @@ export async function runScanPipeline(
       await persistResult(hash, ocrCandidates, 'ocr', start, timing);
       report(onProgress, 'done', 100);
       return { candidates: ocrCandidates, fromCache: false, hash, timing };
-
     }, 10); // High priority for user-initiated scans
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {

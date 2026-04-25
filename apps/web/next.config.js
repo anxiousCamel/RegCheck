@@ -5,7 +5,12 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
 const publicHostname = apiUrl ? new URL(apiUrl).hostname : null;
 
 const nextConfig = {
-  transpilePackages: ['@regcheck/ui', '@regcheck/shared', '@regcheck/validators', '@regcheck/editor-engine'],
+  transpilePackages: [
+    '@regcheck/ui',
+    '@regcheck/shared',
+    '@regcheck/validators',
+    '@regcheck/editor-engine',
+  ],
   ...(publicHostname && publicHostname !== 'localhost'
     ? { allowedDevOrigins: [publicHostname] }
     : {}),
@@ -20,7 +25,7 @@ const nextConfig = {
   webpack: (config, { dev }) => {
     // Required for pdfjs-dist
     config.resolve.alias.canvas = false;
-    
+
     // Otimizações para dev
     if (dev) {
       config.watchOptions = {
@@ -28,7 +33,7 @@ const nextConfig = {
         aggregateTimeout: 300,
       };
     }
-    
+
     return config;
   },
 };

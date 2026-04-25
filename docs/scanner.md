@@ -51,14 +51,14 @@ apps/web/src/lib/scanner/
 
 ### Formatos suportados
 
-| Formato      | Tipo         | Uso típico                    |
-|--------------|--------------|-------------------------------|
-| QR Code      | 2D           | Etiquetas modernas, URLs      |
-| Code 128     | 1D           | Série, patrimônio             |
-| Code 39      | 1D           | Patrimônio legado             |
-| EAN-13       | 1D           | Produtos                      |
-| EAN-8        | 1D           | Produtos compactos            |
-| Data Matrix  | 2D           | Componentes eletrônicos       |
+| Formato     | Tipo | Uso típico               |
+| ----------- | ---- | ------------------------ |
+| QR Code     | 2D   | Etiquetas modernas, URLs |
+| Code 128    | 1D   | Série, patrimônio        |
+| Code 39     | 1D   | Patrimônio legado        |
+| EAN-13      | 1D   | Produtos                 |
+| EAN-8       | 1D   | Produtos compactos       |
+| Data Matrix | 2D   | Componentes eletrônicos  |
 
 ### Estratégia de detecção
 
@@ -106,17 +106,20 @@ Se qualquer barcode/QR for detectado, o pipeline **para imediatamente** — OCR 
 Antes do OCR, a imagem passa por 3 etapas no Web Worker (ou main thread como fallback):
 
 **1. Grayscale**
+
 ```
 gray = R×0.299 + G×0.587 + B×0.114
 ```
 
 **2. Contrast stretch**
+
 ```
 val = ((pixel - min) / range) × 255
 val = (val - 128) × contrast + 128
 ```
 
 **3. Binary threshold**
+
 - Se `threshold = 0`: usa média dos pixels (adaptativo)
 - Se `threshold > 0`: valor fixo
 - Resultado: pixel branco (255) ou preto (0)
@@ -125,11 +128,11 @@ val = (val - 128) × contrast + 128
 
 O `AdaptiveOCRService` ajusta os parâmetros a cada tentativa:
 
-| Tentativa | Threshold | Contrast | MaxWidth |
-|-----------|-----------|----------|----------|
-| 0 (padrão)| auto      | 1.0      | 800px    |
-| 1         | auto      | 1.3      | 1000px   |
-| 2         | 140       | 1.5      | 1200px   |
+| Tentativa  | Threshold | Contrast | MaxWidth |
+| ---------- | --------- | -------- | -------- |
+| 0 (padrão) | auto      | 1.0      | 800px    |
+| 1          | auto      | 1.3      | 1000px   |
+| 2          | 140       | 1.5      | 1200px   |
 
 Após 3 falhas consecutivas, o padrão é automaticamente elevado para contraste 1.3.
 
@@ -139,11 +142,11 @@ O `ocr-parser.ts` classifica o texto bruto em candidatos tipados:
 
 **Padrões com label (alta confiança: 0.88)**
 
-| Tipo       | Exemplos de padrão                                    |
-|------------|-------------------------------------------------------|
-| patrimônio | `Patrimônio: 123456`, `Pat: 789`, `Tombamento: 456`   |
-| serial     | `Série: ABC123`, `S/N: XY789`, `Serial No: DEF456`    |
-| modelo     | `Modelo: HP LaserJet`, `Model: T450`, `Mod: X200`     |
+| Tipo       | Exemplos de padrão                                  |
+| ---------- | --------------------------------------------------- |
+| patrimônio | `Patrimônio: 123456`, `Pat: 789`, `Tombamento: 456` |
+| serial     | `Série: ABC123`, `S/N: XY789`, `Serial No: DEF456`  |
+| modelo     | `Modelo: HP LaserJet`, `Model: T450`, `Mod: X200`   |
 
 **Padrões genéricos (confiança calculada)**
 
@@ -154,6 +157,7 @@ O `ocr-parser.ts` classifica o texto bruto em candidatos tipados:
 ### Retry
 
 OCR tem até 2 retentativas com backoff exponencial (500ms base):
+
 - Tentativa 0: parâmetros padrão
 - Tentativa 1: contraste aumentado
 - Tentativa 2: threshold fixo + contraste máximo
@@ -166,16 +170,17 @@ OCR tem até 2 retentativas com backoff exponencial (500ms base):
 
 Cache em dois níveis com TTL de 24 horas:
 
-| Nível    | Tecnologia | Velocidade | Persistência |
-|----------|------------|------------|--------------|
-| L1       | Map em memória | ~0ms   | Sessão       |
-| L2       | IndexedDB  | ~5ms       | 24 horas     |
+| Nível | Tecnologia     | Velocidade | Persistência |
+| ----- | -------------- | ---------- | ------------ |
+| L1    | Map em memória | ~0ms       | Sessão       |
+| L2    | IndexedDB      | ~5ms       | 24 horas     |
 
 A chave do cache é o **hash perceptual** da imagem (dHash 64-bit). Imagens visualmente idênticas retornam o resultado em cache sem reprocessar.
 
 ### Hash perceptual (ImageHashService)
 
 Algoritmo dHash:
+
 1. Redimensiona para 9×8 pixels
 2. Converte para grayscale
 3. Compara pixels adjacentes em cada linha → 64 bits
@@ -263,10 +268,10 @@ const { status, candidates, progress, error, process, recapture } = useOcr();
 
 ## Limitações conhecidas
 
-| Limitação | Impacto | Mitigação |
-|-----------|---------|-----------|
-| BarcodeDetector não disponível no Firefox | Fallback ZXing mais lento (~500ms extra) | ZXing carregado automaticamente |
-| Web Worker pode falhar em mobile com cross-origin | OCR não processa | Fallback main-thread implementado |
-| Tesseract carrega ~10MB de dados de linguagem | Primeira leitura lenta (~3–5s) | `warmupScanner()` no mount |
-| OCR sensível a iluminação e foco | Falsos negativos | Retry adaptativo + campos manuais |
-| Cache IndexedDB não disponível em modo privado | Cache apenas em memória | Degradação graciosa |
+| Limitação                                         | Impacto                                  | Mitigação                         |
+| ------------------------------------------------- | ---------------------------------------- | --------------------------------- |
+| BarcodeDetector não disponível no Firefox         | Fallback ZXing mais lento (~500ms extra) | ZXing carregado automaticamente   |
+| Web Worker pode falhar em mobile com cross-origin | OCR não processa                         | Fallback main-thread implementado |
+| Tesseract carrega ~10MB de dados de linguagem     | Primeira leitura lenta (~3–5s)           | `warmupScanner()` no mount        |
+| OCR sensível a iluminação e foco                  | Falsos negativos                         | Retry adaptativo + campos manuais |
+| Cache IndexedDB não disponível em modo privado    | Cache apenas em memória                  | Degradação graciosa               |

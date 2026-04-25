@@ -20,11 +20,11 @@ console.log(x + y);
 
 ## Table Example
 
-| Name | Type | Required |
-|---|---|---|
-| id | string | yes |
-| name | string | yes |
-| age | number | no |
+| Name | Type   | Required |
+| ---- | ------ | -------- |
+| id   | string | yes      |
+| name | string | yes      |
+| age  | number | no       |
 
 ## List Examples
 

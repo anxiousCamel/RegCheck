@@ -9,14 +9,7 @@ The markdown formatter is part of the RegCheck documentation generation system. 
 ## Usage
 
 ```typescript
-import {
-  heading,
-  codeBlock,
-  table,
-  list,
-  link,
-  mermaidDiagram,
-} from './markdown-formatter';
+import { heading, codeBlock, table, list, link, mermaidDiagram } from './markdown-formatter';
 ```
 
 ## API Reference
@@ -26,15 +19,17 @@ import {
 Generates a Markdown heading with the specified level (1-6).
 
 **Parameters:**
+
 - `text` - The heading text
 - `level` - The heading level (1-6)
 
 **Returns:** Formatted heading with trailing newlines
 
 **Example:**
+
 ```typescript
-heading('Introduction', 1)  // '# Introduction\n\n'
-heading('Overview', 2)      // '## Overview\n\n'
+heading('Introduction', 1); // '# Introduction\n\n'
+heading('Overview', 2); // '## Overview\n\n'
 ```
 
 **Throws:** Error if level is not between 1 and 6
@@ -46,18 +41,20 @@ heading('Overview', 2)      // '## Overview\n\n'
 Generates a Markdown code block with syntax highlighting.
 
 **Parameters:**
+
 - `code` - The code content
 - `language` - The programming language for syntax highlighting
 
 **Returns:** Formatted code block with trailing newlines
 
 **Example:**
-```typescript
-codeBlock('const x = 1;', 'typescript')
+
+````typescript
+codeBlock('const x = 1;', 'typescript');
 // ```typescript
 // const x = 1;
 // ```
-```
+````
 
 ---
 
@@ -66,14 +63,22 @@ codeBlock('const x = 1;', 'typescript')
 Generates a Markdown table with headers and data rows.
 
 **Parameters:**
+
 - `headers` - Array of column header names
 - `rows` - Array of data rows, where each row is an array of cell values
 
 **Returns:** Formatted table with trailing newlines
 
 **Example:**
+
 ```typescript
-table(['Name', 'Type'], [['id', 'string'], ['age', 'number']])
+table(
+  ['Name', 'Type'],
+  [
+    ['id', 'string'],
+    ['age', 'number'],
+  ],
+);
 // | Name | Type |
 // |---|---|
 // | id | string |
@@ -87,19 +92,21 @@ table(['Name', 'Type'], [['id', 'string'], ['age', 'number']])
 Generates a Markdown list (ordered or unordered).
 
 **Parameters:**
+
 - `items` - Array of list items
 - `ordered` - Whether to create an ordered (numbered) list (default: false)
 
 **Returns:** Formatted list with trailing newlines
 
 **Example:**
+
 ```typescript
-list(['First', 'Second', 'Third'], false)
+list(['First', 'Second', 'Third'], false);
 // - First
 // - Second
 // - Third
 
-list(['First', 'Second', 'Third'], true)
+list(['First', 'Second', 'Third'], true);
 // 1. First
 // 2. Second
 // 3. Third
@@ -112,17 +119,19 @@ list(['First', 'Second', 'Third'], true)
 Generates a Markdown link.
 
 **Parameters:**
+
 - `text` - The link text to display
 - `url` - The URL or path to link to
 
 **Returns:** Formatted link
 
 **Example:**
+
 ```typescript
-link('GitHub', 'https://github.com')
+link('GitHub', 'https://github.com');
 // [GitHub](https://github.com)
 
-link('Architecture', './01-arquitetura.md')
+link('Architecture', './01-arquitetura.md');
 // [Architecture](./01-arquitetura.md)
 ```
 
@@ -133,26 +142,28 @@ link('Architecture', './01-arquitetura.md')
 Generates a Mermaid diagram code block.
 
 **Parameters:**
+
 - `type` - The Mermaid diagram type (e.g., 'graph TB', 'erDiagram', 'sequenceDiagram')
 - `content` - The diagram content (without the type declaration)
 
 **Returns:** Formatted Mermaid code block with trailing newlines
 
 **Example:**
-```typescript
-mermaidDiagram('graph TB', 'A --> B\nB --> C')
+
+````typescript
+mermaidDiagram('graph TB', 'A --> B\nB --> C');
 // ```mermaid
 // graph TB
 // A --> B
 // B --> C
 // ```
 
-mermaidDiagram('sequenceDiagram', 'Alice->>Bob: Hello')
+mermaidDiagram('sequenceDiagram', 'Alice->>Bob: Hello');
 // ```mermaid
 // sequenceDiagram
 // Alice->>Bob: Hello
 // ```
-```
+````
 
 ## Testing
 
@@ -182,6 +193,7 @@ See `example-usage.md` for a complete demonstration of all formatter functions a
 ## Requirements
 
 This module satisfies **Requirement 12.2** from the documentation generation specification:
+
 - Implements all required markdown formatting functions
 - Ensures consistent formatting across generated documentation
 - Provides proper validation and error handling

@@ -140,9 +140,9 @@ Description text
 
 #### Parâmetros
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| param1 | path | string | Sim | Description |
+| Nome   | Localização | Tipo   | Obrigatório | Descrição   |
+| ------ | ----------- | ------ | ----------- | ----------- |
+| param1 | path        | string | Sim         | Description |
 
 #### Corpo da Requisição
 

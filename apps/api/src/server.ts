@@ -13,7 +13,6 @@ import { equipamentoRouter } from './routes/equipamentos';
 import { errorHandler } from './middleware/error-handler';
 import { performanceMiddleware } from './middleware/performance-middleware';
 import { initializePrismaQueryLogging } from './lib/prisma-query-logger';
-import { requestLogger } from './middleware/request-logger';
 import { createPdfWorker } from './lib/queue';
 import { processPdfGeneration } from './jobs/pdf-generation-worker';
 
@@ -21,14 +20,16 @@ import { processPdfGeneration } from './jobs/pdf-generation-worker';
 initializePrismaQueryLogging();
 
 const app = express();
-const PORT = process.env.API_PORT ?? 4000;
+const PORT = Number(process.env.API_PORT) || 4000;
 
 // Middleware
 app.use(helmet());
-app.use(cors({
-  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : true,
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : true,
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: '10mb' }));
 app.use(performanceMiddleware);
 

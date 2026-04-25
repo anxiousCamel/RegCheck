@@ -29,7 +29,7 @@ function preprocess(
 ): Uint8ClampedArray {
   // Step 1: Grayscale
   for (let i = 0; i < pixels.length; i += 4) {
-    const gray = (pixels[i]! * 0.299) + (pixels[i + 1]! * 0.587) + (pixels[i + 2]! * 0.114);
+    const gray = pixels[i]! * 0.299 + pixels[i + 1]! * 0.587 + pixels[i + 2]! * 0.114;
     pixels[i] = gray;
     pixels[i + 1] = gray;
     pixels[i + 2] = gray;
@@ -59,9 +59,8 @@ function preprocess(
   for (let i = 0; i < pixels.length; i += 4) {
     sum += pixels[i]!;
   }
-  const threshold = (thresholdOverride && thresholdOverride > 0)
-    ? thresholdOverride
-    : sum / pixelCount;
+  const threshold =
+    thresholdOverride && thresholdOverride > 0 ? thresholdOverride : sum / pixelCount;
 
   for (let i = 0; i < pixels.length; i += 4) {
     const val = pixels[i]! > threshold ? 255 : 0;
@@ -73,16 +72,15 @@ function preprocess(
   return pixels;
 }
 
-const _self = globalThis as unknown as { onmessage: ((e: { data: WorkerRequest }) => void) | null; postMessage: (msg: WorkerResponse, transfer: ArrayBuffer[]) => void };
+const _self = globalThis as unknown as {
+  onmessage: ((e: { data: WorkerRequest }) => void) | null;
+  postMessage: (msg: WorkerResponse, transfer: ArrayBuffer[]) => void;
+};
 
 _self.onmessage = (e: { data: WorkerRequest }) => {
   if (e.data.type === 'preprocess') {
     const { imageData, params } = e.data;
-    const processed = preprocess(
-      imageData.data,
-      params.contrast ?? 1.0,
-      params.threshold,
-    );
+    const processed = preprocess(imageData.data, params.contrast ?? 1.0, params.threshold);
     _self.postMessage(
       {
         type: 'preprocess-result',

@@ -20,9 +20,15 @@ function getApiUrl(): string {
   return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 }
 
-class ApiClient {
+export class ApiClient {
+  private readonly _baseUrlOverride: string | undefined;
+
+  constructor(baseUrl?: string) {
+    this._baseUrlOverride = baseUrl;
+  }
+
   private get baseUrl(): string {
-    return getApiUrl();
+    return this._baseUrlOverride ?? getApiUrl();
   }
 
   private async request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -72,7 +78,9 @@ class ApiClient {
 
   // Templates
   listTemplates(page = 1, pageSize = 20) {
-    return this.request<PaginatedResponse<unknown>>(`/api/templates?page=${page}&pageSize=${pageSize}`);
+    return this.request<PaginatedResponse<unknown>>(
+      `/api/templates?page=${page}&pageSize=${pageSize}`,
+    );
   }
 
   getTemplate(id: string) {
@@ -84,11 +92,17 @@ class ApiClient {
   }
 
   updateTemplate(id: string, data: Record<string, unknown>) {
-    return this.request<unknown>(`/api/templates/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return this.request<unknown>(`/api/templates/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   }
 
   publishTemplate(id: string) {
-    return this.request<unknown>(`/api/templates/${id}/publish`, { method: 'POST', body: JSON.stringify({ confirm: true }) });
+    return this.request<unknown>(`/api/templates/${id}/publish`, {
+      method: 'POST',
+      body: JSON.stringify({ confirm: true }),
+    });
   }
 
   unpublishTemplate(id: string) {
@@ -101,18 +115,36 @@ class ApiClient {
 
   // Fields
   createField(templateId: string, data: Record<string, unknown>) {
-    return this.request<unknown>(`/api/templates/${templateId}/fields`, { method: 'POST', body: JSON.stringify(data) });
+    return this.request<unknown>(`/api/templates/${templateId}/fields`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   updateField(templateId: string, fieldId: string, data: Record<string, unknown>) {
-    return this.request<unknown>(`/api/templates/${templateId}/fields/${fieldId}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return this.request<unknown>(`/api/templates/${templateId}/fields/${fieldId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   }
 
   deleteField(templateId: string, fieldId: string) {
-    return this.request<void>(`/api/templates/${templateId}/fields/${fieldId}`, { method: 'DELETE' });
+    return this.request<void>(`/api/templates/${templateId}/fields/${fieldId}`, {
+      method: 'DELETE',
+    });
   }
 
-  batchUpdatePositions(templateId: string, updates: Array<{ id: string; position: Record<string, number>; config?: Record<string, unknown>; scope?: string; slotIndex?: number | null; bindingKey?: string | null }>) {
+  batchUpdatePositions(
+    templateId: string,
+    updates: Array<{
+      id: string;
+      position: Record<string, number>;
+      config?: Record<string, unknown>;
+      scope?: string;
+      slotIndex?: number | null;
+      bindingKey?: string | null;
+    }>,
+  ) {
     return this.request<void>(`/api/templates/${templateId}/fields/batch-positions`, {
       method: 'POST',
       body: JSON.stringify({ updates }),
@@ -121,7 +153,9 @@ class ApiClient {
 
   // Documents
   listDocuments(page = 1, pageSize = 20) {
-    return this.request<PaginatedResponse<unknown>>(`/api/documents?page=${page}&pageSize=${pageSize}`);
+    return this.request<PaginatedResponse<unknown>>(
+      `/api/documents?page=${page}&pageSize=${pageSize}`,
+    );
   }
 
   getDocument(id: string) {
@@ -129,7 +163,10 @@ class ApiClient {
   }
 
   createDocument(data: { templateId: string; name: string; totalItems?: number }) {
-    return this.request<unknown>('/api/documents', { method: 'POST', body: JSON.stringify({ totalItems: 1, ...data }) });
+    return this.request<unknown>('/api/documents', {
+      method: 'POST',
+      body: JSON.stringify({ totalItems: 1, ...data }),
+    });
   }
 
   populateDocument(documentId: string, data: { tipoId: string; lojaId: string }) {
@@ -139,7 +176,10 @@ class ApiClient {
     }>(`/api/documents/${documentId}/populate`, { method: 'POST', body: JSON.stringify(data) });
   }
 
-  selectEquipmentForSlot(documentId: string, data: { slotIndex: number; equipamentoId: string; lojaId?: string }) {
+  selectEquipmentForSlot(
+    documentId: string,
+    data: { slotIndex: number; equipamentoId: string; lojaId?: string },
+  ) {
     return this.request<{ assignment: ItemAssignment }>(
       `/api/documents/${documentId}/select-equipment`,
       { method: 'POST', body: JSON.stringify(data) },
@@ -178,7 +218,10 @@ class ApiClient {
 
   // Uploads
   uploadPdf(file: File) {
-    return this.upload<{ fileKey: string; pageCount: number; pdfFileId: string }>('/api/uploads/pdf', file);
+    return this.upload<{ fileKey: string; pageCount: number; pdfFileId: string }>(
+      '/api/uploads/pdf',
+      file,
+    );
   }
 
   uploadImage(file: File, type: 'image' | 'signature' = 'image') {
@@ -199,7 +242,10 @@ class ApiClient {
   }
 
   updateLoja(id: string, data: { nome?: string; ativo?: boolean }) {
-    return this.request<LojaDTO>(`/api/lojas/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return this.request<LojaDTO>(`/api/lojas/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   }
 
   toggleLoja(id: string) {
@@ -212,7 +258,9 @@ class ApiClient {
 
   // Setores
   listSetores(page = 1, pageSize = 100) {
-    return this.request<PaginatedResponse<SetorDTO>>(`/api/setores?page=${page}&pageSize=${pageSize}`);
+    return this.request<PaginatedResponse<SetorDTO>>(
+      `/api/setores?page=${page}&pageSize=${pageSize}`,
+    );
   }
 
   listActiveSetores() {
@@ -224,7 +272,10 @@ class ApiClient {
   }
 
   updateSetor(id: string, data: { nome?: string; ativo?: boolean }) {
-    return this.request<SetorDTO>(`/api/setores/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return this.request<SetorDTO>(`/api/setores/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   }
 
   toggleSetor(id: string) {
@@ -237,7 +288,9 @@ class ApiClient {
 
   // Tipos Equipamento
   listTipos(page = 1, pageSize = 100) {
-    return this.request<PaginatedResponse<TipoEquipamentoDTO>>(`/api/tipos-equipamento?page=${page}&pageSize=${pageSize}`);
+    return this.request<PaginatedResponse<TipoEquipamentoDTO>>(
+      `/api/tipos-equipamento?page=${page}&pageSize=${pageSize}`,
+    );
   }
 
   listActiveTipos() {
@@ -245,15 +298,23 @@ class ApiClient {
   }
 
   createTipo(data: { nome: string }) {
-    return this.request<TipoEquipamentoDTO>('/api/tipos-equipamento', { method: 'POST', body: JSON.stringify(data) });
+    return this.request<TipoEquipamentoDTO>('/api/tipos-equipamento', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   updateTipo(id: string, data: { nome?: string; ativo?: boolean }) {
-    return this.request<TipoEquipamentoDTO>(`/api/tipos-equipamento/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return this.request<TipoEquipamentoDTO>(`/api/tipos-equipamento/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   }
 
   toggleTipo(id: string) {
-    return this.request<TipoEquipamentoDTO>(`/api/tipos-equipamento/${id}/toggle`, { method: 'PATCH' });
+    return this.request<TipoEquipamentoDTO>(`/api/tipos-equipamento/${id}/toggle`, {
+      method: 'PATCH',
+    });
   }
 
   deleteTipo(id: string) {
@@ -264,7 +325,9 @@ class ApiClient {
   listEquipamentos(page = 1, pageSize = 20, filters?: Record<string, string>) {
     const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
     if (filters) {
-      Object.entries(filters).forEach(([k, v]) => { if (v) params.set(k, v); });
+      Object.entries(filters).forEach(([k, v]) => {
+        if (v) params.set(k, v);
+      });
     }
     return this.request<PaginatedResponse<EquipamentoDTO>>(`/api/equipamentos?${params}`);
   }
@@ -282,11 +345,17 @@ class ApiClient {
     patrimonio?: string;
     glpiId?: string;
   }) {
-    return this.request<EquipamentoDTO>('/api/equipamentos', { method: 'POST', body: JSON.stringify(data) });
+    return this.request<EquipamentoDTO>('/api/equipamentos', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   updateEquipamento(id: string, data: Record<string, unknown>) {
-    return this.request<EquipamentoDTO>(`/api/equipamentos/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return this.request<EquipamentoDTO>(`/api/equipamentos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   }
 
   getImageUrl(key: string) {

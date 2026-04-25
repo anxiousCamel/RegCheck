@@ -43,7 +43,10 @@ export async function retry<T>(
 }
 
 /** Preset: barcode retry (1 retry, fast) */
-export function retryBarcode<T>(fn: (attempt: number) => Promise<T>, signal?: AbortSignal): Promise<T> {
+export function retryBarcode<T>(
+  fn: (attempt: number) => Promise<T>,
+  signal?: AbortSignal,
+): Promise<T> {
   return retry(fn, { maxRetries: 1, baseDelay: 100 }, signal);
 }
 

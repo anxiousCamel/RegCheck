@@ -104,7 +104,7 @@ describe('cacheMiddleware', () => {
         body: responseBody,
         contentType: 'application/json',
       },
-      600
+      600,
     );
   });
 
@@ -127,7 +127,7 @@ describe('cacheMiddleware', () => {
     await middleware(mockReq as Request, mockRes as Response, mockNext);
 
     expect(cacheService.get).toHaveBeenCalledWith(
-      'cache:GET:/api/lojas:{"page":"1","pageSize":"50"}'
+      'cache:GET:/api/lojas:{"page":"1","pageSize":"50"}',
     );
   });
 
@@ -169,7 +169,7 @@ describe('cacheMiddleware', () => {
 
     // Should not throw
     await expect(
-      middleware(mockReq as Request, mockRes as Response, mockNext)
+      middleware(mockReq as Request, mockRes as Response, mockNext),
     ).resolves.not.toThrow();
 
     expect(mockNext).toHaveBeenCalled();
@@ -186,10 +186,6 @@ describe('cacheMiddleware', () => {
     const overriddenJson = mockRes.json as any;
     overriddenJson({ data: 'fresh' });
 
-    expect(cacheService.set).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.any(Object),
-      120
-    );
+    expect(cacheService.set).toHaveBeenCalledWith(expect.any(String), expect.any(Object), 120);
   });
 });

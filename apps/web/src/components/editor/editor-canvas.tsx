@@ -8,13 +8,19 @@ import { useEditorStore } from '@/stores/editor-store';
 import { usePdfRenderer } from '@/hooks/use-pdf-renderer';
 import { api } from '@/lib/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { FieldType, FieldConfig } from '@regcheck/shared';
+import type { FieldType, FieldConfig, FieldScope } from '@regcheck/shared';
 
 /** Interaction state for canvas mouse operations */
 type CanvasInteraction =
   | { type: 'rubberband'; startX: number; startY: number; endX: number; endY: number }
   | { type: 'creation'; startX: number; startY: number; endX: number; endY: number }
-  | { type: 'pan'; startMouseX: number; startMouseY: number; startStageX: number; startStageY: number }
+  | {
+      type: 'pan';
+      startMouseX: number;
+      startMouseY: number;
+      startStageX: number;
+      startStageY: number;
+    }
   | null;
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -38,8 +44,17 @@ const FIELD_COLORS: Record<FieldType, string> = {
 };
 
 /** Slot badge colors by group index */
-const SLOT_COLORS = ['#2563eb', '#16a34a', '#ea580c', '#9333ea', '#dc2626', '#0891b2', '#ca8a04', '#be185d'];
-const getSlotColor = (group: number) => SLOT_COLORS[group % SLOT_COLORS.length];
+const SLOT_COLORS = [
+  '#2563eb',
+  '#16a34a',
+  '#ea580c',
+  '#9333ea',
+  '#dc2626',
+  '#0891b2',
+  '#ca8a04',
+  '#be185d',
+];
+const getSlotColor = (group: number) => SLOT_COLORS[group % SLOT_COLORS.length] ?? '#2563eb';
 
 interface EditorCanvasProps {
   pdfFileKey: string;
@@ -97,7 +112,8 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
     // Render at the higher of 2x or current zoom for crisp display
     const renderScale = Math.max(2, zoom);
     // Only re-render if zoom changed enough to matter (avoid unnecessary work)
-    if (pdfRenderZoomRef.current > 0 && Math.abs(renderScale - pdfRenderZoomRef.current) < 0.3) return;
+    if (pdfRenderZoomRef.current > 0 && Math.abs(renderScale - pdfRenderZoomRef.current) < 0.3)
+      return;
     pdfRenderZoomRef.current = renderScale;
 
     if (!pdfCanvasRef.current) {
@@ -123,7 +139,16 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
 
   // Create field mutation — syncs client UUID with server-generated ID on success
   const createFieldMutation = useMutation({
-    mutationFn: (data: { clientId: string; type: FieldType; pageIndex: number; position: Record<string, number>; config: FieldConfig }) => {
+    mutationFn: (data: {
+      clientId: string;
+      type: FieldType;
+      pageIndex: number;
+      position: Record<string, number>;
+      config: FieldConfig;
+      scope: FieldScope;
+      slotIndex: number | null;
+      bindingKey: string | null;
+    }) => {
       const { clientId: _, ...payload } = data;
       return api.createField(templateId, payload) as Promise<{ id: string }>;
     },
@@ -140,7 +165,9 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
       // Optimistically remove from state before API call
       removeFields(fieldIds);
       // Delete from backend
-      const results = await Promise.allSettled(fieldIds.map((id) => api.deleteField(templateId, id)));
+      const results = await Promise.allSettled(
+        fieldIds.map((id) => api.deleteField(templateId, id)),
+      );
       const failures = results.filter((r) => r.status === 'rejected');
       if (failures.length > 0) {
         console.error('[deleteFields] Some deletions failed:', failures);
@@ -268,7 +295,7 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
 
   /** Handle mousemove on the stage — updates pan, rubber band, or creation rect */
   const handleStageMouseMove = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent>) => {
+    (_e: Konva.KonvaEventObject<MouseEvent>) => {
       if (!interaction) return;
       const stage = stageRef.current;
       if (!stage) return;
@@ -297,7 +324,7 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
 
   /** Handle mouseup on the stage — finalizes pan, rubber band selection, or field creation */
   const handleStageMouseUp = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent>) => {
+    (_e: Konva.KonvaEventObject<MouseEvent>) => {
       if (!interaction) return;
 
       if (interaction.type === 'pan') {
@@ -396,7 +423,18 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
 
       setInteraction(null);
     },
-    [interaction, activeTool, currentPage, pageHeight, pageFields, selectFields, addField, createFieldMutation, defaultConfigs, defaultSizes],
+    [
+      interaction,
+      activeTool,
+      currentPage,
+      pageHeight,
+      pageFields,
+      selectFields,
+      addField,
+      createFieldMutation,
+      defaultConfigs,
+      defaultSizes,
+    ],
   );
 
   /** Handle field click — supports Shift+Click for multi-select */
@@ -497,6 +535,9 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
               pageIndex: f.pageIndex,
               position: f.position as unknown as Record<string, number>,
               config: f.config,
+              scope: f.scope,
+              slotIndex: f.slotIndex,
+              bindingKey: f.bindingKey,
             }),
           ),
         )
@@ -570,11 +611,7 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
       ref={containerRef}
       className="relative flex items-center justify-center p-4 overflow-auto flex-1"
       style={{
-        cursor: interaction?.type === 'pan'
-          ? 'grabbing'
-          : activeTool
-            ? 'crosshair'
-            : 'default',
+        cursor: interaction?.type === 'pan' ? 'grabbing' : activeTool ? 'crosshair' : 'default',
       }}
       tabIndex={0}
     >
@@ -606,7 +643,11 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
         onMouseUp={handleStageMouseUp}
         onWheel={handleWheel}
         onContextMenu={(e) => e.evt.preventDefault()}
-        style={{ border: '1px solid #e5e7eb', background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+        style={{
+          border: '1px solid #e5e7eb',
+          background: 'white',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        }}
       >
         {/* PDF background layer */}
         <Layer listening={false}>
@@ -723,7 +764,9 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
               const width = ghost.position.width * CANVAS_WIDTH;
               const height = ghost.position.height * pageHeight;
               const color = FIELD_COLORS[ghost.type];
-              const isOutOfBounds = ghost.position.x + ghost.position.width > 1.01 || ghost.position.y + ghost.position.height > 1.01;
+              const isOutOfBounds =
+                ghost.position.x + ghost.position.width > 1.01 ||
+                ghost.position.y + ghost.position.height > 1.01;
 
               return (
                 <Group key={ghost.id} x={x} y={y}>
@@ -767,71 +810,66 @@ export function EditorCanvas({ pdfFileKey, templateId, isPublished }: EditorCanv
                   ? 'rgba(59, 130, 246, 0.1)'
                   : `${FIELD_COLORS[activeTool!]}20`
               }
-              stroke={
-                interaction.type === 'rubberband'
-                  ? '#3b82f6'
-                  : FIELD_COLORS[activeTool!]
-              }
+              stroke={interaction.type === 'rubberband' ? '#3b82f6' : FIELD_COLORS[activeTool!]}
               strokeWidth={1 / zoom}
-              dash={
-                interaction.type === 'creation' ? [4 / zoom, 3 / zoom] : undefined
-              }
+              {...(interaction.type === 'creation' ? { dash: [4 / zoom, 3 / zoom] } : {})}
             />
           </Layer>
         )}
 
         {/* Adaptive grid overlay — subdivides as you zoom in */}
-        {snapEnabled && (() => {
-          // Base grid step in pixels (at zoom 1)
-          const baseStepX = (gridSize / 1000) * CANVAS_WIDTH;
-          const baseStepY = (gridSize / 1000) * pageHeight;
+        {snapEnabled &&
+          (() => {
+            // Base grid step in pixels (at zoom 1)
+            const baseStepX = (gridSize / 1000) * CANVAS_WIDTH;
+            const baseStepY = (gridSize / 1000) * pageHeight;
 
-          // Compute subdivision level based on zoom:
-          // At zoom 1 → 1x, zoom 2 → 2x, zoom 4 → 4x, etc.
-          // Use powers of 2 for clean subdivision
-          const subdivisions = Math.max(1, Math.pow(2, Math.floor(Math.log2(zoom))));
-          const stepX = baseStepX / subdivisions;
-          const stepY = baseStepY / subdivisions;
+            // Compute subdivision level based on zoom:
+            // At zoom 1 → 1x, zoom 2 → 2x, zoom 4 → 4x, etc.
+            // Use powers of 2 for clean subdivision
+            const subdivisions = Math.max(1, Math.pow(2, Math.floor(Math.log2(zoom))));
+            const stepX = baseStepX / subdivisions;
+            const stepY = baseStepY / subdivisions;
 
-          const vLines = Math.ceil(CANVAS_WIDTH / stepX);
-          const hLines = Math.ceil(pageHeight / stepY);
+            const vLines = Math.ceil(CANVAS_WIDTH / stepX);
+            const hLines = Math.ceil(pageHeight / stepY);
 
-          // Cap line count to prevent performance issues at extreme zoom
-          const maxLines = 400;
-          if (vLines > maxLines || hLines > maxLines) return null;
+            // Cap line count to prevent performance issues at extreme zoom
+            const maxLines = 400;
+            if (vLines > maxLines || hLines > maxLines) return null;
 
-          const lines: React.ReactNode[] = [];
-          for (let i = 0; i <= vLines; i++) {
-            const isMajor = i % subdivisions === 0;
-            lines.push(
-              <Rect
-                key={`gv-${i}`}
-                x={i * stepX}
-                y={0}
-                width={1 / zoom}
-                height={pageHeight}
-                fill="#000"
-                opacity={isMajor ? 0.15 : 0.06}
-              />,
-            );
-          }
-          for (let i = 0; i <= hLines; i++) {
-            const isMajor = i % subdivisions === 0;
-            lines.push(
-              <Rect
-                key={`gh-${i}`}
-                x={0}
-                y={i * stepY}
-                width={CANVAS_WIDTH}
-                height={1 / zoom}
-                fill="#000"
-                opacity={isMajor ? 0.15 : 0.06}
-              />,
-            );
-          }
+            const lines: React.ReactNode[] = [];
+            for (let i = 0; i <= vLines; i++) {
+              const isMajor = i % subdivisions === 0;
+              lines.push(
+                <Rect
+                  key={`gv-${i}`}
+                  x={i * stepX}
+                  y={0}
+                  width={1 / zoom}
+                  height={pageHeight}
+                  fill="#000"
+                  opacity={isMajor ? 0.15 : 0.06}
+                />,
+              );
+            }
+            for (let i = 0; i <= hLines; i++) {
+              const isMajor = i % subdivisions === 0;
+              lines.push(
+                <Rect
+                  key={`gh-${i}`}
+                  x={0}
+                  y={i * stepY}
+                  width={CANVAS_WIDTH}
+                  height={1 / zoom}
+                  fill="#000"
+                  opacity={isMajor ? 0.15 : 0.06}
+                />,
+              );
+            }
 
-          return <Layer listening={false}>{lines}</Layer>;
-        })()}
+            return <Layer listening={false}>{lines}</Layer>;
+          })()}
       </Stage>
     </div>
   );

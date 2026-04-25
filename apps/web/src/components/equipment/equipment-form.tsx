@@ -11,14 +11,15 @@ import type { ScannerTarget, ScannerResult } from './camera-scanner';
 
 function isValidIPv4(value: string): boolean {
   if (!value) return true; // opcional
-  return /^(\d{1,3}\.){3}\d{1,3}$/.test(value) &&
-    value.split('.').every((n) => parseInt(n, 10) <= 255);
+  return (
+    /^(\d{1,3}\.){3}\d{1,3}$/.test(value) && value.split('.').every((n) => parseInt(n, 10) <= 255)
+  );
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface EquipmentFormProps {
-  initialData?: EquipamentoDTO & { modelo?: string; ip?: string };
+  initialData?: EquipamentoDTO;
   lojas: LojaDTO[];
   setores: SetorDTO[];
   tipos: TipoEquipamentoDTO[];
@@ -87,11 +88,11 @@ export function EquipmentForm({
       setorId,
       tipoId,
       numeroEquipamento: numeroEquipamento.trim(),
-      serie: serie.trim() || undefined,
-      patrimonio: patrimonio.trim() || undefined,
-      modelo: modelo.trim() || undefined,
-      ip: ip.trim() || undefined,
-      glpiId: glpiId.trim() || undefined,
+      ...(serie.trim() ? { serie: serie.trim() } : {}),
+      ...(patrimonio.trim() ? { patrimonio: patrimonio.trim() } : {}),
+      ...(modelo.trim() ? { modelo: modelo.trim() } : {}),
+      ...(ip.trim() ? { ip: ip.trim() } : {}),
+      ...(glpiId.trim() ? { glpiId: glpiId.trim() } : {}),
     });
   };
 
@@ -118,7 +119,9 @@ export function EquipmentForm({
             >
               <option value="">Selecione...</option>
               {lojas.map((l) => (
-                <option key={l.id} value={l.id}>{l.nome}</option>
+                <option key={l.id} value={l.id}>
+                  {l.nome}
+                </option>
               ))}
             </select>
           </div>
@@ -133,7 +136,9 @@ export function EquipmentForm({
             >
               <option value="">Selecione...</option>
               {setores.map((s) => (
-                <option key={s.id} value={s.id}>{s.nome}</option>
+                <option key={s.id} value={s.id}>
+                  {s.nome}
+                </option>
               ))}
             </select>
           </div>
@@ -148,7 +153,9 @@ export function EquipmentForm({
             >
               <option value="">Selecione...</option>
               {tipos.map((t) => (
-                <option key={t.id} value={t.id}>{t.nome}</option>
+                <option key={t.id} value={t.id}>
+                  {t.nome}
+                </option>
               ))}
             </select>
           </div>
@@ -253,13 +260,26 @@ export function EquipmentForm({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 pt-4">
-          <Button type="submit" disabled={!isValid || isLoading} className="h-12 sm:h-10 text-base font-bold flex-1">
-            {isLoading ? 'Salvando...' : initialData ? 'Atualizar Equipamento' : 'Cadastrar Equipamento'}
+          <Button
+            type="submit"
+            disabled={!isValid || isLoading}
+            className="h-12 sm:h-10 text-base font-bold flex-1"
+          >
+            {isLoading
+              ? 'Salvando...'
+              : initialData
+                ? 'Atualizar Equipamento'
+                : 'Cadastrar Equipamento'}
           </Button>
           {initialData && (
-             <Button type="button" variant="ghost" onClick={() => window.history.back()} className="h-12 sm:h-10 text-muted-foreground">
-               Cancelar
-             </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => window.history.back()}
+              className="h-12 sm:h-10 text-muted-foreground"
+            >
+              Cancelar
+            </Button>
           )}
         </div>
       </form>

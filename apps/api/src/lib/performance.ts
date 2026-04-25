@@ -24,13 +24,16 @@ export interface PerformanceMetrics {
  */
 export class PerformanceMonitor {
   private static readonly SLOW_QUERY_THRESHOLD_MS = 100;
-  private requestMetrics = new Map<string, {
-    startTime: number;
-    method: string;
-    path: string;
-    queryCount: number;
-    slowQueries: SlowQuery[];
-  }>();
+  private requestMetrics = new Map<
+    string,
+    {
+      startTime: number;
+      method: string;
+      path: string;
+      queryCount: number;
+      slowQueries: SlowQuery[];
+    }
+  >();
 
   /**
    * Start tracking a request
@@ -55,12 +58,7 @@ export class PerformanceMonitor {
    * @param duration Query duration in milliseconds
    * @param params Optional query parameters
    */
-  recordQuery(
-    requestId: string,
-    query: string,
-    duration: number,
-    params?: unknown
-  ): void {
+  recordQuery(requestId: string, query: string, duration: number, params?: unknown): void {
     const metrics = this.requestMetrics.get(requestId);
     if (!metrics) {
       return;

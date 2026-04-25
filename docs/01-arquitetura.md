@@ -21,16 +21,16 @@ graph TD
     Root --> Packages[packages/]
     Root --> Infra[infra/]
     Root --> Scripts[scripts/]
-    
+
     Apps --> API[api - Backend Express]
     Apps --> Web[web - Frontend Next.js]
-    
+
     Packages --> Database[database - Prisma]
     Packages --> Types[types - TypeScript types]
     Packages --> Utils[utils - Shared utilities]
-    
+
     Infra --> Docker[docker-compose.yml]
-    
+
     Scripts --> Docs[docs/ - Generators]
 
 ```
@@ -63,18 +63,18 @@ graph LR
     Backend[Backend Layer]
     Data[Data Layer]
     Infra[Infrastructure Layer]
-    
+
     Frontend --> NextJS[Next.js 14]
     Frontend --> React[React 18]
     Frontend --> Konva[Konva Canvas]
-    
+
     Backend --> Express[Express.js]
     Backend --> Prisma[Prisma ORM]
     Backend --> BullMQ[BullMQ]
-    
+
     Data --> PostgreSQL[PostgreSQL 16]
     Data --> Redis[Redis 7]
-    
+
     Infra --> Docker[Docker Compose]
     Infra --> MinIO[MinIO S3]
 
@@ -121,4 +121,3 @@ O sistema segue o fluxo:
 - Estrutura do projeto: Diretório raiz
 - Configuração do monorepo: `package.json`, `turbo.json`
 - Docker Compose: `infra/docker-compose.yml`
-

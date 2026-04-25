@@ -7,12 +7,7 @@ export type {
   PipelineTiming,
 } from './types';
 
-export {
-  runScanPipeline,
-  cancelScan,
-  cleanupScanner,
-  warmupScanner,
-} from './scan-pipeline';
+export { runScanPipeline, cancelScan, cleanupScanner, warmupScanner } from './scan-pipeline';
 
 export { parseOCRText } from './ocr-parser';
 export { deduplicateCandidates } from './dedupe';

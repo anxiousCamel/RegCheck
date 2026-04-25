@@ -153,16 +153,15 @@ Uploaded PDF files used as template bases
 
 **Tabela:** `pdf_files`
 
-| Campo | Tipo | Obrigatório | Descrição |
-|---|---|---|---|
-| id | Texto | Sim | Identificador único. Chave primária. Padrão: uuid() |
-| fileName | Texto | Sim | - |
-| fileKey | Texto | Sim | Valor único |
-| fileSize | Inteiro | Sim | - |
-| mimeType | Texto | Sim | - |
-| pageCount | Inteiro | Sim | - |
-| createdAt | Data/Hora | Sim | Data de criação. Padrão: now() |
-
+| Campo     | Tipo      | Obrigatório | Descrição                                           |
+| --------- | --------- | ----------- | --------------------------------------------------- |
+| id        | Texto     | Sim         | Identificador único. Chave primária. Padrão: uuid() |
+| fileName  | Texto     | Sim         | -                                                   |
+| fileKey   | Texto     | Sim         | Valor único                                         |
+| fileSize  | Inteiro   | Sim         | -                                                   |
+| mimeType  | Texto     | Sim         | -                                                   |
+| pageCount | Inteiro   | Sim         | -                                                   |
+| createdAt | Data/Hora | Sim         | Data de criação. Padrão: now()                      |
 
 **Relacionamentos:**
 
@@ -174,17 +173,16 @@ Document template definitions
 
 **Tabela:** `templates`
 
-| Campo | Tipo | Obrigatório | Descrição |
-|---|---|---|---|
-| id | Texto | Sim | Identificador único. Chave primária. Padrão: uuid() |
-| name | Texto | Sim | Nome |
-| description | Texto | Não | Descrição |
-| status | TemplateStatus | Sim | Status. Padrão: DRAFT |
-| version | Inteiro | Sim | Padrão: 1 |
-| pdfFileId | Texto | Sim | - |
-| createdAt | Data/Hora | Sim | Data de criação. Padrão: now() |
-| updatedAt | Data/Hora | Sim | Data de atualização |
-
+| Campo       | Tipo           | Obrigatório | Descrição                                           |
+| ----------- | -------------- | ----------- | --------------------------------------------------- |
+| id          | Texto          | Sim         | Identificador único. Chave primária. Padrão: uuid() |
+| name        | Texto          | Sim         | Nome                                                |
+| description | Texto          | Não         | Descrição                                           |
+| status      | TemplateStatus | Sim         | Status. Padrão: DRAFT                               |
+| version     | Inteiro        | Sim         | Padrão: 1                                           |
+| pdfFileId   | Texto          | Sim         | -                                                   |
+| createdAt   | Data/Hora      | Sim         | Data de criação. Padrão: now()                      |
+| updatedAt   | Data/Hora      | Sim         | Data de atualização                                 |
 
 **Relacionamentos:**
 
@@ -199,14 +197,13 @@ Version history for templates
 
 **Tabela:** `template_versions`
 
-| Campo | Tipo | Obrigatório | Descrição |
-|---|---|---|---|
-| id | Texto | Sim | Identificador único. Chave primária. Padrão: uuid() |
-| templateId | Texto | Sim | - |
-| version | Inteiro | Sim | - |
-| snapshot | JSON | Sim | - |
-| createdAt | Data/Hora | Sim | Data de criação. Padrão: now() |
-
+| Campo      | Tipo      | Obrigatório | Descrição                                           |
+| ---------- | --------- | ----------- | --------------------------------------------------- |
+| id         | Texto     | Sim         | Identificador único. Chave primária. Padrão: uuid() |
+| templateId | Texto     | Sim         | -                                                   |
+| version    | Inteiro   | Sim         | -                                                   |
+| snapshot   | JSON      | Sim         | -                                                   |
+| createdAt  | Data/Hora | Sim         | Data de criação. Padrão: now()                      |
 
 **Relacionamentos:**
 
@@ -218,20 +215,19 @@ Fields defined on a template page
 
 **Tabela:** `template_fields`
 
-| Campo | Tipo | Obrigatório | Descrição |
-|---|---|---|---|
-| id | Texto | Sim | Identificador único. Chave primária. Padrão: uuid() |
-| templateId | Texto | Sim | - |
-| type | FieldType | Sim | - |
-| pageIndex | Inteiro | Sim | - |
-| position | JSON | Sim | - |
-| config | JSON | Sim | - |
-| scope | Texto | Sim | Padrão: "item" |
-| slotIndex | Inteiro | Não | - |
-| bindingKey | Texto | Não | - |
-| createdAt | Data/Hora | Sim | Data de criação. Padrão: now() |
-| updatedAt | Data/Hora | Sim | Data de atualização |
-
+| Campo      | Tipo      | Obrigatório | Descrição                                           |
+| ---------- | --------- | ----------- | --------------------------------------------------- |
+| id         | Texto     | Sim         | Identificador único. Chave primária. Padrão: uuid() |
+| templateId | Texto     | Sim         | -                                                   |
+| type       | FieldType | Sim         | -                                                   |
+| pageIndex  | Inteiro   | Sim         | -                                                   |
+| position   | JSON      | Sim         | -                                                   |
+| config     | JSON      | Sim         | -                                                   |
+| scope      | Texto     | Sim         | Padrão: "item"                                      |
+| slotIndex  | Inteiro   | Não         | -                                                   |
+| bindingKey | Texto     | Não         | -                                                   |
+| createdAt  | Data/Hora | Sim         | Data de criação. Padrão: now()                      |
+| updatedAt  | Data/Hora | Sim         | Data de atualização                                 |
 
 **Relacionamentos:**
 
@@ -244,19 +240,18 @@ A filled document instance
 
 **Tabela:** `documents`
 
-| Campo | Tipo | Obrigatório | Descrição |
-|---|---|---|---|
-| id | Texto | Sim | Identificador único. Chave primária. Padrão: uuid() |
-| name | Texto | Sim | Nome |
-| status | DocumentStatus | Sim | Status. Padrão: DRAFT |
-| totalItems | Inteiro | Sim | - |
-| templateId | Texto | Sim | - |
-| templateVersion | Inteiro | Sim | - |
-| generatedPdfKey | Texto | Não | - |
-| metadata | JSON | Não | - |
-| createdAt | Data/Hora | Sim | Data de criação. Padrão: now() |
-| updatedAt | Data/Hora | Sim | Data de atualização |
-
+| Campo           | Tipo           | Obrigatório | Descrição                                           |
+| --------------- | -------------- | ----------- | --------------------------------------------------- |
+| id              | Texto          | Sim         | Identificador único. Chave primária. Padrão: uuid() |
+| name            | Texto          | Sim         | Nome                                                |
+| status          | DocumentStatus | Sim         | Status. Padrão: DRAFT                               |
+| totalItems      | Inteiro        | Sim         | -                                                   |
+| templateId      | Texto          | Sim         | -                                                   |
+| templateVersion | Inteiro        | Sim         | -                                                   |
+| generatedPdfKey | Texto          | Não         | -                                                   |
+| metadata        | JSON           | Não         | -                                                   |
+| createdAt       | Data/Hora      | Sim         | Data de criação. Padrão: now()                      |
+| updatedAt       | Data/Hora      | Sim         | Data de atualização                                 |
 
 **Relacionamentos:**
 
@@ -269,17 +264,16 @@ Data filled into a field for a specific item
 
 **Tabela:** `filled_fields`
 
-| Campo | Tipo | Obrigatório | Descrição |
-|---|---|---|---|
-| id | Texto | Sim | Identificador único. Chave primária. Padrão: uuid() |
-| documentId | Texto | Sim | - |
-| fieldId | Texto | Sim | - |
-| itemIndex | Inteiro | Sim | - |
-| value | Texto | Sim | - |
-| fileKey | Texto | Não | - |
-| createdAt | Data/Hora | Sim | Data de criação. Padrão: now() |
-| updatedAt | Data/Hora | Sim | Data de atualização |
-
+| Campo      | Tipo      | Obrigatório | Descrição                                           |
+| ---------- | --------- | ----------- | --------------------------------------------------- |
+| id         | Texto     | Sim         | Identificador único. Chave primária. Padrão: uuid() |
+| documentId | Texto     | Sim         | -                                                   |
+| fieldId    | Texto     | Sim         | -                                                   |
+| itemIndex  | Inteiro   | Sim         | -                                                   |
+| value      | Texto     | Sim         | -                                                   |
+| fileKey    | Texto     | Não         | -                                                   |
+| createdAt  | Data/Hora | Sim         | Data de criação. Padrão: now()                      |
+| updatedAt  | Data/Hora | Sim         | Data de atualização                                 |
 
 **Relacionamentos:**
 
@@ -292,14 +286,13 @@ Store locations
 
 **Tabela:** `lojas`
 
-| Campo | Tipo | Obrigatório | Descrição |
-|---|---|---|---|
-| id | Texto | Sim | Identificador único. Chave primária. Padrão: uuid() |
-| nome | Texto | Sim | Valor único |
-| ativo | Booleano | Sim | Indica se está ativo. Padrão: true |
-| createdAt | Data/Hora | Sim | Data de criação. Padrão: now() |
-| updatedAt | Data/Hora | Sim | Data de atualização |
-
+| Campo     | Tipo      | Obrigatório | Descrição                                           |
+| --------- | --------- | ----------- | --------------------------------------------------- |
+| id        | Texto     | Sim         | Identificador único. Chave primária. Padrão: uuid() |
+| nome      | Texto     | Sim         | Valor único                                         |
+| ativo     | Booleano  | Sim         | Indica se está ativo. Padrão: true                  |
+| createdAt | Data/Hora | Sim         | Data de criação. Padrão: now()                      |
+| updatedAt | Data/Hora | Sim         | Data de atualização                                 |
 
 **Relacionamentos:**
 
@@ -311,14 +304,13 @@ Sectors within a store
 
 **Tabela:** `setores`
 
-| Campo | Tipo | Obrigatório | Descrição |
-|---|---|---|---|
-| id | Texto | Sim | Identificador único. Chave primária. Padrão: uuid() |
-| nome | Texto | Sim | Valor único |
-| ativo | Booleano | Sim | Indica se está ativo. Padrão: true |
-| createdAt | Data/Hora | Sim | Data de criação. Padrão: now() |
-| updatedAt | Data/Hora | Sim | Data de atualização |
-
+| Campo     | Tipo      | Obrigatório | Descrição                                           |
+| --------- | --------- | ----------- | --------------------------------------------------- |
+| id        | Texto     | Sim         | Identificador único. Chave primária. Padrão: uuid() |
+| nome      | Texto     | Sim         | Valor único                                         |
+| ativo     | Booleano  | Sim         | Indica se está ativo. Padrão: true                  |
+| createdAt | Data/Hora | Sim         | Data de criação. Padrão: now()                      |
+| updatedAt | Data/Hora | Sim         | Data de atualização                                 |
 
 **Relacionamentos:**
 
@@ -330,14 +322,13 @@ Equipment type classification
 
 **Tabela:** `tipos_equipamento`
 
-| Campo | Tipo | Obrigatório | Descrição |
-|---|---|---|---|
-| id | Texto | Sim | Identificador único. Chave primária. Padrão: uuid() |
-| nome | Texto | Sim | Valor único |
-| ativo | Booleano | Sim | Indica se está ativo. Padrão: true |
-| createdAt | Data/Hora | Sim | Data de criação. Padrão: now() |
-| updatedAt | Data/Hora | Sim | Data de atualização |
-
+| Campo     | Tipo      | Obrigatório | Descrição                                           |
+| --------- | --------- | ----------- | --------------------------------------------------- |
+| id        | Texto     | Sim         | Identificador único. Chave primária. Padrão: uuid() |
+| nome      | Texto     | Sim         | Valor único                                         |
+| ativo     | Booleano  | Sim         | Indica se está ativo. Padrão: true                  |
+| createdAt | Data/Hora | Sim         | Data de criação. Padrão: now()                      |
+| updatedAt | Data/Hora | Sim         | Data de atualização                                 |
 
 **Relacionamentos:**
 
@@ -349,21 +340,20 @@ Equipment registry
 
 **Tabela:** `equipamentos`
 
-| Campo | Tipo | Obrigatório | Descrição |
-|---|---|---|---|
-| id | Texto | Sim | Identificador único. Chave primária. Padrão: uuid() |
-| lojaId | Texto | Sim | - |
-| setorId | Texto | Sim | - |
-| tipoId | Texto | Sim | - |
-| numeroEquipamento | Texto | Sim | - |
-| serie | Texto | Não | - |
-| patrimonio | Texto | Não | - |
-| modelo | Texto | Não | - |
-| ip | Texto | Não | - |
-| glpiId | Texto | Não | - |
-| createdAt | Data/Hora | Sim | Data de criação. Padrão: now() |
-| updatedAt | Data/Hora | Sim | Data de atualização |
-
+| Campo             | Tipo      | Obrigatório | Descrição                                           |
+| ----------------- | --------- | ----------- | --------------------------------------------------- |
+| id                | Texto     | Sim         | Identificador único. Chave primária. Padrão: uuid() |
+| lojaId            | Texto     | Sim         | -                                                   |
+| setorId           | Texto     | Sim         | -                                                   |
+| tipoId            | Texto     | Sim         | -                                                   |
+| numeroEquipamento | Texto     | Sim         | -                                                   |
+| serie             | Texto     | Não         | -                                                   |
+| patrimonio        | Texto     | Não         | -                                                   |
+| modelo            | Texto     | Não         | -                                                   |
+| ip                | Texto     | Não         | -                                                   |
+| glpiId            | Texto     | Não         | -                                                   |
+| createdAt         | Data/Hora | Sim         | Data de criação. Padrão: now()                      |
+| updatedAt         | Data/Hora | Sim         | Data de atualização                                 |
 
 **Relacionamentos:**
 
@@ -405,29 +395,28 @@ Valores possíveis:
 
 O sistema possui os seguintes relacionamentos entre entidades:
 
-| De | Para | Tipo | Descrição |
-|---|---|---|---|
-| Template | PdfFile | 1:N | Template baseado em arquivo PDF |
-| Template | PdfFile | N:1 | Template baseado em arquivo PDF |
-| TemplateField | Template | 1:N | não identificado |
-| TemplateVersion | Template | 1:N | não identificado |
-| Document | Template | 1:N | não identificado |
-| TemplateVersion | Template | N:1 | não identificado |
-| TemplateField | Template | N:1 | não identificado |
-| FilledField | TemplateField | 1:N | não identificado |
-| Document | Template | N:1 | não identificado |
-| FilledField | Document | 1:N | não identificado |
-| FilledField | Document | N:1 | não identificado |
-| FilledField | TemplateField | N:1 | não identificado |
-| Equipamento | Loja | 1:N | Equipamento pertence a uma loja |
-| Equipamento | Setor | 1:N | Equipamento pertence a um setor |
-| Equipamento | TipoEquipamento | 1:N | Equipamento possui um tipo |
-| Equipamento | Loja | N:1 | Equipamento pertence a uma loja |
-| Equipamento | Setor | N:1 | Equipamento pertence a um setor |
-| Equipamento | TipoEquipamento | N:1 | Equipamento possui um tipo |
+| De              | Para            | Tipo | Descrição                       |
+| --------------- | --------------- | ---- | ------------------------------- |
+| Template        | PdfFile         | 1:N  | Template baseado em arquivo PDF |
+| Template        | PdfFile         | N:1  | Template baseado em arquivo PDF |
+| TemplateField   | Template        | 1:N  | não identificado                |
+| TemplateVersion | Template        | 1:N  | não identificado                |
+| Document        | Template        | 1:N  | não identificado                |
+| TemplateVersion | Template        | N:1  | não identificado                |
+| TemplateField   | Template        | N:1  | não identificado                |
+| FilledField     | TemplateField   | 1:N  | não identificado                |
+| Document        | Template        | N:1  | não identificado                |
+| FilledField     | Document        | 1:N  | não identificado                |
+| FilledField     | Document        | N:1  | não identificado                |
+| FilledField     | TemplateField   | N:1  | não identificado                |
+| Equipamento     | Loja            | 1:N  | Equipamento pertence a uma loja |
+| Equipamento     | Setor           | 1:N  | Equipamento pertence a um setor |
+| Equipamento     | TipoEquipamento | 1:N  | Equipamento possui um tipo      |
+| Equipamento     | Loja            | N:1  | Equipamento pertence a uma loja |
+| Equipamento     | Setor           | N:1  | Equipamento pertence a um setor |
+| Equipamento     | TipoEquipamento | N:1  | Equipamento possui um tipo      |
 
 ## Referências
 
 - Schema Prisma: `packages/database/prisma/schema.prisma`
 - Documentação Prisma: https://www.prisma.io/docs
-

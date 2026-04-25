@@ -3,6 +3,7 @@
 Guia para exportar os dados do ambiente local e restaurar em outra máquina.
 
 O backup cobre:
+
 - Banco de dados PostgreSQL (dump completo)
 - Arquivos armazenados no MinIO (PDFs, imagens, assinaturas)
 
@@ -19,6 +20,7 @@ pnpm db:export
 ```
 
 Isso gera um arquivo em `backups/backup-<timestamp>.zip` contendo:
+
 - `database.sql` — dump completo do PostgreSQL
 - `minio/` — todos os arquivos do bucket
 
@@ -42,6 +44,7 @@ pnpm db:import backups/backup-<timestamp>.zip
 ```
 
 O script vai:
+
 1. Extrair o zip
 2. Restaurar o banco no PostgreSQL (sobrescreve os dados atuais)
 3. Fazer upload dos PDFs via API da aplicação e atualizar as referências no banco

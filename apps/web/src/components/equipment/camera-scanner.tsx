@@ -41,7 +41,9 @@ export function CameraScanner({ onResult, onClose, targetField = 'all' }: Camera
 
   useEffect(() => {
     warmupScanner();
-    return () => { cleanupScanner(); };
+    return () => {
+      cleanupScanner();
+    };
   }, []);
 
   // Limpa seleções ao receber novos candidatos
@@ -55,13 +57,16 @@ export function CameraScanner({ onResult, onClose, targetField = 'all' }: Camera
 
   // ─── Captura ─────────────────────────────────────────────────────────────
 
-  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = '';
-    const bitmap = await createImageBitmap(file);
-    await process(bitmap);
-  }, [process]);
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      e.target.value = '';
+      const bitmap = await createImageBitmap(file);
+      await process(bitmap);
+    },
+    [process],
+  );
 
   const handleNewCapture = useCallback(() => {
     recapture();
@@ -93,14 +98,18 @@ export function CameraScanner({ onResult, onClose, targetField = 'all' }: Camera
   // ─── Confirmar ────────────────────────────────────────────────────────────
 
   const handleConfirm = () => {
-    const serie = selectedSerie || manualSerie.trim() || undefined;
-    const patrimonio = selectedPatrimonio || manualPatrimonio.trim() || undefined;
-    const modelo = selectedModelo || manualModelo.trim() || undefined;
+    const serie = selectedSerie || manualSerie.trim();
+    const patrimonio = selectedPatrimonio || manualPatrimonio.trim();
+    const modelo = selectedModelo || manualModelo.trim();
 
-    if (targetField === 'serie') onResult({ serie });
-    else if (targetField === 'patrimonio') onResult({ patrimonio });
-    else if (targetField === 'modelo') onResult({ modelo });
-    else onResult({ serie, patrimonio, modelo });
+    if (targetField === 'serie') onResult({ ...(serie ? { serie } : {}) });
+    else if (targetField === 'patrimonio') onResult({ ...(patrimonio ? { patrimonio } : {}) });
+    else if (targetField === 'modelo') onResult({ ...(modelo ? { modelo } : {}) });
+    else onResult({
+      ...(serie ? { serie } : {}),
+      ...(patrimonio ? { patrimonio } : {}),
+      ...(modelo ? { modelo } : {}),
+    });
   };
 
   // ─── Candidatos filtrados por target ─────────────────────────────────────
@@ -118,7 +127,9 @@ export function CameraScanner({ onResult, onClose, targetField = 'all' }: Camera
   const serialCandidatesDisplay =
     targetField === 'serie' && serialCandidates.length === 0 ? candidates : serialCandidates;
   const patrimonioCandidatesDisplay =
-    targetField === 'patrimonio' && patrimonioCandidates.length === 0 ? candidates : patrimonioCandidates;
+    targetField === 'patrimonio' && patrimonioCandidates.length === 0
+      ? candidates
+      : patrimonioCandidates;
   const modeloCandidatesDisplay =
     targetField === 'modelo' && modeloCandidates.length === 0 ? candidates : modeloCandidates;
 
@@ -126,8 +137,12 @@ export function CameraScanner({ onResult, onClose, targetField = 'all' }: Camera
   const hasCandidates = candidates.length > 0;
 
   const hasSelection =
-    selectedSerie || selectedPatrimonio || selectedModelo ||
-    manualSerie.trim() || manualPatrimonio.trim() || manualModelo.trim();
+    selectedSerie ||
+    selectedPatrimonio ||
+    selectedModelo ||
+    manualSerie.trim() ||
+    manualPatrimonio.trim() ||
+    manualModelo.trim();
 
   const titleMap: Record<ScannerTarget, string> = {
     serie: 'Ler Série via Câmera',
@@ -139,16 +154,18 @@ export function CameraScanner({ onResult, onClose, targetField = 'all' }: Camera
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
       <div className="bg-background rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-
         {/* Header */}
         <div className="p-4 border-b flex items-center justify-between">
           <h2 className="text-lg font-semibold">{titleMap[targetField]}</h2>
-          <Button variant="outline" size="sm" onClick={onClose}>Fechar</Button>
+          <Button variant="outline" size="sm" onClick={onClose}>
+            Fechar
+          </Button>
         </div>
 
         <div className="p-4 space-y-4">
           <p className="text-sm text-muted-foreground">
-            Tire uma foto da etiqueta. Os candidatos encontrados serão listados — você escolhe qual usar.
+            Tire uma foto da etiqueta. Os candidatos encontrados serão listados — você escolhe qual
+            usar.
           </p>
 
           {/* Input câmera */}
@@ -167,7 +184,10 @@ export function CameraScanner({ onResult, onClose, targetField = 'all' }: Camera
             className="w-full"
           >
             {isProcessing ? (
-              <><Spinner className="mr-2 h-4 w-4" />Processando...</>
+              <>
+                <Spinner className="mr-2 h-4 w-4" />
+                Processando...
+              </>
             ) : hasCandidates ? (
               'Nova Captura'
             ) : (
@@ -232,9 +252,7 @@ export function CameraScanner({ onResult, onClose, targetField = 'all' }: Camera
           {/* Campos manuais (fallback sempre visível após tentativa) */}
           {(hasCandidates || status === 'done' || status === 'error') && (
             <div className="space-y-3 border-t pt-4">
-              <p className="text-xs text-muted-foreground font-medium">
-                Ou preencha manualmente:
-              </p>
+              <p className="text-xs text-muted-foreground font-medium">Ou preencha manualmente:</p>
               {showSerie && (
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">Série (manual)</label>
@@ -271,11 +289,7 @@ export function CameraScanner({ onResult, onClose, targetField = 'all' }: Camera
           {/* Ações */}
           {(hasCandidates || status === 'done' || status === 'error') && (
             <div className="flex gap-3 pt-2">
-              <Button
-                onClick={handleConfirm}
-                className="flex-1"
-                disabled={!hasSelection}
-              >
+              <Button onClick={handleConfirm} className="flex-1" disabled={!hasSelection}>
                 Confirmar
               </Button>
               <Button variant="outline" onClick={handleNewCapture}>
@@ -324,9 +338,7 @@ function CandidateGroup({
               }`}
             />
             <span className="font-mono flex-1">{c.value}</span>
-            <span className="text-xs text-muted-foreground">
-              {Math.round(c.confidence * 100)}%
-            </span>
+            <span className="text-xs text-muted-foreground">{Math.round(c.confidence * 100)}%</span>
           </button>
         ))}
       </div>

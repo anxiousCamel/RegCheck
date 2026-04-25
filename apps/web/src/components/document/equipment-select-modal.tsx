@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Input, Spinner, cn } from '@regcheck/ui';
+import { Input, Spinner } from '@regcheck/ui';
 import { IconCheck, IconX, IconSearch } from '@/components/ui/icons';
 import { api } from '@/lib/api';
 
@@ -13,7 +13,12 @@ interface EquipmentSelectModalProps {
   onSelect: (equipamentoId: string) => void;
 }
 
-export function EquipmentSelectModal({ isOpen, onClose, tipoEquipamentoId, onSelect }: EquipmentSelectModalProps) {
+export function EquipmentSelectModal({
+  isOpen,
+  onClose,
+  tipoEquipamentoId,
+  onSelect,
+}: EquipmentSelectModalProps) {
   const [search, setSearch] = useState('');
   const [selectedLojaId, setSelectedLojaId] = useState<string>('');
   const [selectedTipoId, setSelectedTipoId] = useState<string>(tipoEquipamentoId || '');
@@ -34,11 +39,12 @@ export function EquipmentSelectModal({ isOpen, onClose, tipoEquipamentoId, onSel
 
   const { data, isLoading } = useQuery({
     queryKey: ['equipamentos-por-tipo', selectedTipoId, selectedLojaId, search],
-    queryFn: () => api.listEquipamentos(1, 50, { 
-      ...(selectedTipoId ? { tipoId: selectedTipoId } : {}),
-      ...(selectedLojaId ? { lojaId: selectedLojaId } : {}),
-      search: search || undefined 
-    }),
+    queryFn: () =>
+      api.listEquipamentos(1, 50, {
+        ...(selectedTipoId ? { tipoId: selectedTipoId } : {}),
+        ...(selectedLojaId ? { lojaId: selectedLojaId } : {}),
+        ...(search ? { search } : {}),
+      }),
     enabled: isOpen,
   });
 
@@ -51,16 +57,18 @@ export function EquipmentSelectModal({ isOpen, onClose, tipoEquipamentoId, onSel
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      
+
       <div className="relative bg-white w-full max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-muted/30">
           <div className="flex-1">
-            <h2 className="text-lg font-extrabold text-foreground tracking-tight">Selecionar Equipamento</h2>
+            <h2 className="text-lg font-extrabold text-foreground tracking-tight">
+              Selecionar Equipamento
+            </h2>
             {tipoEquipamentoId && (
               <p className="text-xs text-muted-foreground mt-0.5">Filtrado por tipo específico</p>
             )}
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 -mr-2 bg-muted hover:bg-border rounded-full text-muted-foreground transition-colors"
           >
@@ -78,11 +86,13 @@ export function EquipmentSelectModal({ isOpen, onClose, tipoEquipamentoId, onSel
               >
                 <option value="">Todos os tipos</option>
                 {tipos.map((tipo) => (
-                  <option key={tipo.id} value={tipo.id}>{tipo.nome}</option>
+                  <option key={tipo.id} value={tipo.id}>
+                    {tipo.nome}
+                  </option>
                 ))}
               </select>
             )}
-            
+
             {lojas.length > 0 && (
               <select
                 value={selectedLojaId}
@@ -91,14 +101,19 @@ export function EquipmentSelectModal({ isOpen, onClose, tipoEquipamentoId, onSel
               >
                 <option value="">Todas as lojas</option>
                 {lojas.map((loja) => (
-                  <option key={loja.id} value={loja.id}>{loja.nome}</option>
+                  <option key={loja.id} value={loja.id}>
+                    {loja.nome}
+                  </option>
                 ))}
               </select>
             )}
           </div>
-          
+
           <div className="relative">
-            <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+            <IconSearch
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              size={16}
+            />
             <Input
               placeholder="Buscar número, série, patrimônio..."
               value={search}

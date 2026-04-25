@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Verification script for Task 3.3: Write unit tests for Prisma parser
- * 
+ *
  * This script demonstrates that the Prisma parser has comprehensive test coverage
  * for all requirements specified in Task 3.3:
  * - Test model extraction with various field types
@@ -93,19 +93,19 @@ enum Status {
 
 try {
   const result = parsePrismaSchema(testSchema);
-  
-  console.log(`✓ Parsed ${result.models.length} models (User, Post)`);
-  console.log(`✓ Parsed ${result.enums.length} enum (Status)`);
-  console.log(`✓ Extracted ${result.relationships.length} relationship(s)`);
-  
-  const userModel = result.models.find(m => m.name === 'User');
+
+  console.log(`✓ Parsed ${result.data.models.length} models (User, Post)`);
+  console.log(`✓ Parsed ${result.data.enums.length} enum (Status)`);
+  console.log(`✓ Extracted ${result.data.relationships.length} relationship(s)`);
+
+  const userModel = result.data.models.find((m: { name: string }) => m.name === 'User');
   if (userModel) {
     const pks = getPrimaryKeys(userModel);
     const uniques = getUniqueFields(userModel);
     console.log(`✓ Identified ${pks.length} primary key (id)`);
     console.log(`✓ Identified ${uniques.length} unique field (email)`);
   }
-  
+
   console.log();
   console.log('='.repeat(70));
   console.log('✅ ALL TESTS PASSED - Task 3.3 Complete');
@@ -118,7 +118,7 @@ try {
   console.log('  • Primary key identification');
   console.log();
   console.log('Run tests with: pnpm exec vitest run scripts/docs/prisma-parser.test.ts');
-  
+
   process.exit(0);
 } catch (error) {
   console.error('✗ Parser test failed:', error);

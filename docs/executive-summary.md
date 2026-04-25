@@ -13,6 +13,7 @@ O **RegCheck** é um sistema web que automatiza a criação e preenchimento de d
 ### Problema Resolvido
 
 Equipes de TI e operações frequentemente precisam gerar dezenas ou centenas de documentos padronizados (etiquetas de equipamentos, relatórios, formulários de inspeção). O processo manual é:
+
 - **Lento:** 5-10 minutos por documento
 - **Propenso a erros:** Digitação incorreta, campos esquecidos
 - **Não escalável:** Impossível gerar 100+ documentos manualmente
@@ -20,6 +21,7 @@ Equipes de TI e operações frequentemente precisam gerar dezenas ou centenas de
 ### Solução
 
 O RegCheck permite:
+
 1. **Criar templates visuais** sobre PDFs existentes (arrastar e soltar campos)
 2. **Preencher dados** de forma estruturada (formulário web)
 3. **Gerar PDFs automaticamente** em segundos (processamento em fila)
@@ -34,6 +36,7 @@ O RegCheck permite:
 **O que faz:** Permite criar templates de documentos sem programação.
 
 **Como funciona:**
+
 1. Usuário faz upload de um PDF base (ex: formulário em branco)
 2. Arrasta campos (texto, imagem, assinatura, checkbox) para posições no PDF
 3. Sistema salva automaticamente as posições
@@ -46,6 +49,7 @@ O RegCheck permite:
 **O que faz:** Guia o usuário no preenchimento de campos de forma intuitiva.
 
 **Como funciona:**
+
 1. Usuário seleciona um template
 2. Sistema exibe wizard campo a campo
 3. Usuário preenche dados (texto, upload de imagem, desenho de assinatura)
@@ -58,6 +62,7 @@ O RegCheck permite:
 **O que faz:** Gera PDFs finais com dados preenchidos em segundos.
 
 **Como funciona:**
+
 1. Usuário clica em "Gerar PDF"
 2. Sistema enfileira tarefa de geração
 3. Processamento em background (não trava o sistema)
@@ -71,6 +76,7 @@ O RegCheck permite:
 **O que faz:** Gera múltiplas etiquetas/itens em um único PDF.
 
 **Como funciona:**
+
 1. Usuário define quantos itens quer gerar (ex: 50 equipamentos)
 2. Sistema calcula automaticamente quantas páginas são necessárias
 3. Duplica páginas do PDF base
@@ -83,6 +89,7 @@ O RegCheck permite:
 **O que faz:** Cadastro e busca de equipamentos com scanner de código de barras.
 
 **Como funciona:**
+
 1. Usuário cadastra lojas, setores e tipos de equipamento
 2. Registra equipamentos com dados (número, série, patrimônio, modelo, IP)
 3. Usa câmera do celular para escanear códigos de barras
@@ -120,6 +127,7 @@ O RegCheck permite:
 ```
 
 **Tecnologias:**
+
 - **Frontend:** Next.js (React) - Interface web moderna
 - **Backend:** Node.js (Express) - Servidor de aplicação
 - **Banco de Dados:** PostgreSQL - Dados estruturados
@@ -132,20 +140,20 @@ O RegCheck permite:
 
 ### Tempo de Geração de Documentos
 
-| Cenário | Manual | RegCheck | Economia |
-|---------|--------|----------|----------|
-| 1 etiqueta | 5 min | 10 seg | **96%** |
-| 10 etiquetas | 50 min | 15 seg | **99%** |
-| 50 etiquetas | 4h 10min | 20 seg | **99.9%** |
-| 100 etiquetas | 8h 20min | 30 seg | **99.9%** |
+| Cenário       | Manual   | RegCheck | Economia  |
+| ------------- | -------- | -------- | --------- |
+| 1 etiqueta    | 5 min    | 10 seg   | **96%**   |
+| 10 etiquetas  | 50 min   | 15 seg   | **99%**   |
+| 50 etiquetas  | 4h 10min | 20 seg   | **99.9%** |
+| 100 etiquetas | 8h 20min | 30 seg   | **99.9%** |
 
 ### Taxa de Erro
 
-| Processo | Manual | RegCheck | Redução |
-|----------|--------|----------|---------|
-| Campos esquecidos | 15% | 0% | **100%** |
-| Erros de digitação | 8% | 0% | **100%** |
-| Formatação incorreta | 20% | 0% | **100%** |
+| Processo             | Manual | RegCheck | Redução  |
+| -------------------- | ------ | -------- | -------- |
+| Campos esquecidos    | 15%    | 0%       | **100%** |
+| Erros de digitação   | 8%     | 0%       | **100%** |
+| Formatação incorreta | 20%    | 0%       | **100%** |
 
 ### Escalabilidade
 
@@ -181,45 +189,54 @@ O RegCheck permite:
 ### Curto Prazo (1-3 meses)
 
 🔮 **Autenticação e Controle de Acesso**
+
 - Login com usuário e senha
 - Permissões por role (Admin, Editor, Visualizador)
 - Auditoria de ações
 
 🔮 **Versionamento de Templates**
+
 - Histórico de alterações
 - Rollback para versões anteriores
 - Documentos vinculados a versão específica
 
 🔮 **Retry Automático**
+
 - Jobs que falham são retentados automaticamente
 - Notificações de falha por email
 
 ### Médio Prazo (3-6 meses)
 
 🔮 **Notificações em Tempo Real**
+
 - WebSockets para notificar quando PDF estiver pronto
 - Elimina polling (requisições a cada 3 segundos)
 
 🔮 **Cache de PDFs**
+
 - PDFs renderizados são cacheados
 - Reduz tempo de carregamento em 80%
 
 🔮 **Testes Automatizados**
+
 - Cobertura de 80%+ de testes
 - Testes end-to-end de fluxos críticos
 
 ### Longo Prazo (6+ meses)
 
 🔮 **Inteligência Artificial**
+
 - Extração automática de campos de PDFs existentes
 - Sugestão de posicionamento de campos
 - Validação semântica de dados
 
 🔮 **Exportação em Lote**
+
 - Gerar ZIP com múltiplos PDFs
 - Processamento assíncrono com barra de progresso
 
 🔮 **Integração com Sistemas Externos**
+
 - Webhooks para notificar sistemas externos
 - API pública para integração
 
@@ -270,13 +287,13 @@ O RegCheck permite:
 
 ### Infraestrutura (Produção)
 
-| Recurso | Custo Mensal (AWS) |
-|---------|-------------------|
-| EC2 (t3.medium) | R$ 150 |
-| RDS PostgreSQL (db.t3.micro) | R$ 80 |
-| ElastiCache Redis (cache.t3.micro) | R$ 70 |
-| S3 (100GB) | R$ 15 |
-| **Total** | **R$ 315/mês** |
+| Recurso                            | Custo Mensal (AWS) |
+| ---------------------------------- | ------------------ |
+| EC2 (t3.medium)                    | R$ 150             |
+| RDS PostgreSQL (db.t3.micro)       | R$ 80              |
+| ElastiCache Redis (cache.t3.micro) | R$ 70              |
+| S3 (100GB)                         | R$ 15              |
+| **Total**                          | **R$ 315/mês**     |
 
 ### Manutenção
 
@@ -291,10 +308,12 @@ O RegCheck permite:
 ### Cenário: Empresa com 10 usuários gerando 100 documentos/dia
 
 **Custo Manual:**
+
 - Tempo: 100 docs × 5 min = 500 min/dia = 8.3h/dia
 - Custo: 8.3h × R$ 50/h × 22 dias = **R$ 9.130/mês**
 
 **Custo RegCheck:**
+
 - Infraestrutura: R$ 315/mês
 - Manutenção: R$ 12.000/mês
 - **Total: R$ 12.315/mês**
@@ -304,10 +323,12 @@ O RegCheck permite:
 ### Cenário: Empresa com 50 usuários gerando 500 documentos/dia
 
 **Custo Manual:**
+
 - Tempo: 500 docs × 5 min = 2.500 min/dia = 41.7h/dia
 - Custo: 41.7h × R$ 50/h × 22 dias = **R$ 45.870/mês**
 
 **Custo RegCheck:**
+
 - Infraestrutura: R$ 500/mês (escala)
 - Manutenção: R$ 12.000/mês
 - **Total: R$ 12.500/mês**
@@ -338,6 +359,7 @@ O RegCheck é uma solução eficaz para automatizar a geração de documentos PD
 ---
 
 **Contato:**
+
 - **Tech Lead:** [Nome/Email]
 - **Product Owner:** [Nome/Email]
 - **Stakeholder:** [Nome/Email]

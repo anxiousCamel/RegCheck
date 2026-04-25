@@ -70,7 +70,11 @@ async function downloadFilledImages(filled: DbFilled[]): Promise<Map<string, Buf
 }
 
 /** Resolve the expanded-PDF page index for a given template page + page ordinal. */
-function expandedPageIndex(templatePageIndex: number, pageOrdinal: number, originalPageCount: number): number {
+function expandedPageIndex(
+  templatePageIndex: number,
+  pageOrdinal: number,
+  originalPageCount: number,
+): number {
   return pageOrdinal * originalPageCount + templatePageIndex;
 }
 
@@ -87,14 +91,17 @@ function makeOverlay(
     position: field.position,
     value: filled.value,
     checked: filled.value === 'true',
-    fontSize: config.fontSize,
-    fontColor: config.fontColor,
+    ...(config.fontSize !== undefined && { fontSize: config.fontSize }),
+    ...(config.fontColor !== undefined && { fontColor: config.fontColor }),
   };
   if (field.type === 'image' || field.type === 'signature') {
     // Prefer bytes downloaded from S3 (uploaded images).
     // Signatures are captured as a canvas data URL and stored directly in
     // `filled.value` — no fileKey, so decode the base64 payload here.
-    overlay.imageBytes = imageMap.get(`${field.id}:${filled.itemIndex}`) ?? decodeDataUrl(filled.value);
+    const bytes = imageMap.get(`${field.id}:${filled.itemIndex}`) ?? decodeDataUrl(filled.value);
+    if (bytes !== undefined) {
+      overlay.imageBytes = bytes;
+    }
   }
   return overlay;
 }
@@ -262,4 +269,3 @@ export async function processPdfGeneration(data: PdfGenerationJobData): Promise<
     throw error;
   }
 }
-

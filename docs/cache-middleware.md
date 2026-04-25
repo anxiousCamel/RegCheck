@@ -27,6 +27,7 @@ app.get('/api/lojas', cacheMiddleware(), async (req, res) => {
 ## Configuration Options
 
 ### `ttl` (number)
+
 Time to live in seconds. Default: 300 (5 minutes)
 
 ```typescript
@@ -34,26 +35,36 @@ app.get('/api/documents', cacheMiddleware({ ttl: 120 }), handler);
 ```
 
 ### `keyGenerator` (function)
+
 Custom function to generate cache keys. Default: `cache:{method}:{path}:{queryString}`
 
 ```typescript
-app.get('/api/equipamentos', cacheMiddleware({
-  keyGenerator: (req) => {
-    const { page, pageSize, lojaId } = req.query;
-    return `equipamentos:page:${page}:size:${pageSize}:loja:${lojaId || 'all'}`;
-  }
-}), handler);
+app.get(
+  '/api/equipamentos',
+  cacheMiddleware({
+    keyGenerator: (req) => {
+      const { page, pageSize, lojaId } = req.query;
+      return `equipamentos:page:${page}:size:${pageSize}:loja:${lojaId || 'all'}`;
+    },
+  }),
+  handler,
+);
 ```
 
 ### `shouldCache` (function)
+
 Conditional caching based on request/response. Default: cache only 2xx responses
 
 ```typescript
-app.get('/api/templates', cacheMiddleware({
-  shouldCache: (req, res) => {
-    return res.statusCode === 200 && req.query.status === 'published';
-  }
-}), handler);
+app.get(
+  '/api/templates',
+  cacheMiddleware({
+    shouldCache: (req, res) => {
+      return res.statusCode === 200 && req.query.status === 'published';
+    },
+  }),
+  handler,
+);
 ```
 
 ## Cache Key Patterns
@@ -62,12 +73,9 @@ Use consistent patterns for easy cache invalidation:
 
 ```typescript
 // Listing endpoints
-`lojas:list:page:{page}:size:{pageSize}`
-`equipamentos:list:page:{page}:size:{pageSize}`
-
+`lojas:list:page:{page}:size:{pageSize}``equipamentos:list:page:{page}:size:{pageSize}`
 // Detail endpoints
-`loja:{id}`
-`equipamento:{id}`
+`loja:{id}``equipamento:{id}`;
 ```
 
 ## Cache Invalidation
@@ -105,9 +113,9 @@ Based on data volatility:
 
 ```typescript
 const CACHE_TTL = {
-  STATIC: 300,    // 5 min - lojas, setores, tipos (rarely change)
-  DYNAMIC: 120,   // 2 min - equipamentos (moderate changes)
-  VOLATILE: 60,   // 1 min - documents (frequent changes)
+  STATIC: 300, // 5 min - lojas, setores, tipos (rarely change)
+  DYNAMIC: 120, // 2 min - equipamentos (moderate changes)
+  VOLATILE: 60, // 1 min - documents (frequent changes)
 };
 ```
 

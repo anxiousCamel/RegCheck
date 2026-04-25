@@ -1,6 +1,6 @@
 /**
  * Error Documentation Formatter
- * 
+ *
  * Formats parsed error codes into readable Markdown documentation.
  * Uses the markdown formatter utilities for consistent output.
  */
@@ -10,21 +10,21 @@ import type { ParsedError, ErrorCodeParserOutput } from './error-parser';
 
 /**
  * Format complete error documentation
- * 
+ *
  * @param output - Parsed error codes output
  * @returns Formatted Markdown documentation
  */
 export function formatErrorDocumentation(output: ErrorCodeParserOutput): string {
   let markdown = '';
-  
+
   // Introduction
   markdown += heading('Códigos de Erro', 1);
   markdown += 'Este documento lista todos os códigos de erro utilizados na API do RegCheck.\n\n';
-  
+
   // Error response format
   markdown += heading('Formato de Resposta de Erro', 2);
   markdown += 'Todas as respostas de erro seguem o formato padrão:\n\n';
-  
+
   const errorExample = {
     success: false,
     error: {
@@ -32,21 +32,21 @@ export function formatErrorDocumentation(output: ErrorCodeParserOutput): string 
       message: 'Descrição do erro',
     },
   };
-  
+
   markdown += codeBlock(JSON.stringify(errorExample, null, 2), 'json');
-  
+
   // Error codes table
   markdown += heading('Referência de Códigos de Erro', 2);
   markdown += formatErrorTable(output.data);
-  
+
   // Errors by status code
   markdown += heading('Erros por Status HTTP', 2);
   markdown += formatErrorsByStatus(output.data);
-  
+
   // Examples
   markdown += heading('Exemplos de Respostas de Erro', 2);
   markdown += formatErrorExamples(output.data);
-  
+
   return markdown;
 }
 
@@ -55,13 +55,13 @@ export function formatErrorDocumentation(output: ErrorCodeParserOutput): string 
  */
 export function formatErrorTable(errors: ParsedError[]): string {
   const headers = ['Código', 'Status HTTP', 'Mensagem', 'Contexto'];
-  const rows = errors.map(err => [
+  const rows = errors.map((err) => [
     err.code,
     err.httpStatus.toString(),
     err.message,
     err.context || '-',
   ]);
-  
+
   return table(headers, rows);
 }
 
@@ -70,7 +70,7 @@ export function formatErrorTable(errors: ParsedError[]): string {
  */
 export function formatErrorsByStatus(errors: ParsedError[]): string {
   let markdown = '';
-  
+
   // Group by status code
   const grouped = new Map<number, ParsedError[]>();
   for (const error of errors) {
@@ -79,26 +79,26 @@ export function formatErrorsByStatus(errors: ParsedError[]): string {
     }
     grouped.get(error.httpStatus)!.push(error);
   }
-  
+
   // Sort by status code
   const sortedStatuses = Array.from(grouped.keys()).sort((a, b) => a - b);
-  
+
   for (const status of sortedStatuses) {
     const statusErrors = grouped.get(status)!;
     const statusLabel = getStatusLabel(status);
-    
+
     markdown += heading(`${status} - ${statusLabel}`, 3);
-    
+
     for (const error of statusErrors) {
       markdown += `- **${error.code}**: ${error.message}\n`;
       if (error.context) {
         markdown += `  - *Contexto*: ${error.context}\n`;
       }
     }
-    
+
     markdown += '\n';
   }
-  
+
   return markdown;
 }
 
@@ -107,17 +107,17 @@ export function formatErrorsByStatus(errors: ParsedError[]): string {
  */
 export function formatErrorExamples(errors: ParsedError[]): string {
   let markdown = '';
-  
+
   // Select a few representative errors for examples
   const exampleErrors = [
-    errors.find(e => e.code === 'NOT_FOUND'),
-    errors.find(e => e.code === 'VALIDATION_ERROR'),
-    errors.find(e => e.code === 'TEMPLATE_NOT_PUBLISHED'),
+    errors.find((e) => e.code === 'NOT_FOUND'),
+    errors.find((e) => e.code === 'VALIDATION_ERROR'),
+    errors.find((e) => e.code === 'TEMPLATE_NOT_PUBLISHED'),
   ].filter(Boolean) as ParsedError[];
-  
+
   for (const error of exampleErrors) {
     markdown += heading(`Exemplo: ${error.code}`, 3);
-    
+
     const example = {
       success: false,
       error: {
@@ -125,10 +125,10 @@ export function formatErrorExamples(errors: ParsedError[]): string {
         message: error.message,
       },
     };
-    
+
     markdown += codeBlock(JSON.stringify(example, null, 2), 'json');
   }
-  
+
   return markdown;
 }
 
@@ -145,7 +145,7 @@ function getStatusLabel(status: number): string {
     422: 'Unprocessable Entity',
     500: 'Internal Server Error',
   };
-  
+
   return labels[status] || 'Unknown';
 }
 
@@ -154,14 +154,14 @@ function getStatusLabel(status: number): string {
  */
 export function formatError(error: ParsedError): string {
   let markdown = '';
-  
+
   markdown += `**${error.code}** (${error.httpStatus}): ${error.message}`;
-  
+
   if (error.context) {
     markdown += `\n- *Contexto*: ${error.context}`;
   }
-  
+
   markdown += '\n\n';
-  
+
   return markdown;
 }

@@ -50,7 +50,7 @@ describe('SetorService - Cache Integration', () => {
       expect(cacheService.wrap).toHaveBeenCalledWith(
         'setores:list:page:1:size:10',
         expect.any(Function),
-        300 // 5 minutes TTL
+        300, // 5 minutes TTL
       );
     });
 
@@ -70,7 +70,7 @@ describe('SetorService - Cache Integration', () => {
       expect(cacheService.wrap).toHaveBeenCalledWith(
         'setores:list:page:2:size:20',
         expect.any(Function),
-        300
+        300,
       );
     });
   });
@@ -94,7 +94,7 @@ describe('SetorService - Cache Integration', () => {
       expect(cacheService.wrap).toHaveBeenCalledWith(
         'setores:active',
         expect.any(Function),
-        300 // 5 minutes TTL
+        300, // 5 minutes TTL
       );
     });
   });
@@ -116,7 +116,7 @@ describe('SetorService - Cache Integration', () => {
       expect(cacheService.wrap).toHaveBeenCalledWith(
         'setor:test-id',
         expect.any(Function),
-        120 // 2 minutes TTL
+        120, // 2 minutes TTL
       );
     });
   });

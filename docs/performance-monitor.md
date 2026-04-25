@@ -35,8 +35,8 @@ Record database query execution times:
 performanceMonitor.recordQuery(
   requestId,
   'SELECT * FROM "Loja" WHERE id = ?',
-  45,  // duration in ms
-  { id: 123 }  // optional parameters
+  45, // duration in ms
+  { id: 123 }, // optional parameters
 );
 ```
 
@@ -46,11 +46,7 @@ Queries exceeding 100ms are automatically logged with full details:
 
 ```typescript
 // This query will trigger a warning log
-performanceMonitor.recordQuery(
-  requestId,
-  'SELECT * FROM "Equipamento" JOIN "Loja"',
-  150
-);
+performanceMonitor.recordQuery(requestId, 'SELECT * FROM "Equipamento" JOIN "Loja"', 150);
 
 // Console output:
 // [Slow Query] {
@@ -81,6 +77,7 @@ console.log(`Queries so far: ${currentMetrics.queryCount}`);
 Start tracking a new request.
 
 **Parameters:**
+
 - `requestId`: Unique identifier for the request (e.g., UUID)
 - `method`: HTTP method (GET, POST, etc.)
 - `path`: Request path (e.g., '/api/lojas')
@@ -90,12 +87,14 @@ Start tracking a new request.
 Record a database query execution.
 
 **Parameters:**
+
 - `requestId`: Request identifier
 - `query`: SQL query string or description
 - `duration`: Query execution time in milliseconds
 - `params`: Optional query parameters
 
 **Behavior:**
+
 - Increments query count for the request
 - If duration > 100ms, logs a warning with full details
 - Stores slow queries for later analysis
@@ -105,10 +104,12 @@ Record a database query execution.
 End request tracking and return final metrics.
 
 **Returns:**
+
 - `PerformanceMetrics` object with complete request data
 - `null` if request ID not found
 
 **Side effects:**
+
 - Removes request from tracking (cleanup)
 
 ##### `getMetrics(requestId: string): PerformanceMetrics | null`
@@ -116,6 +117,7 @@ End request tracking and return final metrics.
 Get current metrics without ending tracking.
 
 **Returns:**
+
 - `PerformanceMetrics` object with current data
 - `null` if request ID not found
 
@@ -127,11 +129,11 @@ Get current metrics without ending tracking.
 
 ```typescript
 interface PerformanceMetrics {
-  requestId: string;      // Unique request identifier
-  method: string;         // HTTP method
-  path: string;           // Request path
-  duration: number;       // Total request duration in ms
-  queryCount: number;     // Number of queries executed
+  requestId: string; // Unique request identifier
+  method: string; // HTTP method
+  path: string; // Request path
+  duration: number; // Total request duration in ms
+  queryCount: number; // Number of queries executed
   slowQueries: SlowQuery[]; // Array of slow queries
 }
 ```
@@ -140,10 +142,10 @@ interface PerformanceMetrics {
 
 ```typescript
 interface SlowQuery {
-  query: string;          // SQL query string
-  duration: number;       // Query duration in ms
-  params?: unknown;       // Optional query parameters
-  timestamp: Date;        // When the query was executed
+  query: string; // SQL query string
+  duration: number; // Query duration in ms
+  params?: unknown; // Optional query parameters
+  timestamp: Date; // When the query was executed
 }
 ```
 
@@ -158,26 +160,28 @@ import type { Request, Response, NextFunction } from 'express';
 
 export function performanceMiddleware(req: Request, res: Response, next: NextFunction) {
   const requestId = randomUUID();
-  
+
   // Attach requestId to request for use in other middleware
   (req as any).requestId = requestId;
-  
+
   // Start tracking
   performanceMonitor.startRequest(requestId, req.method, req.path);
-  
+
   // End tracking when response finishes
   res.on('finish', () => {
     const metrics = performanceMonitor.endRequest(requestId);
-    
+
     if (metrics) {
-      console.log(`[${req.method}] ${req.path} ${res.statusCode} ${metrics.duration}ms (${metrics.queryCount} queries)`);
-      
+      console.log(
+        `[${req.method}] ${req.path} ${res.statusCode} ${metrics.duration}ms (${metrics.queryCount} queries)`,
+      );
+
       if (metrics.slowQueries.length > 0) {
         console.warn(`Request had ${metrics.slowQueries.length} slow queries`);
       }
     }
   });
-  
+
   next();
 }
 ```
@@ -189,23 +193,16 @@ import { PrismaClient } from '@prisma/client';
 import { performanceMonitor } from './lib/performance';
 
 const prisma = new PrismaClient({
-  log: [
-    { level: 'query', emit: 'event' },
-  ],
+  log: [{ level: 'query', emit: 'event' }],
 });
 
 // Listen to query events
 prisma.$on('query', (e) => {
   // Get requestId from async context or request object
   const requestId = getCurrentRequestId(); // Implementation depends on your setup
-  
+
   if (requestId) {
-    performanceMonitor.recordQuery(
-      requestId,
-      e.query,
-      e.duration,
-      e.params
-    );
+    performanceMonitor.recordQuery(requestId, e.query, e.duration, e.params);
   }
 });
 ```
@@ -219,20 +216,15 @@ import { prisma } from './prisma';
 export class LojaService {
   async list(requestId: string, page: number, pageSize: number) {
     const startTime = Date.now();
-    
+
     const lojas = await prisma.loja.findMany({
       skip: (page - 1) * pageSize,
       take: pageSize,
     });
-    
+
     const duration = Date.now() - startTime;
-    performanceMonitor.recordQuery(
-      requestId,
-      'LojaService.list',
-      duration,
-      { page, pageSize }
-    );
-    
+    performanceMonitor.recordQuery(requestId, 'LojaService.list', duration, { page, pageSize });
+
     return lojas;
   }
 }
@@ -281,6 +273,7 @@ npm test src/lib/__tests__/performance.test.ts
 ```
 
 **Test coverage:**
+
 - ✅ Request lifecycle tracking
 - ✅ Query counting
 - ✅ Slow query detection (> 100ms)

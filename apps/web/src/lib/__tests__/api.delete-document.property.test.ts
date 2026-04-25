@@ -36,13 +36,10 @@ describe('ApiClient.deleteDocument — Property 3', () => {
     await fc.assert(
       fc.asyncProperty(errorStatusArb, errorMessageArb, async (status, message) => {
         vi.mocked(fetch).mockResolvedValueOnce(
-          new Response(
-            JSON.stringify({ success: false, error: { message } }),
-            {
-              status,
-              headers: { 'Content-Type': 'application/json' },
-            },
-          ),
+          new Response(JSON.stringify({ success: false, error: { message } }), {
+            status,
+            headers: { 'Content-Type': 'application/json' },
+          }),
         );
 
         const id = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';

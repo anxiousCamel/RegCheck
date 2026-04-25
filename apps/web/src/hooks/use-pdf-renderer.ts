@@ -76,10 +76,14 @@ export function usePdfRenderer(pdfUrl: string | null) {
   /** Render a specific page to a canvas element */
   const renderPage = useCallback(
     async (pageIndex: number, canvas: HTMLCanvasElement, scale: number) => {
-      const doc = pdfDocRef.current as { getPage: (n: number) => Promise<{
-        getViewport: (opts: { scale: number }) => { width: number; height: number };
-        render: (opts: { canvasContext: CanvasRenderingContext2D; viewport: unknown }) => { promise: Promise<void> };
-      }> } | null;
+      const doc = pdfDocRef.current as {
+        getPage: (n: number) => Promise<{
+          getViewport: (opts: { scale: number }) => { width: number; height: number };
+          render: (opts: { canvasContext: CanvasRenderingContext2D; viewport: unknown }) => {
+            promise: Promise<void>;
+          };
+        }>;
+      } | null;
       if (!doc) return;
 
       const page = await doc.getPage(pageIndex + 1);

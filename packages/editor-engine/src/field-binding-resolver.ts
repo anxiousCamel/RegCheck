@@ -38,11 +38,7 @@ export class FieldBindingResolver {
    * @param itemIndex   required for `eq.*` bindings; ignored for `global.*`
    * @returns resolved value or `undefined` if missing / invalid key
    */
-  static resolve(
-    bindingKey: string,
-    ctx: BindingContext,
-    itemIndex?: number,
-  ): string | undefined {
+  static resolve(bindingKey: string, ctx: BindingContext, itemIndex?: number): string | undefined {
     const parsed = this.parse(bindingKey);
     if (!parsed) return undefined;
 

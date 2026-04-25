@@ -16,9 +16,9 @@ Decidimos armazenar as coordenadas de cada campo como **frações da dimensão d
 
 ```ts
 interface FieldPosition {
-  x: number;      // fração da largura da página (0 = esquerda, 1 = direita)
-  y: number;      // fração da altura da página (0 = topo, 1 = base)
-  width: number;  // fração da largura da página
+  x: number; // fração da largura da página (0 = esquerda, 1 = direita)
+  y: number; // fração da altura da página (0 = topo, 1 = base)
+  width: number; // fração da largura da página
   height: number; // fração da altura da página
 }
 ```
@@ -40,7 +40,7 @@ Essa representação é independente de resolução, zoom e tamanho físico da p
 
 ```ts
 const absX = pos.x * pageWidth;
-const absY = pageHeight - (pos.y * pageHeight) - (pos.height * pageHeight);
+const absY = pageHeight - pos.y * pageHeight - pos.height * pageHeight;
 const absWidth = pos.width * pageWidth;
 const absHeight = pos.height * pageHeight;
 ```

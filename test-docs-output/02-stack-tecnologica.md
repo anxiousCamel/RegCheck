@@ -2,7 +2,7 @@
 
 Este documento descreve todas as tecnologias, bibliotecas e ferramentas utilizadas no projeto RegCheck.
 
-**Gerado em:** 23/04/2026, 12:20:17
+**Gerado em:** 25/04/2026, 12:16:41
 
 ## Backend
 

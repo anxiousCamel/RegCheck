@@ -7,7 +7,7 @@ const globalForPrisma = globalThis as unknown as {
 /**
  * Singleton Prisma client instance.
  * Prevents multiple instances during hot-reloading in development.
- * 
+ *
  * Configured with query event emission for performance monitoring.
  */
 export const prisma =

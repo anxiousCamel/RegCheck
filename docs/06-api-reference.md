@@ -48,16 +48,16 @@ Endpoints relacionados a **:id**.
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 204 | No Content - Request successful, no content returned |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                                            |
+| ------ | ---------------------------------------------------- |
+| 204    | No Content - Request successful, no content returned |
+| 404    | Not Found - Resource not found                       |
 
 **Exemplo:**
 
@@ -86,16 +86,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -124,16 +124,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -162,16 +162,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -200,16 +200,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -238,16 +238,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -276,16 +276,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -314,16 +314,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -354,16 +354,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -394,16 +394,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -434,16 +434,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -474,16 +474,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -514,16 +514,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -554,9 +554,9 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Corpo da Requisição:**
 
@@ -566,10 +566,10 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -603,9 +603,9 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Corpo da Requisição:**
 
@@ -615,10 +615,10 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -652,9 +652,9 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Corpo da Requisição:**
 
@@ -664,10 +664,10 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -701,9 +701,9 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Corpo da Requisição:**
 
@@ -713,10 +713,10 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -750,9 +750,9 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Corpo da Requisição:**
 
@@ -762,10 +762,10 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -799,9 +799,9 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Corpo da Requisição:**
 
@@ -811,10 +811,10 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -848,16 +848,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 400 | Bad Request - Validation error or business logic error |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                                              |
+| ------ | ------------------------------------------------------ |
+| 400    | Bad Request - Validation error or business logic error |
+| 404    | Not Found - Resource not found                         |
 
 **Exemplo:**
 
@@ -875,9 +875,9 @@ Content-Type: application/json
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Corpo da Requisição:**
 
@@ -887,10 +887,10 @@ Content-Type: application/json
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 201 | Created - Resource created successfully |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                               |
+| ------ | --------------------------------------- |
+| 201    | Created - Resource created successfully |
+| 404    | Not Found - Resource not found          |
 
 **Exemplo:**
 
@@ -924,16 +924,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
-| fieldId | Path | string | Sim | fieldId parameter |
+| Nome    | Localização | Tipo   | Obrigatório | Descrição         |
+| ------- | ----------- | ------ | ----------- | ----------------- |
+| id      | Path        | string | Sim         | id parameter      |
+| fieldId | Path        | string | Sim         | fieldId parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
+| Status | Descrição               |
+| ------ | ----------------------- |
+| 200    | OK - Request successful |
 
 **Exemplo:**
 
@@ -962,10 +962,10 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
-| fieldId | Path | string | Sim | fieldId parameter |
+| Nome    | Localização | Tipo   | Obrigatório | Descrição         |
+| ------- | ----------- | ------ | ----------- | ----------------- |
+| id      | Path        | string | Sim         | id parameter      |
+| fieldId | Path        | string | Sim         | fieldId parameter |
 
 **Corpo da Requisição:**
 
@@ -975,9 +975,9 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
+| Status | Descrição               |
+| ------ | ----------------------- |
+| 200    | OK - Request successful |
 
 **Exemplo:**
 
@@ -1011,9 +1011,9 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Corpo da Requisição:**
 
@@ -1023,9 +1023,9 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 201 | Created - Resource created successfully |
+| Status | Descrição                               |
+| ------ | --------------------------------------- |
+| 201    | Created - Resource created successfully |
 
 **Exemplo:**
 
@@ -1059,9 +1059,9 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Corpo da Requisição:**
 
@@ -1071,10 +1071,10 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 201 | Created - Resource created successfully |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                               |
+| ------ | --------------------------------------- |
+| 201    | Created - Resource created successfully |
+| 404    | Not Found - Resource not found          |
 
 **Exemplo:**
 
@@ -1113,16 +1113,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 201 | Created - Resource created successfully |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                               |
+| ------ | --------------------------------------- |
+| 201    | Created - Resource created successfully |
+| 404    | Not Found - Resource not found          |
 
 **Exemplo:**
 
@@ -1152,9 +1152,9 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Corpo da Requisição:**
 
@@ -1164,10 +1164,10 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 201 | Created - Resource created successfully |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                               |
+| ------ | --------------------------------------- |
+| 201    | Created - Resource created successfully |
+| 404    | Not Found - Resource not found          |
 
 **Exemplo:**
 
@@ -1201,16 +1201,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 201 | Created - Resource created successfully |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                               |
+| ------ | --------------------------------------- |
+| 201    | Created - Resource created successfully |
+| 404    | Not Found - Resource not found          |
 
 **Exemplo:**
 
@@ -1240,16 +1240,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -1280,16 +1280,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -1319,16 +1319,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -1358,16 +1358,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| id | Path | string | Sim | id parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição    |
+| ---- | ----------- | ------ | ----------- | ------------ |
+| id   | Path        | string | Sim         | id parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
-| 404 | Not Found - Resource not found |
+| Status | Descrição                      |
+| ------ | ------------------------------ |
+| 200    | OK - Request successful        |
+| 404    | Not Found - Resource not found |
 
 **Exemplo:**
 
@@ -1401,9 +1401,9 @@ Endpoints relacionados a **active**.
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
+| Status | Descrição               |
+| ------ | ----------------------- |
+| 200    | OK - Request successful |
 
 **Exemplo:**
 
@@ -1432,9 +1432,9 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
+| Status | Descrição               |
+| ------ | ----------------------- |
+| 200    | OK - Request successful |
 
 **Exemplo:**
 
@@ -1463,9 +1463,9 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
+| Status | Descrição               |
+| ------ | ----------------------- |
+| 200    | OK - Request successful |
 
 **Exemplo:**
 
@@ -1498,15 +1498,15 @@ Endpoints relacionados a **file**.
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| key | Query | string | Não | key query parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição           |
+| ---- | ----------- | ------ | ----------- | ------------------- |
+| key  | Query       | string | Não         | key query parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 400 | Bad Request - Validation error or business logic error |
+| Status | Descrição                                              |
+| ------ | ------------------------------------------------------ |
+| 400    | Bad Request - Validation error or business logic error |
 
 **Exemplo:**
 
@@ -1564,15 +1564,15 @@ Endpoints relacionados a **presigned**.
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| key | Query | string | Não | key query parameter |
+| Nome | Localização | Tipo   | Obrigatório | Descrição           |
+| ---- | ----------- | ------ | ----------- | ------------------- |
+| key  | Query       | string | Não         | key query parameter |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 400 | Bad Request - Validation error or business logic error |
+| Status | Descrição                                              |
+| ------ | ------------------------------------------------------ |
+| 400    | Bad Request - Validation error or business logic error |
 
 **Exemplo:**
 
@@ -1612,16 +1612,16 @@ Endpoints relacionados a **unknown**.
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| page | Query | number | Não | Page number (default: 1) |
-| pageSize | Query | number | Não | Items per page (default: 20, max: 100) |
+| Nome     | Localização | Tipo   | Obrigatório | Descrição                              |
+| -------- | ----------- | ------ | ----------- | -------------------------------------- |
+| page     | Query       | number | Não         | Page number (default: 1)               |
+| pageSize | Query       | number | Não         | Items per page (default: 20, max: 100) |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
+| Status | Descrição               |
+| ------ | ----------------------- |
+| 200    | OK - Request successful |
 
 **Exemplo:**
 
@@ -1658,16 +1658,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| page | Query | number | Não | Page number (default: 1) |
-| pageSize | Query | number | Não | Items per page (default: 20, max: 100) |
+| Nome     | Localização | Tipo   | Obrigatório | Descrição                              |
+| -------- | ----------- | ------ | ----------- | -------------------------------------- |
+| page     | Query       | number | Não         | Page number (default: 1)               |
+| pageSize | Query       | number | Não         | Items per page (default: 20, max: 100) |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
+| Status | Descrição               |
+| ------ | ----------------------- |
+| 200    | OK - Request successful |
 
 **Exemplo:**
 
@@ -1704,16 +1704,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| page | Query | number | Não | Page number (default: 1) |
-| pageSize | Query | number | Não | Items per page (default: 20, max: 100) |
+| Nome     | Localização | Tipo   | Obrigatório | Descrição                              |
+| -------- | ----------- | ------ | ----------- | -------------------------------------- |
+| page     | Query       | number | Não         | Page number (default: 1)               |
+| pageSize | Query       | number | Não         | Items per page (default: 20, max: 100) |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
+| Status | Descrição               |
+| ------ | ----------------------- |
+| 200    | OK - Request successful |
 
 **Exemplo:**
 
@@ -1750,16 +1750,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| page | Query | number | Não | Page number (default: 1) |
-| pageSize | Query | number | Não | Items per page (default: 20, max: 100) |
+| Nome     | Localização | Tipo   | Obrigatório | Descrição                              |
+| -------- | ----------- | ------ | ----------- | -------------------------------------- |
+| page     | Query       | number | Não         | Page number (default: 1)               |
+| pageSize | Query       | number | Não         | Items per page (default: 20, max: 100) |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
+| Status | Descrição               |
+| ------ | ----------------------- |
+| 200    | OK - Request successful |
 
 **Exemplo:**
 
@@ -1796,16 +1796,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| page | Query | number | Não | Page number (default: 1) |
-| pageSize | Query | number | Não | Items per page (default: 20, max: 100) |
+| Nome     | Localização | Tipo   | Obrigatório | Descrição                              |
+| -------- | ----------- | ------ | ----------- | -------------------------------------- |
+| page     | Query       | number | Não         | Page number (default: 1)               |
+| pageSize | Query       | number | Não         | Items per page (default: 20, max: 100) |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
+| Status | Descrição               |
+| ------ | ----------------------- |
+| 200    | OK - Request successful |
 
 **Exemplo:**
 
@@ -1842,16 +1842,16 @@ Resposta:
 
 **Parâmetros:**
 
-| Nome | Localização | Tipo | Obrigatório | Descrição |
-|---|---|---|---|---|
-| page | Query | number | Não | Page number (default: 1) |
-| pageSize | Query | number | Não | Items per page (default: 20, max: 100) |
+| Nome     | Localização | Tipo   | Obrigatório | Descrição                              |
+| -------- | ----------- | ------ | ----------- | -------------------------------------- |
+| page     | Query       | number | Não         | Page number (default: 1)               |
+| pageSize | Query       | number | Não         | Items per page (default: 20, max: 100) |
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 200 | OK - Request successful |
+| Status | Descrição               |
+| ------ | ----------------------- |
+| 200    | OK - Request successful |
 
 **Exemplo:**
 
@@ -1894,9 +1894,9 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 201 | Created - Resource created successfully |
+| Status | Descrição                               |
+| ------ | --------------------------------------- |
+| 201    | Created - Resource created successfully |
 
 **Exemplo:**
 
@@ -1937,9 +1937,9 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 201 | Created - Resource created successfully |
+| Status | Descrição                               |
+| ------ | --------------------------------------- |
+| 201    | Created - Resource created successfully |
 
 **Exemplo:**
 
@@ -1979,9 +1979,9 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 201 | Created - Resource created successfully |
+| Status | Descrição                               |
+| ------ | --------------------------------------- |
+| 201    | Created - Resource created successfully |
 
 **Exemplo:**
 
@@ -2021,9 +2021,9 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 201 | Created - Resource created successfully |
+| Status | Descrição                               |
+| ------ | --------------------------------------- |
+| 201    | Created - Resource created successfully |
 
 **Exemplo:**
 
@@ -2063,10 +2063,10 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 201 | Created - Resource created successfully |
-| 400 | Bad Request - Validation error or business logic error |
+| Status | Descrição                                              |
+| ------ | ------------------------------------------------------ |
+| 201    | Created - Resource created successfully                |
+| 400    | Bad Request - Validation error or business logic error |
 
 **Exemplo:**
 
@@ -2107,9 +2107,9 @@ Resposta:
 
 **Respostas:**
 
-| Status | Descrição |
-|---|---|
-| 201 | Created - Resource created successfully |
+| Status | Descrição                               |
+| ------ | --------------------------------------- |
+| 201    | Created - Resource created successfully |
 
 **Exemplo:**
 
@@ -2143,4 +2143,3 @@ Resposta:
 
 - Código fonte das rotas: `apps/api/src/routes/`
 - Schemas de validação: Zod schemas nos arquivos de rota
-

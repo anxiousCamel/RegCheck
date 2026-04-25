@@ -7,7 +7,6 @@ import {
   saveDraftFields,
   markFieldsSynced,
   savePendingBlob,
-  getPendingBlob,
   getAllPendingBlobs,
   deletePendingBlob,
   draftKey,
@@ -33,6 +32,11 @@ interface ServerField {
   fileKey?: string;
 }
 
+/** Builds an object with `fileKey` only when the value is a defined string. */
+function optionalFileKey(fileKey: string | undefined): { fileKey: string } | Record<string, never> {
+  return fileKey !== undefined ? { fileKey } : {};
+}
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -45,10 +49,7 @@ interface ServerField {
  * All writes go to IndexedDB immediately.
  * When online, a background sync uploads pending blobs and saves to the API.
  */
-export function useDocumentDraft(
-  documentId: string,
-  serverFields?: ServerField[],
-) {
+export function useDocumentDraft(documentId: string, serverFields?: ServerField[]) {
   const [fields, setFields] = useState<Map<string, FieldState>>(new Map());
   const [isOnline, setIsOnline] = useState(
     typeof navigator !== 'undefined' ? navigator.onLine : true,
@@ -72,7 +73,7 @@ export function useDocumentDraft(
   const hashServerFields = (fields: ServerField[] | undefined): string => {
     if (!fields || fields.length === 0) return '';
     return fields
-      .map(f => `${f.fieldId}:${f.itemIndex}:${f.value}:${f.fileKey || ''}`)
+      .map((f) => `${f.fieldId}:${f.itemIndex}:${f.value}:${f.fileKey || ''}`)
       .sort()
       .join('|');
   };
@@ -93,7 +94,7 @@ export function useDocumentDraft(
             const mapKey = `${r.fieldId}_${r.itemIndex}`;
             map.set(mapKey, {
               value: r.value,
-              fileKey: r.fileKey,
+              ...optionalFileKey(r.fileKey),
               synced: r.synced,
             });
           }
@@ -127,14 +128,14 @@ export function useDocumentDraft(
 
           for (const f of serverFields) {
             const mapKey = `${f.fieldId}_${f.itemIndex}`;
-            map.set(mapKey, { value: f.value, fileKey: f.fileKey, synced: true });
+            map.set(mapKey, { value: f.value, ...optionalFileKey(f.fileKey), synced: true });
             records.push({
               key: draftKey(documentId, f.fieldId, f.itemIndex),
               documentId,
               fieldId: f.fieldId,
               itemIndex: f.itemIndex,
               value: String(f.value),
-              fileKey: f.fileKey,
+              ...optionalFileKey(f.fileKey),
               synced: true,
               updatedAt: now,
             });
@@ -163,10 +164,10 @@ export function useDocumentDraft(
     const newCount = serverFields.length;
     const prevHash = lastServerHashRef.current;
     const newHash = hashServerFields(serverFields);
-    
+
     // Trigger merge when count changes OR hash changes (values changed)
     if ((newCount === prevCount && newHash === prevHash) || newCount === 0) return;
-    
+
     lastServerCountRef.current = newCount;
     lastServerHashRef.current = newHash;
 
@@ -183,14 +184,14 @@ export function useDocumentDraft(
 
           // Only overwrite if: no local data, or local data is synced (not user-modified)
           if (!existing || existing.synced) {
-            map.set(mapKey, { value: f.value, fileKey: f.fileKey, synced: true });
+            map.set(mapKey, { value: f.value, ...optionalFileKey(f.fileKey), synced: true });
             records.push({
               key: draftKey(documentId, f.fieldId, f.itemIndex),
               documentId,
               fieldId: f.fieldId,
               itemIndex: f.itemIndex,
               value: String(f.value),
-              fileKey: f.fileKey,
+              ...optionalFileKey(f.fileKey),
               synced: true,
               updatedAt: now,
             });
@@ -203,7 +204,11 @@ export function useDocumentDraft(
           if (records.length > 0) {
             await saveDraftFields(records);
           }
-          console.debug('[Draft] Merged', records.length, 'fields from server after populate/select');
+          console.debug(
+            '[Draft] Merged',
+            records.length,
+            'fields from server after populate/select',
+          );
         }
       } catch (err) {
         console.error('[Draft] Failed to merge server data:', err);
@@ -228,7 +233,7 @@ export function useDocumentDraft(
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── 3. Update a text / checkbox / signature field ──────────────────────────
@@ -250,7 +255,7 @@ export function useDocumentDraft(
           fieldId,
           itemIndex,
           value: String(value),
-          fileKey: fieldsRef.current.get(mapKey)?.fileKey,
+          ...optionalFileKey(fieldsRef.current.get(mapKey)?.fileKey),
           synced: false,
           updatedAt: Date.now(),
         });
@@ -300,11 +305,10 @@ export function useDocumentDraft(
           setFields((prev) => {
             const next = new Map(prev);
             const existing = prev.get(mapKey);
+            const { pendingBlob: _pb, pendingFileName: _pf, ...rest } = existing ?? { value: '', synced: false };
             next.set(mapKey, {
-              ...existing,
+              ...rest,
               fileKey: result.fileKey,
-              pendingBlob: undefined,
-              pendingFileName: undefined,
               synced: false,
             });
             return next;
@@ -341,22 +345,23 @@ export function useDocumentDraft(
       const pendingBlobs = await getAllPendingBlobs(documentId);
       for (const pb of pendingBlobs) {
         try {
-          const result = await api.uploadImage(pb.blob, 'image');
+          const blobAsFile = new File([pb.blob], pb.fileName, { type: pb.blob.type });
+          const result = await api.uploadImage(blobAsFile, 'image');
           const parts = pb.key.split('/');
           if (parts.length === 3) {
-            const [, fieldId, rawIdx] = parts;
+            const fieldId = parts[1]!;
+            const rawIdx = parts[2]!;
             const itemIndex = Number(rawIdx);
             const mapKey = `${fieldId}_${itemIndex}`;
 
             setFields((prev) => {
               const next = new Map(prev);
               const existing = prev.get(mapKey);
+              const { pendingBlob: _pb, pendingFileName: _pf, ...rest } = existing ?? { value: '' as string | boolean, synced: false };
               next.set(mapKey, {
-                ...existing,
-                value: existing?.value ?? '',
+                ...rest,
+                value: rest.value ?? '',
                 fileKey: result.fileKey,
-                pendingBlob: undefined,
-                pendingFileName: undefined,
                 synced: false,
               });
               return next;

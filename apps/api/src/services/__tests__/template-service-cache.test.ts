@@ -52,7 +52,7 @@ describe('TemplateService - Cache Integration', () => {
       expect(cacheService.wrap).toHaveBeenCalledWith(
         'templates:list:page:1:size:10',
         expect.any(Function),
-        300 // 5 minutes TTL
+        300, // 5 minutes TTL
       );
     });
 
@@ -72,7 +72,7 @@ describe('TemplateService - Cache Integration', () => {
       expect(cacheService.wrap).toHaveBeenCalledWith(
         'templates:list:page:2:size:20',
         expect.any(Function),
-        300
+        300,
       );
     });
   });
@@ -102,7 +102,7 @@ describe('TemplateService - Cache Integration', () => {
       expect(cacheService.wrap).toHaveBeenCalledWith(
         'template:test-id',
         expect.any(Function),
-        120 // 2 minutes TTL
+        120, // 2 minutes TTL
       );
     });
   });
@@ -129,7 +129,7 @@ describe('TemplateService - Cache Integration', () => {
 
       await TemplateService.create(
         { name: 'New Template', description: 'New Description' },
-        'pdf-id'
+        'pdf-id',
       );
 
       expect(cacheService.delPattern).toHaveBeenCalledWith('templates:list:*');

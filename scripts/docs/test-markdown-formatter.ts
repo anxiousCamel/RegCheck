@@ -3,14 +3,7 @@
  * Runs basic tests to verify functionality
  */
 
-import {
-  heading,
-  codeBlock,
-  table,
-  list,
-  link,
-  mermaidDiagram,
-} from './markdown-formatter';
+import { heading, codeBlock, table, list, link, mermaidDiagram } from './markdown-formatter';
 
 let passed = 0;
 let failed = 0;
@@ -27,11 +20,9 @@ function test(name: string, fn: () => void) {
   }
 }
 
-function assertEquals(actual: string, expected: string, message?: string) {
+function assertEquals(actual: unknown, expected: unknown, message?: string) {
   if (actual !== expected) {
-    throw new Error(
-      message || `Expected:\n${expected}\n\nActual:\n${actual}`
-    );
+    throw new Error(message || `Expected:\n${String(expected)}\n\nActual:\n${String(actual)}`);
   }
 }
 
@@ -66,10 +57,7 @@ test('heading throws error for invalid level', () => {
 
 // Test codeBlock
 test('codeBlock with typescript', () => {
-  assertEquals(
-    codeBlock('const x = 1;', 'typescript'),
-    '```typescript\nconst x = 1;\n```\n\n'
-  );
+  assertEquals(codeBlock('const x = 1;', 'typescript'), '```typescript\nconst x = 1;\n```\n\n');
 });
 
 test('codeBlock with multi-line code', () => {
@@ -81,7 +69,10 @@ test('codeBlock with multi-line code', () => {
 // Test table
 test('table with headers and rows', () => {
   const headers = ['Name', 'Type'];
-  const rows = [['id', 'string'], ['name', 'string']];
+  const rows = [
+    ['id', 'string'],
+    ['name', 'string'],
+  ];
   const expected = '| Name | Type |\n|---|---|\n| id | string |\n| name | string |\n\n';
   assertEquals(table(headers, rows), expected);
 });
@@ -115,17 +106,11 @@ test('list defaults to unordered', () => {
 
 // Test link
 test('internal link', () => {
-  assertEquals(
-    link('Architecture', './01-arquitetura.md'),
-    '[Architecture](./01-arquitetura.md)'
-  );
+  assertEquals(link('Architecture', './01-arquitetura.md'), '[Architecture](./01-arquitetura.md)');
 });
 
 test('external link', () => {
-  assertEquals(
-    link('GitHub', 'https://github.com'),
-    '[GitHub](https://github.com)'
-  );
+  assertEquals(link('GitHub', 'https://github.com'), '[GitHub](https://github.com)');
 });
 
 // Test mermaidDiagram

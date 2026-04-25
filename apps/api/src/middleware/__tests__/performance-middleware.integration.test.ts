@@ -17,7 +17,7 @@ describe('Performance Middleware Integration', () => {
 
     app.get('/api/slow', async (_req: Request, res: Response) => {
       // Simulate slow endpoint
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       res.json({ message: 'slow response' });
     });
 
@@ -40,10 +40,10 @@ describe('Performance Middleware Integration', () => {
     const response = await request(app).get('/api/slow');
 
     expect(response.status).toBe(200);
-    
+
     const responseTime = response.headers['x-response-time'];
     const duration = parseInt(responseTime.replace('ms', ''));
-    
+
     // Should be at least 100ms due to the delay
     expect(duration).toBeGreaterThanOrEqual(100);
   });
@@ -57,13 +57,11 @@ describe('Performance Middleware Integration', () => {
   });
 
   it('should handle multiple concurrent requests', async () => {
-    const requests = Array.from({ length: 10 }, () =>
-      request(app).get('/api/test')
-    );
+    const requests = Array.from({ length: 10 }, () => request(app).get('/api/test'));
 
     const responses = await Promise.all(requests);
 
-    responses.forEach(response => {
+    responses.forEach((response) => {
       expect(response.status).toBe(200);
       expect(response.headers['x-response-time']).toBeDefined();
     });

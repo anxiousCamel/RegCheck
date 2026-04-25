@@ -1,13 +1,13 @@
 /**
  * Generator Types
- * 
+ *
  * Defines the standard contract for all document generators.
  * Generators are pure functions that transform parsed data into Markdown strings.
  */
 
 /**
  * Standard document generator contract
- * 
+ *
  * @template T - The input type (parser output)
  * @returns Markdown string
  */
